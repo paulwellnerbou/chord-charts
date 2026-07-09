@@ -726,12 +726,32 @@ function flashButton(btnEl, text){
 }
 
 let audioCtx = null;
+let silentLoopEl = null;
+
+// iOS routes Web Audio through the "ambient" audio session, which the
+// ring/silent hardware switch mutes — so playback is silent on iPhones in
+// silent mode even though the same code sounds fine on Android. Reclassify
+// the session as "playback" (like music apps) so the switch doesn't apply.
+function unlockIOSAudioSession(){
+  if(navigator.audioSession){
+    navigator.audioSession.type = 'playback';
+    return;
+  }
+  // Older iOS without the AudioSession API: a playing HTMLMediaElement flips
+  // the session to "playback", so keep a silent 0.1s WAV looping.
+  if(!silentLoopEl){
+    silentLoopEl = new Audio('data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==');
+    silentLoopEl.loop = true;
+  }
+  if(silentLoopEl.paused) silentLoopEl.play().catch(()=>{});
+}
+
 function getAudioCtx(){
   if(!audioCtx){
     const AC = window.AudioContext || window.webkitAudioContext;
     audioCtx = new AC();
   }
-  if(audioCtx.state === 'suspended') audioCtx.resume();
+  unlockIOSAudioSession();
   return audioCtx;
 }
 
@@ -739,6 +759,17 @@ function midiToFreq(midi){ return 440 * Math.pow(2, (midi-69)/12); }
 
 function playNote(midi, opts){
   const ctx = getAudioCtx();
+  // resume() covers both 'suspended' and iOS's 'interrupted' state (after a
+  // call/Siri). It's async and the clock is frozen until it completes, so
+  // schedule the note only once the context is actually running.
+  if(ctx.state !== 'running'){
+    ctx.resume().then(()=> scheduleNote(ctx, midi, opts)).catch(()=>{});
+    return;
+  }
+  scheduleNote(ctx, midi, opts);
+}
+
+function scheduleNote(ctx, midi, opts){
   const delay = (opts && opts.delay) || 0;
   const peak = (opts && opts.gain) || 0.22;
   const t0 = ctx.currentTime + delay;
