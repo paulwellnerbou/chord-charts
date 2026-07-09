@@ -735,7 +735,9 @@ function getAudioCtx(){
     // ring/silent hardware switch mutes — so playback is silent on iPhones in
     // silent mode even though the same code sounds fine on Android. Reclassify
     // the session as "playback" (like music apps) so the switch doesn't apply.
-    if(navigator.audioSession) navigator.audioSession.type = 'playback';
+    try{
+      if(navigator.audioSession) navigator.audioSession.type = 'playback';
+    }catch(e){ /* keep playback working even if the session can't be reclassified */ }
   }
   return audioCtx;
 }
