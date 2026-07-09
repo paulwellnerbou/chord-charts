@@ -264,6 +264,19 @@
   .copy-btn.is-flash .copy-btn-icon{ opacity:0; transform:scale(.7); }
   .copy-btn.is-flash .copy-btn-label{ opacity:1; transform:scale(1); }
   .copy-btn svg{ width:15px; height:15px; stroke:currentColor; fill:none; }
+  .card.has-alt-voicings{ padding-bottom:24px; }
+  .voicing-nav{
+    position:absolute; left:50%; bottom:4px; transform:translateX(-50%);
+    display:flex; align-items:center; gap:4px;
+    opacity:0; transition:opacity .18s ease;
+  }
+  .card:hover .voicing-nav, .voicing-nav:focus-within{ opacity:1; }
+  .voicing-nav-btn{
+    width:20px; height:20px; padding:0; border:none; background:transparent; color:var(--ink);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .voicing-nav-btn:focus-visible{ outline:2px solid var(--heading); outline-offset:1px; }
+  .voicing-nav-count{ font-size:10.5px; color:var(--ink-soft); min-width:26px; text-align:center; }
   @media print {
     body{ padding:16px; background:#fff !important; }
     .grid{ gap:12px; }
@@ -299,6 +312,16 @@
         <span class="switch-track"><span class="switch-thumb"></span></span>
         <span>Highlight root note</span>
       </label>
+      <span class="switch-wrap" id="maxFretInfoWrap">
+        <div class="stepper" id="maxFretStepper" title="Highest fret considered when searching for a chord voicing. Raise it to unlock higher-position fingerings and more alternate voicings; lower it to keep chords near the nut.">
+          <span class="stepper-label">Max fret</span>
+          <button type="button" class="stepper-btn" id="maxFretMinus" aria-label="Lower max fret">−</button>
+          <span class="stepper-value" id="maxFretValue" aria-live="polite">15</span>
+          <button type="button" class="stepper-btn" id="maxFretPlus" aria-label="Higher max fret">+</button>
+        </div>
+        <button type="button" class="info-btn" id="maxFretInfoBtn" aria-label="About the max fret control" aria-expanded="false">i</button>
+        <div class="info-popover" id="maxFretInfoPopover" role="tooltip">Highest fret considered when searching for a chord voicing. Raise it to unlock higher-position fingerings and more alternate voicings; lower it to keep chords near the nut.</div>
+      </span>
       <div class="actions-right">
         <button id="generateBtn">Generate</button>
         <button id="printBtn" class="secondary">Print</button>
@@ -356,7 +379,7 @@
 
   <p class="hint no-print">
     Comma-separated chord names. Supported qualities: major, m, 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9).
-    Slash/inversion chords work too, e.g. Am/C, D7/F#, G/B. Hover a tile to copy it as an image.
+    Slash/inversion chords work too, e.g. Am/C, D7/F#, G/B. Hover a tile to copy it as an image, or to reveal ‹ › arrows for alternate fingerings when more than one is available.
     Click a fingering dot to hear that note, or the chord name to hear the whole chord.
   </p>
   <div class="error no-print" id="errorBox"></div>
@@ -366,7 +389,9 @@
 
 <script>
 const NOTE_PC = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
-const MAX_FRET = 11;
+const MAX_FRET_MIN = 5, MAX_FRET_MAX = 24, MAX_FRET_DEFAULT = 15;
+let maxFretValue = MAX_FRET_DEFAULT;
+const MAX_VOICINGS = 15;
 
 const CHORD_TONES = {
   major:[0,4,7], minor:[0,3,7],
@@ -493,17 +518,17 @@ function parseChord(input){
   return { label: raw, requiredPCs, bassPC, rootPC, omitted };
 }
 
-function findVoicing(requiredPCs, bassPC, tuning){
+function findVoicings(requiredPCs, bassPC, tuning, maxFret, maxCount){
   const perString = tuning.openPCs.map((openPC,i)=>{
     const opts = [];
-    for(let f=0; f<=MAX_FRET; f++){
+    for(let f=0; f<=maxFret; f++){
       opts.push({ fret:f, pc:(openPC+f)%12, abs: tuning.openAbs[i]+f });
     }
     opts.push({ fret:null, pc:null, abs:null });
     return opts;
   });
 
-  let best=null, bestCost=Infinity;
+  const candidates = [];
   for(const o0 of perString[0]) for(const o1 of perString[1])
   for(const o2 of perString[2]) for(const o3 of perString[3]){
     const combo=[o0,o1,o2,o3];
@@ -519,15 +544,16 @@ function findVoicing(requiredPCs, bassPC, tuning){
     const mutedCount = 4-active.length;
     const extraCount = active.filter(o=>!requiredPCs.includes(o.pc)).length;
     const frettedNZ = active.filter(o=>o.fret>0).map(o=>o.fret);
-    const maxFret = frettedNZ.length ? Math.max(...frettedNZ) : 0;
+    const maxFretUsed = frettedNZ.length ? Math.max(...frettedNZ) : 0;
     const minFret = frettedNZ.length ? Math.min(...frettedNZ) : 0;
-    const span = frettedNZ.length>1 ? (maxFret-minFret) : 0;
+    const span = frettedNZ.length>1 ? (maxFretUsed-minFret) : 0;
     const openCount = active.filter(o=>o.fret===0).length;
     const sumFrets = frettedNZ.reduce((a,b)=>a+b,0);
-    const cost = mutedCount*1000 + extraCount*300 + span*15 + maxFret*5 - openCount*5 + sumFrets*1;
-    if(cost < bestCost){ bestCost = cost; best = combo.map(o=>o.fret); }
+    const cost = mutedCount*1000 + extraCount*300 + span*15 + maxFretUsed*5 - openCount*5 + sumFrets*1;
+    candidates.push({ frets: combo.map(o=>o.fret), cost });
   }
-  return best;
+  candidates.sort((a,b)=>a.cost-b.cost);
+  return candidates.slice(0, maxCount).map(c=>c.frets);
 }
 
 const XS = [30,70,110,150];
@@ -623,6 +649,8 @@ function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openP
 
 const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
 const PLAY_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+const CHEVRON_LEFT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>`;
+const CHEVRON_RIGHT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
 
 async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
   const colors = currentColors();
@@ -725,6 +753,39 @@ function playChord(midiNotes){
   midiNotes.forEach((m,i)=> playNote(m, { delay:i*0.025, gain:0.18 }));
 }
 
+function computeFretWindow(frets){
+  let fretMax = 3;
+  frets.forEach(f => { if(f && f>fretMax) fretMax = f; });
+  const frettedNZ = frets.filter(f => f && f>0);
+  const minFret = frettedNZ.length ? Math.min(...frettedNZ) : 0;
+  const startFret = minFret > shortenThreshold ? minFret-2 : 0;
+  return { fretMax, startFret };
+}
+
+function bindNoteDotHandlers(container){
+  container.querySelectorAll('.note-dot').forEach(dot=>{
+    const playThisNote = e=>{ e.stopPropagation(); playNote(parseFloat(dot.dataset.abs)); };
+    dot.addEventListener('click', playThisNote);
+    dot.addEventListener('keydown', e=>{
+      if(e.key==='Enter' || e.key===' '){ e.preventDefault(); playThisNote(e); }
+    });
+  });
+}
+
+function updateNavCount(card, result){
+  const countEl = card.querySelector('.voicing-nav-count');
+  if(countEl) countEl.textContent = `${result.altIndex+1} / ${result.voicings.length}`;
+}
+
+function updateCardDiagram(card, result, tuning, colors, highlightRoot){
+  const frets = result.voicings[result.altIndex];
+  const { fretMax, startFret } = computeFretWindow(frets);
+  const diagramSlot = card.querySelector('.diagram-slot');
+  diagramSlot.innerHTML = chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret);
+  bindNoteDotHandlers(diagramSlot);
+  updateNavCount(card, result);
+}
+
 let selectedTuningId = TUNINGS[0].id;
 function currentTuning(){
   return TUNINGS.find(t=>t.id===selectedTuningId) || TUNINGS[0];
@@ -756,6 +817,7 @@ function saveSettings(){
     masonry: document.getElementById('masonryToggle').checked,
     shortenThreshold: shortenThreshold,
     showOmitted: document.getElementById('omitToggle').checked,
+    maxFret: maxFretValue,
   };
   try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(err){}
 }
@@ -839,6 +901,22 @@ function stepThreshold(delta){
   generate();
 }
 
+function updateMaxFretUI(){
+  document.getElementById('maxFretValue').textContent = String(maxFretValue);
+  document.getElementById('maxFretMinus').disabled = maxFretValue === MAX_FRET_MIN;
+  document.getElementById('maxFretPlus').disabled = maxFretValue === MAX_FRET_MAX;
+}
+
+function stepMaxFret(delta){
+  maxFretValue = Math.min(MAX_FRET_MAX, Math.max(MAX_FRET_MIN, maxFretValue + delta));
+  updateMaxFretUI();
+  const valueEl = document.getElementById('maxFretValue');
+  valueEl.classList.remove('bump');
+  void valueEl.offsetWidth;
+  valueEl.classList.add('bump');
+  generate();
+}
+
 function generate(){
   const tuning = currentTuning();
   document.getElementById('pageTitle').textContent = `${tuning.name} chords — ${tuning.tuningLabel} tuning`;
@@ -853,9 +931,9 @@ function generate(){
   tokens.forEach(tok=>{
     const parsed = parseChord(tok);
     if(parsed.error){ errors.push(parsed.error); return; }
-    const frets = findVoicing(parsed.requiredPCs, parsed.bassPC, tuning);
-    if(!frets){ errors.push(`No practical voicing found for "${tok}"`); return; }
-    results.push({ label: parsed.label, frets, rootPC: parsed.rootPC, omitted: parsed.omitted });
+    const voicings = findVoicings(parsed.requiredPCs, parsed.bassPC, tuning, maxFretValue, MAX_VOICINGS);
+    if(!voicings.length){ errors.push(`No practical voicing found for "${tok}"`); return; }
+    results.push({ label: parsed.label, voicings, altIndex: 0, rootPC: parsed.rootPC, omitted: parsed.omitted });
   });
 
   errorBox.textContent = errors.join('  ·  ');
@@ -863,40 +941,51 @@ function generate(){
   const highlightRoot = document.getElementById('rootToggle').checked;
   const showOmitted = document.getElementById('omitToggle').checked;
 
-  results.forEach(r=>{
-    let fretMax = 3;
-    r.frets.forEach(f => { if(f && f>fretMax) fretMax = f; });
-    const frettedNZ = r.frets.filter(f => f && f>0);
-    const minFret = frettedNZ.length ? Math.min(...frettedNZ) : 0;
-    const startFret = minFret > shortenThreshold ? minFret-2 : 0;
+  results.forEach(result=>{
+    const { fretMax, startFret } = computeFretWindow(result.voicings[result.altIndex]);
 
-    const omitHTML = (showOmitted && r.omitted) ? `<p class="omit-note">${escapeXML(r.omitted.label)} (${escapeXML(r.omitted.note)}) omitted</p>` : '';
+    const omitHTML = (showOmitted && result.omitted) ? `<p class="omit-note">${escapeXML(result.omitted.label)} (${escapeXML(result.omitted.note)}) omitted</p>` : '';
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(r.label)} chord" aria-label="Play ${escapeXML(r.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(r.label)} chord">${escapeXML(r.label)}</h2><span class="chord-title-spacer no-print" aria-hidden="true"></span></div>${chordSVG(r.label, r.frets, fretMax, tuning.labels, colors, tuning.openPCs, r.rootPC, highlightRoot, tuning.openAbs, startFret)}${omitHTML}`;
+    card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${escapeXML(result.label)}</h2><span class="chord-title-spacer no-print" aria-hidden="true"></span></div><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret)}</div>${omitHTML}`;
+
+    bindNoteDotHandlers(card.querySelector('.diagram-slot'));
 
     const copyBtn = document.createElement('button');
     copyBtn.className = 'copy-btn no-print';
-    copyBtn.title = `Copy ${r.label} as image`;
-    copyBtn.setAttribute('aria-label', `Copy ${r.label} chord as image`);
+    copyBtn.title = `Copy ${result.label} as image`;
+    copyBtn.setAttribute('aria-label', `Copy ${result.label} chord as image`);
     copyBtn.innerHTML = `<span class="copy-btn-icon">${COPY_ICON}</span><span class="copy-btn-label"></span>`;
-    copyBtn.addEventListener('click', ()=> copyChordAsImage(r.label, r.frets, fretMax, tuning.labels, tuning.openPCs, r.rootPC, startFret, copyBtn, showOmitted ? r.omitted : null));
+    copyBtn.addEventListener('click', ()=>{
+      const frets = result.voicings[result.altIndex];
+      const window_ = computeFretWindow(frets);
+      copyChordAsImage(result.label, frets, window_.fretMax, tuning.labels, tuning.openPCs, result.rootPC, window_.startFret, copyBtn, showOmitted ? result.omitted : null);
+    });
     card.appendChild(copyBtn);
 
-    const playChordHere = ()=> playChord(chordAbsNotes(r.frets, tuning.openAbs));
+    const playChordHere = ()=> playChord(chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs));
     const heading = card.querySelector('h2');
     heading.addEventListener('click', playChordHere);
     heading.addEventListener('keydown', e=>{
       if(e.key==='Enter' || e.key===' '){ e.preventDefault(); playChordHere(); }
     });
     card.querySelector('.play-chord-btn').addEventListener('click', e=>{ e.stopPropagation(); playChordHere(); });
-    card.querySelectorAll('.note-dot').forEach(dot=>{
-      const playThisNote = e=>{ e.stopPropagation(); playNote(parseFloat(dot.dataset.abs)); };
-      dot.addEventListener('click', playThisNote);
-      dot.addEventListener('keydown', e=>{
-        if(e.key==='Enter' || e.key===' '){ e.preventDefault(); playThisNote(e); }
-      });
-    });
+
+    if(result.voicings.length > 1){
+      card.classList.add('has-alt-voicings');
+      const nav = document.createElement('div');
+      nav.className = 'voicing-nav no-print';
+      nav.innerHTML = `<button type="button" class="voicing-nav-btn voicing-prev" aria-label="Previous voicing for ${escapeXML(result.label)}">${CHEVRON_LEFT}</button><span class="voicing-nav-count"></span><button type="button" class="voicing-nav-btn voicing-next" aria-label="Next voicing for ${escapeXML(result.label)}">${CHEVRON_RIGHT}</button>`;
+      card.appendChild(nav);
+      const cycleVoicing = delta=>{
+        const n = result.voicings.length;
+        result.altIndex = (result.altIndex + delta + n) % n;
+        updateCardDiagram(card, result, tuning, colors, highlightRoot);
+      };
+      nav.querySelector('.voicing-prev').addEventListener('click', ()=> cycleVoicing(-1));
+      nav.querySelector('.voicing-next').addEventListener('click', ()=> cycleVoicing(1));
+      updateNavCount(card, result);
+    }
 
     cardEls.push(card);
   });
@@ -1033,6 +1122,25 @@ thresholdInfoBtn.addEventListener('keydown', e=>{
   if(e.key==='Escape') setThresholdInfoOpen(false);
 });
 
+const maxFretInfoWrap = document.getElementById('maxFretInfoWrap');
+const maxFretInfoBtn = document.getElementById('maxFretInfoBtn');
+function setMaxFretInfoOpen(open){
+  maxFretInfoWrap.classList.toggle('open', open);
+  maxFretInfoBtn.setAttribute('aria-expanded', String(open));
+  if(open) document.addEventListener('click', onMaxFretInfoDocClick);
+  else document.removeEventListener('click', onMaxFretInfoDocClick);
+}
+function onMaxFretInfoDocClick(e){
+  if(!maxFretInfoWrap.contains(e.target)) setMaxFretInfoOpen(false);
+}
+maxFretInfoBtn.addEventListener('click', e=>{
+  e.stopPropagation();
+  setMaxFretInfoOpen(!maxFretInfoWrap.classList.contains('open'));
+});
+maxFretInfoBtn.addEventListener('keydown', e=>{
+  if(e.key==='Escape') setMaxFretInfoOpen(false);
+});
+
 const savedSettings = loadSettings();
 
 if(typeof savedSettings.chordInput === 'string'){
@@ -1064,6 +1172,9 @@ if(savedSettings.columns === 'auto' || (Number.isInteger(savedSettings.columns) 
 }
 if(Number.isInteger(savedSettings.shortenThreshold) && savedSettings.shortenThreshold >= THRESHOLD_MIN && savedSettings.shortenThreshold <= THRESHOLD_MAX){
   shortenThreshold = savedSettings.shortenThreshold;
+}
+if(Number.isInteger(savedSettings.maxFret) && savedSettings.maxFret >= MAX_FRET_MIN && savedSettings.maxFret <= MAX_FRET_MAX){
+  maxFretValue = savedSettings.maxFret;
 }
 const initialTuningId = (savedSettings.tuningId && TUNINGS.some(t=>t.id===savedSettings.tuningId))
   ? savedSettings.tuningId : TUNINGS[0].id;
@@ -1097,9 +1208,16 @@ document.getElementById('thresholdStepper').addEventListener('keydown', e=>{
   if(e.key==='ArrowUp' || e.key==='ArrowRight'){ e.preventDefault(); stepThreshold(1); }
   else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ e.preventDefault(); stepThreshold(-1); }
 });
+document.getElementById('maxFretMinus').addEventListener('click', ()=> stepMaxFret(-1));
+document.getElementById('maxFretPlus').addEventListener('click', ()=> stepMaxFret(1));
+document.getElementById('maxFretStepper').addEventListener('keydown', e=>{
+  if(e.key==='ArrowUp' || e.key==='ArrowRight'){ e.preventDefault(); stepMaxFret(1); }
+  else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ e.preventDefault(); stepMaxFret(-1); }
+});
 
 updateColumnsUI();
 updateThresholdUI();
+updateMaxFretUI();
 generate();
 </script>
 </body>
