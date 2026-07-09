@@ -726,32 +726,17 @@ function flashButton(btnEl, text){
 }
 
 let audioCtx = null;
-let silentLoopEl = null;
-
-// iOS routes Web Audio through the "ambient" audio session, which the
-// ring/silent hardware switch mutes — so playback is silent on iPhones in
-// silent mode even though the same code sounds fine on Android. Reclassify
-// the session as "playback" (like music apps) so the switch doesn't apply.
-function unlockIOSAudioSession(){
-  if(navigator.audioSession){
-    navigator.audioSession.type = 'playback';
-    return;
-  }
-  // Older iOS without the AudioSession API: a playing HTMLMediaElement flips
-  // the session to "playback", so keep a silent 0.1s WAV looping.
-  if(!silentLoopEl){
-    silentLoopEl = new Audio('data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==');
-    silentLoopEl.loop = true;
-  }
-  if(silentLoopEl.paused) silentLoopEl.play().catch(()=>{});
-}
 
 function getAudioCtx(){
   if(!audioCtx){
     const AC = window.AudioContext || window.webkitAudioContext;
     audioCtx = new AC();
+    // iOS routes Web Audio through the "ambient" audio session, which the
+    // ring/silent hardware switch mutes — so playback is silent on iPhones in
+    // silent mode even though the same code sounds fine on Android. Reclassify
+    // the session as "playback" (like music apps) so the switch doesn't apply.
+    if(navigator.audioSession) navigator.audioSession.type = 'playback';
   }
-  unlockIOSAudioSession();
   return audioCtx;
 }
 
