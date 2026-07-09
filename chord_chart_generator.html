@@ -190,6 +190,25 @@
   .switch:hover .switch-track{ opacity:.7; }
   .switch input:checked:hover + .switch-track{ opacity:.85; }
 
+  .switch-wrap{ position:relative; display:inline-flex; align-items:center; gap:6px; }
+  .info-btn{
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    width:16px; height:16px; padding:0; border-radius:50%;
+    border:1px solid var(--control-border); background:transparent; color:var(--ink-soft);
+    font-family:Georgia,'Times New Roman',serif; font-style:italic; font-weight:700; font-size:11px; line-height:1;
+    cursor:pointer; transition:border-color .15s ease, color .15s ease;
+  }
+  .info-btn:hover, .info-btn:focus-visible, .switch-wrap.open .info-btn{ border-color:var(--heading); color:var(--heading); }
+  .info-popover{
+    position:absolute; top:calc(100% + 8px); left:0; z-index:20; width:240px;
+    padding:10px 12px; font-size:12px; line-height:1.5; text-align:left; font-weight:400;
+    background:var(--card-bg); color:var(--ink); border:1px solid var(--card-border); border-radius:10px;
+    box-shadow:0 14px 30px -10px rgba(58,42,24,.32), 0 2px 8px rgba(58,42,24,.12);
+    opacity:0; visibility:hidden; transform:translateY(-4px);
+    transition:opacity .16s ease, transform .16s ease, visibility .16s;
+  }
+  .switch-wrap.open .info-popover{ opacity:1; visibility:visible; transform:translateY(0); }
+
   .hint{ font-size:12px; color:var(--ink-soft); margin:0 0 22px; line-height:1.5; max-width:680px; }
   .error{ font-size:13px; color:#a00; margin:0 0 16px; }
   .grid {
@@ -223,6 +242,7 @@
   }
   .chord-title-spacer{ flex:0 0 18px; visibility:hidden; }
   .card svg { display:block; margin:0 auto; }
+  .omit-note{ font-size:9px; font-style:italic; color:var(--ink-soft); margin:4px 0 0; }
   .note-dot { cursor:pointer; }
   .note-dot:hover { opacity:.72; }
   .copy-btn{
@@ -292,7 +312,7 @@
       <label class="switch">
         <input type="checkbox" id="borderToggle" checked>
         <span class="switch-track"><span class="switch-thumb"></span></span>
-        <span>Show tile border</span>
+        <span>Show border</span>
       </label>
       <label class="switch">
         <input type="checkbox" id="bwToggle">
@@ -304,6 +324,15 @@
         <span class="switch-track"><span class="switch-thumb"></span></span>
         <span>Masonry layout</span>
       </label>
+      <span class="switch-wrap" id="omitInfoWrap">
+        <label class="switch" title="Chords like 7add9, 6add9 and maj7add9 have 5 notes, but these instruments only have 4 strings — the 5th is dropped. When on, affected chords show a note naming the dropped tone.">
+          <input type="checkbox" id="omitToggle" checked>
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+          <span>Show omitted note</span>
+        </label>
+        <button type="button" class="info-btn" id="omitInfoBtn" aria-label="About the omitted-note note" aria-expanded="false">i</button>
+        <div class="info-popover" id="omitInfoPopover" role="tooltip">Chords like 7add9, 6add9 and maj7add9 have 5 notes, but these instruments only have 4 strings — the 5th is dropped. When on, affected chords show a note naming the dropped tone.</div>
+      </span>
     </div>
     <div class="controls">
       <div class="stepper" id="columnsStepper">
@@ -312,17 +341,21 @@
         <span class="stepper-value" id="columnsValue" aria-live="polite">Auto</span>
         <button type="button" class="stepper-btn" id="columnsPlus" aria-label="More columns">+</button>
       </div>
-      <div class="stepper" id="thresholdStepper">
-        <span class="stepper-label">Shorten past fret</span>
-        <button type="button" class="stepper-btn" id="thresholdMinus" aria-label="Lower shorten-past-fret threshold">−</button>
-        <span class="stepper-value" id="thresholdValue" aria-live="polite">5</span>
-        <button type="button" class="stepper-btn" id="thresholdPlus" aria-label="Raise shorten-past-fret threshold">+</button>
-      </div>
+      <span class="switch-wrap" id="thresholdInfoWrap">
+        <div class="stepper" id="thresholdStepper" title="Chords are normally drawn from the nut. If a chord's lowest fretted note lands above this fret, the diagram is cropped to start just below it instead of drawing a wall of empty frets. Raise it to allow taller diagrams before cropping kicks in; lower it to crop sooner.">
+          <span class="stepper-label">Shorten past fret</span>
+          <button type="button" class="stepper-btn" id="thresholdMinus" aria-label="Lower shorten-past-fret threshold">−</button>
+          <span class="stepper-value" id="thresholdValue" aria-live="polite">5</span>
+          <button type="button" class="stepper-btn" id="thresholdPlus" aria-label="Raise shorten-past-fret threshold">+</button>
+        </div>
+        <button type="button" class="info-btn" id="thresholdInfoBtn" aria-label="About the shorten-past-fret control" aria-expanded="false">i</button>
+        <div class="info-popover" id="thresholdInfoPopover" role="tooltip">Chords are normally drawn from the nut. If a chord's lowest fretted note lands above this fret, the diagram is cropped to start just below it instead of drawing a wall of empty frets. Raise it to allow taller diagrams before cropping kicks in; lower it to crop sooner.</div>
+      </span>
     </div>
   </section>
 
   <p class="hint no-print">
-    Comma-separated chord names. Supported qualities: major, m, 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6.
+    Comma-separated chord names. Supported qualities: major, m, 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9).
     Slash/inversion chords work too, e.g. Am/C, D7/F#, G/B. Hover a tile to copy it as an image.
     Click a fingering dot to hear that note, or the chord name to hear the whole chord.
   </p>
@@ -341,7 +374,19 @@ const CHORD_TONES = {
   dim:[0,3,6], dim7:[0,3,6,9], m7b5:[0,3,6,10],
   aug:[0,4,8], sus2:[0,2,7], sus4:[0,5,7],
   six:[0,4,7,9], m6:[0,3,7,9],
+  add9:[0,2,4,7], madd9:[0,2,3,7],
+  // 5-tone extended chords don't fit 4 strings; drop the 5th, the standard shell voicing.
+  dom9:[0,4,10,2], six9:[0,4,9,2], maj9:[0,4,11,2],
 };
+// Interval (from root) omitted for each shell-voiced quality above, so the UI can disclose it.
+const OMITTED_TONE = {
+  dom9:{ interval:7, label:'5th' }, six9:{ interval:7, label:'5th' }, maj9:{ interval:7, label:'5th' },
+};
+const NOTE_NAMES_SHARP = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_NAMES_FLAT  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+function pcName(pc, preferFlat){
+  return (preferFlat ? NOTE_NAMES_FLAT : NOTE_NAMES_SHARP)[((pc%12)+12)%12];
+}
 
 const TUNINGS = [
   { id:'uke_high_g',  name:'Ukulele (high G)',    tuningLabel:'GCEA', labels:['G','C','E','A'], openAbs:[67,60,64,69], icon:'ukulele' },
@@ -422,6 +467,11 @@ function resolveQuality(raw){
     'sus4':'sus4', 'sus':'sus4',
     '6':'six',
     'm6':'m6', 'min6':'m6',
+    'add9':'add9',
+    'madd9':'madd9', 'minadd9':'madd9', 'm(add9)':'madd9',
+    '7add9':'dom9', '9':'dom9', 'dom9':'dom9',
+    '6add9':'six9', '6/9':'six9', '69':'six9',
+    'maj7add9':'maj9', 'maj9':'maj9', 'ma9':'maj9',
   };
   return map.hasOwnProperty(q) ? map[q] : null;
 }
@@ -436,7 +486,11 @@ function parseChord(input){
   const requiredPCs = [...new Set(CHORD_TONES[qualityKey].map(iv => (rootPC+iv)%12))];
   let bassPC = null;
   if(m[4]) bassPC = noteToPC(m[4], m[5]||'');
-  return { label: raw, requiredPCs, bassPC, rootPC };
+  const omitInfo = OMITTED_TONE[qualityKey];
+  const omitted = omitInfo
+    ? { label:omitInfo.label, note:pcName((rootPC+omitInfo.interval)%12, m[2]==='b') }
+    : null;
+  return { label: raw, requiredPCs, bassPC, rootPC, omitted };
 }
 
 function findVoicing(requiredPCs, bassPC, tuning){
@@ -546,19 +600,23 @@ function chordSVG(name, frets, numFrets, labels, colors, openPCs, rootPC, highli
   return s;
 }
 
-function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret){
+function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted){
   const PAD = 14, headerH = 32;
   const diagW = 188;
   const numRows = Math.max(3, numFrets - (startFret||0));
   const bottomY = NUT_Y + numRows*FRET_H;
   const diagH = bottomY + 12;
+  const footerH = omitted ? 16 : 0;
   const tileW = diagW + PAD*2;
-  const tileH = PAD + headerH + diagH + PAD;
+  const tileH = PAD + headerH + diagH + footerH + PAD;
   const strokeAttr = showBorder ? `stroke="${colors.cardBorder}" stroke-width="2"` : `stroke="none"`;
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${tileW} ${tileH}" width="${tileW}" height="${tileH}">`;
   s += `<rect x="1" y="1" width="${tileW-2}" height="${tileH-2}" rx="12" fill="${colors.cardBg}" ${strokeAttr}/>`;
   s += `<text x="${tileW/2}" y="${PAD+headerH*0.7}" text-anchor="middle" font-size="21" font-weight="700" fill="${colors.heading}" font-family="${colors.exportHeadingFont}">${escapeXML(label)}</text>`;
   s += `<g transform="translate(${PAD},${PAD+headerH})">${diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret)}</g>`;
+  if(omitted){
+    s += `<text x="${tileW/2}" y="${PAD+headerH+diagH+11}" text-anchor="middle" font-size="9" font-style="italic" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${escapeXML(omitted.label)} (${escapeXML(omitted.note)}) omitted</text>`;
+  }
   s += '</svg>';
   return s;
 }
@@ -566,11 +624,11 @@ function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openP
 const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
 const PLAY_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
 
-async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl){
+async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
   const colors = currentColors();
   const showBorder = document.getElementById('borderToggle').checked;
   const highlightRoot = document.getElementById('rootToggle').checked;
-  const svgStr = exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret);
+  const svgStr = exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted);
   const scale = 3;
   const vbMatch = svgStr.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
   const w = parseFloat(vbMatch[1]), h = parseFloat(vbMatch[2]);
@@ -697,6 +755,7 @@ function saveSettings(){
     columns: columnsValue,
     masonry: document.getElementById('masonryToggle').checked,
     shortenThreshold: shortenThreshold,
+    showOmitted: document.getElementById('omitToggle').checked,
   };
   try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(err){}
 }
@@ -796,12 +855,13 @@ function generate(){
     if(parsed.error){ errors.push(parsed.error); return; }
     const frets = findVoicing(parsed.requiredPCs, parsed.bassPC, tuning);
     if(!frets){ errors.push(`No practical voicing found for "${tok}"`); return; }
-    results.push({ label: parsed.label, frets, rootPC: parsed.rootPC });
+    results.push({ label: parsed.label, frets, rootPC: parsed.rootPC, omitted: parsed.omitted });
   });
 
   errorBox.textContent = errors.join('  ·  ');
   const colors = currentColors();
   const highlightRoot = document.getElementById('rootToggle').checked;
+  const showOmitted = document.getElementById('omitToggle').checked;
 
   results.forEach(r=>{
     let fretMax = 3;
@@ -810,16 +870,17 @@ function generate(){
     const minFret = frettedNZ.length ? Math.min(...frettedNZ) : 0;
     const startFret = minFret > shortenThreshold ? minFret-2 : 0;
 
+    const omitHTML = (showOmitted && r.omitted) ? `<p class="omit-note">${escapeXML(r.omitted.label)} (${escapeXML(r.omitted.note)}) omitted</p>` : '';
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(r.label)} chord" aria-label="Play ${escapeXML(r.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(r.label)} chord">${escapeXML(r.label)}</h2><span class="chord-title-spacer no-print" aria-hidden="true"></span></div>${chordSVG(r.label, r.frets, fretMax, tuning.labels, colors, tuning.openPCs, r.rootPC, highlightRoot, tuning.openAbs, startFret)}`;
+    card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(r.label)} chord" aria-label="Play ${escapeXML(r.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(r.label)} chord">${escapeXML(r.label)}</h2><span class="chord-title-spacer no-print" aria-hidden="true"></span></div>${chordSVG(r.label, r.frets, fretMax, tuning.labels, colors, tuning.openPCs, r.rootPC, highlightRoot, tuning.openAbs, startFret)}${omitHTML}`;
 
     const copyBtn = document.createElement('button');
     copyBtn.className = 'copy-btn no-print';
     copyBtn.title = `Copy ${r.label} as image`;
     copyBtn.setAttribute('aria-label', `Copy ${r.label} chord as image`);
     copyBtn.innerHTML = `<span class="copy-btn-icon">${COPY_ICON}</span><span class="copy-btn-label"></span>`;
-    copyBtn.addEventListener('click', ()=> copyChordAsImage(r.label, r.frets, fretMax, tuning.labels, tuning.openPCs, r.rootPC, startFret, copyBtn));
+    copyBtn.addEventListener('click', ()=> copyChordAsImage(r.label, r.frets, fretMax, tuning.labels, tuning.openPCs, r.rootPC, startFret, copyBtn, showOmitted ? r.omitted : null));
     card.appendChild(copyBtn);
 
     const playChordHere = ()=> playChord(chordAbsNotes(r.frets, tuning.openAbs));
@@ -842,6 +903,16 @@ function generate(){
 
   layoutCards(cardEls);
   saveSettings();
+  updateURLParam(raw);
+}
+
+function updateURLParam(chordInputValue){
+  const params = new URLSearchParams(window.location.search);
+  if(chordInputValue){ params.set('chords', chordInputValue); }
+  else { params.delete('chords'); }
+  const query = params.toString();
+  const newURL = window.location.pathname + (query ? `?${query}` : '') + window.location.hash;
+  history.replaceState(null, '', newURL);
 }
 
 const tuningWrap = document.getElementById('tuningSelectWrap');
@@ -924,10 +995,52 @@ tuningBtn.addEventListener('keydown', e=>{
   }
 });
 
+const omitInfoWrap = document.getElementById('omitInfoWrap');
+const omitInfoBtn = document.getElementById('omitInfoBtn');
+function setOmitInfoOpen(open){
+  omitInfoWrap.classList.toggle('open', open);
+  omitInfoBtn.setAttribute('aria-expanded', String(open));
+  if(open) document.addEventListener('click', onOmitInfoDocClick);
+  else document.removeEventListener('click', onOmitInfoDocClick);
+}
+function onOmitInfoDocClick(e){
+  if(!omitInfoWrap.contains(e.target)) setOmitInfoOpen(false);
+}
+omitInfoBtn.addEventListener('click', e=>{
+  e.stopPropagation();
+  setOmitInfoOpen(!omitInfoWrap.classList.contains('open'));
+});
+omitInfoBtn.addEventListener('keydown', e=>{
+  if(e.key==='Escape') setOmitInfoOpen(false);
+});
+
+const thresholdInfoWrap = document.getElementById('thresholdInfoWrap');
+const thresholdInfoBtn = document.getElementById('thresholdInfoBtn');
+function setThresholdInfoOpen(open){
+  thresholdInfoWrap.classList.toggle('open', open);
+  thresholdInfoBtn.setAttribute('aria-expanded', String(open));
+  if(open) document.addEventListener('click', onThresholdInfoDocClick);
+  else document.removeEventListener('click', onThresholdInfoDocClick);
+}
+function onThresholdInfoDocClick(e){
+  if(!thresholdInfoWrap.contains(e.target)) setThresholdInfoOpen(false);
+}
+thresholdInfoBtn.addEventListener('click', e=>{
+  e.stopPropagation();
+  setThresholdInfoOpen(!thresholdInfoWrap.classList.contains('open'));
+});
+thresholdInfoBtn.addEventListener('keydown', e=>{
+  if(e.key==='Escape') setThresholdInfoOpen(false);
+});
+
 const savedSettings = loadSettings();
 
 if(typeof savedSettings.chordInput === 'string'){
   document.getElementById('chordInput').value = savedSettings.chordInput;
+}
+const chordsParam = new URLSearchParams(window.location.search).get('chords');
+if(chordsParam !== null){
+  document.getElementById('chordInput').value = chordsParam;
 }
 if(typeof savedSettings.showBorder === 'boolean'){
   document.getElementById('borderToggle').checked = savedSettings.showBorder;
@@ -942,6 +1055,9 @@ if(typeof savedSettings.highlightRoot === 'boolean'){
 }
 if(typeof savedSettings.masonry === 'boolean'){
   document.getElementById('masonryToggle').checked = savedSettings.masonry;
+}
+if(typeof savedSettings.showOmitted === 'boolean'){
+  document.getElementById('omitToggle').checked = savedSettings.showOmitted;
 }
 if(savedSettings.columns === 'auto' || (Number.isInteger(savedSettings.columns) && savedSettings.columns >= COLUMNS_MIN && savedSettings.columns <= COLUMNS_MAX)){
   columnsValue = savedSettings.columns;
@@ -974,6 +1090,7 @@ document.getElementById('columnsStepper').addEventListener('keydown', e=>{
   else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ e.preventDefault(); stepColumns(-1); }
 });
 document.getElementById('masonryToggle').addEventListener('change', generate);
+document.getElementById('omitToggle').addEventListener('change', generate);
 document.getElementById('thresholdMinus').addEventListener('click', ()=> stepThreshold(-1));
 document.getElementById('thresholdPlus').addEventListener('click', ()=> stepThreshold(1));
 document.getElementById('thresholdStepper').addEventListener('keydown', e=>{
