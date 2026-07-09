@@ -4,6 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chord chart generator</title>
+<meta name="description" content="Generate printable chord diagrams for ukulele, mandolin, mandola, tenor and plectrum banjo. Alternate voicings, custom tunings, and shareable links.">
+
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chords.wbou.dev/">
+<meta property="og:title" content="Chord chart generator">
+<meta property="og:description" content="Generate printable chord diagrams for ukulele, mandolin, mandola, tenor and plectrum banjo. Alternate voicings, custom tunings, and shareable links.">
+<meta property="og:image" content="https://chords.wbou.dev/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Chord chart generator">
+<meta name="twitter:description" content="Generate printable chord diagrams for ukulele, mandolin, mandola, tenor and plectrum banjo.">
+<meta name="twitter:image" content="https://chords.wbou.dev/og-image.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -416,6 +434,8 @@ function pcName(pc, preferFlat){
 const TUNINGS = [
   { id:'uke_high_g',  name:'Ukulele (high G)',    tuningLabel:'GCEA', labels:['G','C','E','A'], openAbs:[67,60,64,69], icon:'ukulele' },
   { id:'uke_low_g',   name:'Ukulele (low G)',     tuningLabel:'GCEA', labels:['G','C','E','A'], openAbs:[55,60,64,69], icon:'ukulele' },
+  { id:'uke_d_tuning', name:'Ukulele (D-tuning)', tuningLabel:'ADF#B', labels:['A','D','F#','B'], openAbs:[69,62,66,71], icon:'ukulele' },
+  { id:'uke_low_e',   name:'Ukulele (low E)',     tuningLabel:'ECEA', labels:['E','C','E','A'], openAbs:[52,60,64,69], icon:'ukulele' },
   { id:'bari_uke',    name:'Baritone ukulele',    tuningLabel:'DGBE', labels:['D','G','B','E'], openAbs:[50,55,59,64], icon:'ukulele' },
   { id:'mandolin',    name:'Mandolin',            tuningLabel:'GDAE', labels:['G','D','A','E'], openAbs:[55,62,69,76], icon:'mandolin' },
   { id:'mandola',     name:'Mandola',             tuningLabel:'CGDA', labels:['C','G','D','A'], openAbs:[48,55,62,69], icon:'mandolin' },
@@ -999,6 +1019,7 @@ function updateURLParam(chordInputValue){
   const params = new URLSearchParams(window.location.search);
   if(chordInputValue){ params.set('chords', chordInputValue); }
   else { params.delete('chords'); }
+  params.set('tuning', selectedTuningId);
   const query = params.toString();
   const newURL = window.location.pathname + (query ? `?${query}` : '') + window.location.hash;
   history.replaceState(null, '', newURL);
@@ -1176,8 +1197,11 @@ if(Number.isInteger(savedSettings.shortenThreshold) && savedSettings.shortenThre
 if(Number.isInteger(savedSettings.maxFret) && savedSettings.maxFret >= MAX_FRET_MIN && savedSettings.maxFret <= MAX_FRET_MAX){
   maxFretValue = savedSettings.maxFret;
 }
-const initialTuningId = (savedSettings.tuningId && TUNINGS.some(t=>t.id===savedSettings.tuningId))
-  ? savedSettings.tuningId : TUNINGS[0].id;
+const tuningParam = new URLSearchParams(window.location.search).get('tuning');
+const initialTuningId = (tuningParam && TUNINGS.some(t=>t.id===tuningParam))
+  ? tuningParam
+  : (savedSettings.tuningId && TUNINGS.some(t=>t.id===savedSettings.tuningId))
+    ? savedSettings.tuningId : TUNINGS[0].id;
 
 buildTuningMenu();
 selectTuning(initialTuningId, { silent:true });
