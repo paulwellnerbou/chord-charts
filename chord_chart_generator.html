@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chord chart generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --page-bg:#ece0c4;
+    --ink:#3a2a18;
+    --ink-soft:#7a6547;
+    --heading:#6d3323;
+    --card-bg:#f9f3e4;
+    --card-border:#c3ad82;
+    --control-border:#7a6547;
+    --btn-bg:#3a2a18;
+    --btn-fg:#f9f3e4;
+    --heading-font:'Fraunces', Georgia, serif;
+    --body-font:'Inter', -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --control-h:40px;
+  }
+  body.bw-mode{
+    --page-bg:#ffffff;
+    --ink:#000000;
+    --ink-soft:#333333;
+    --heading:#000000;
+    --card-bg:#ffffff;
+    --card-border:#000000;
+    --control-border:#000000;
+    --btn-bg:#000000;
+    --btn-fg:#ffffff;
+    /* fonts intentionally unchanged in bw-mode — only colors switch */
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; background:var(--page-bg); color:var(--ink);
+    font-family: var(--body-font);
+    padding: 32px 24px 40px;
+  }
+  .wrap{ max-width:960px; margin:0 auto; }
+  h1 { font-family:var(--heading-font); font-weight:600; font-size:26px; margin:0 0 18px; color:var(--heading); }
+  .settings-section{ margin-bottom:16px; }
+  .settings-section-title{
+    font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--ink-soft); margin:0 0 8px;
+  }
+  .controls{
+    display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin-bottom:10px;
+  }
+  .settings-section .controls:last-child{ margin-bottom:0; }
+  .settings-actions-row{ justify-content:space-between; }
+  .settings-actions-row .actions-right{
+    display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin-left:auto;
+  }
+  #chordInput{
+    flex:1 1 300px; height:var(--control-h); padding:0 10px; font-size:14px;
+    border:1px solid var(--control-border); border-radius:6px; font-family:inherit;
+    background:var(--card-bg); color:var(--ink);
+  }
+  /* --- custom instrument select --- */
+  .tuning-select{ position:relative; font-family:inherit; }
+  .tuning-select-trigger{
+    display:flex; align-items:center; gap:10px;
+    height:var(--control-h); padding:0 14px 0 8px; font-size:14px; font-family:inherit;
+    border:1px solid var(--control-border); border-radius:10px;
+    background:var(--card-bg); color:var(--ink);
+    cursor:pointer; text-align:left;
+    transition:border-color .2s ease, box-shadow .2s ease, transform .15s ease;
+  }
+  .tuning-select-trigger:hover{ border-color:var(--heading); transform:translateY(-1px); box-shadow:0 3px 8px rgba(58,42,24,.12); }
+  .tuning-select-trigger:active{ transform:translateY(0) scale(.98); }
+  .tuning-select-trigger:focus-visible{ outline:2px solid var(--heading); outline-offset:2px; }
+  .tuning-select.open .tuning-select-trigger{ border-color:var(--heading); box-shadow:0 0 0 3px rgba(109,51,35,.14); }
+  .tuning-select-icon{
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    width:26px; height:26px; color:var(--heading);
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .tuning-select-icon svg{ width:100%; height:100%; display:block; }
+  .tuning-select.open .tuning-select-trigger > .tuning-select-icon{ transform:rotate(-10deg) scale(1.1); }
+  .tuning-select-text{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.2; }
+  .tuning-select-name{ font-weight:600; }
+  .tuning-select-tuning{ font-size:10.5px; letter-spacing:.05em; color:var(--ink-soft); }
+  .tuning-select-chevron{
+    margin-left:2px; color:var(--ink-soft); flex-shrink:0;
+    transition:transform .25s cubic-bezier(.4,0,.2,1), color .2s ease;
+  }
+  .tuning-select.open .tuning-select-chevron{ transform:rotate(180deg); color:var(--heading); }
+
+  .tuning-select-menu{
+    position:absolute; top:calc(100% + 8px); left:0; min-width:100%; z-index:20;
+    list-style:none; margin:0; padding:6px;
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
+    box-shadow:0 14px 30px -10px rgba(58,42,24,.32), 0 2px 8px rgba(58,42,24,.12);
+    transform-origin:top left;
+    opacity:0; visibility:hidden; transform:translateY(-6px) scale(.96);
+    transition:opacity .16s ease, transform .2s cubic-bezier(.34,1.56,.64,1), visibility .2s;
+  }
+  .tuning-select.open .tuning-select-menu{ opacity:1; visibility:visible; transform:translateY(0) scale(1); }
+  .tuning-select-option{
+    --delay:0s;
+    display:flex; align-items:center; gap:10px;
+    padding:7px 10px; border-radius:8px; cursor:pointer; white-space:nowrap;
+    opacity:0; transform:translateY(-4px);
+    transition:opacity .16s ease var(--delay), transform .16s ease var(--delay), background-color .15s ease;
+  }
+  .tuning-select.open .tuning-select-option{ opacity:1; transform:translateY(0); }
+  .tuning-select-menu .tuning-select-option:nth-child(1){ --delay:.02s; }
+  .tuning-select-menu .tuning-select-option:nth-child(2){ --delay:.04s; }
+  .tuning-select-menu .tuning-select-option:nth-child(3){ --delay:.06s; }
+  .tuning-select-menu .tuning-select-option:nth-child(4){ --delay:.08s; }
+  .tuning-select-menu .tuning-select-option:nth-child(5){ --delay:.10s; }
+  .tuning-select-menu .tuning-select-option:nth-child(6){ --delay:.12s; }
+  .tuning-select-option .tuning-select-icon{ width:22px; height:22px; color:var(--ink-soft); transition:color .15s ease; }
+  .tuning-select-option:hover, .tuning-select-option.active{ background:var(--page-bg); }
+  .tuning-select-option:hover .tuning-select-icon, .tuning-select-option.active .tuning-select-icon{ color:var(--heading); }
+  .tuning-select-option .tuning-select-name{ font-weight:600; font-size:13.5px; color:var(--ink); }
+  .tuning-select-option .tuning-select-tuning{ font-size:10.5px; color:var(--ink-soft); }
+  .tuning-select-option .check{
+    margin-left:auto; flex-shrink:0; color:var(--heading);
+    opacity:0; transform:scale(.4); transition:opacity .15s ease, transform .18s cubic-bezier(.34,1.56,.64,1);
+  }
+  .tuning-select-option.selected .check{ opacity:1; transform:scale(1); }
+
+  .string{ animation:none; }
+  .tuning-select-trigger:hover .string, .tuning-select-option:hover .string{ animation-name:pluck; animation-duration:.5s; animation-timing-function:ease; }
+  @keyframes pluck{
+    0%,100%{ transform:translateX(0); }
+    20%{ transform:translateX(1.2px); }
+    40%{ transform:translateX(-1px); }
+    60%{ transform:translateX(.6px); }
+    80%{ transform:translateX(-.3px); }
+  }
+
+  button{
+    padding:9px 16px; font-size:14px; font-family:inherit;
+    background:var(--btn-bg); color:var(--btn-fg); border:1px solid var(--btn-bg); border-radius:6px;
+    cursor:pointer;
+  }
+  button.secondary{ background:var(--card-bg); color:var(--ink); border:1px solid var(--control-border); }
+
+  /* --- columns stepper --- */
+  .stepper{
+    display:inline-flex; align-items:center; height:var(--control-h);
+    border:1px solid var(--control-border); border-radius:10px;
+    background:var(--card-bg); overflow:hidden;
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  .stepper:hover{ border-color:var(--heading); }
+  .stepper:focus-within{ border-color:var(--heading); box-shadow:0 0 0 3px rgba(109,51,35,.14); }
+  .stepper-label{ font-size:13px; color:var(--ink-soft); padding:0 4px 0 12px; white-space:nowrap; }
+  .stepper-btn{
+    display:flex; align-items:center; justify-content:center;
+    width:30px; height:100%; padding:0; border:none; background:transparent; color:var(--ink);
+    font-size:16px; font-family:inherit; line-height:1; cursor:pointer;
+    transition:background-color .15s ease, color .15s ease, transform .1s ease;
+  }
+  .stepper-btn:hover:not(:disabled){ background:var(--page-bg); color:var(--heading); }
+  .stepper-btn:active:not(:disabled){ transform:scale(.85); }
+  .stepper-btn:disabled{ color:var(--card-border); cursor:not-allowed; }
+  .stepper-btn:focus-visible{ outline:2px solid var(--heading); outline-offset:-2px; }
+  .stepper-value{
+    min-width:44px; height:100%; display:flex; align-items:center; justify-content:center;
+    font-weight:600; font-size:13.5px; color:var(--ink);
+    border-left:1px solid var(--card-border); border-right:1px solid var(--card-border);
+  }
+  .stepper-value.bump{ animation:stepper-bump .3s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes stepper-bump{
+    0%{ transform:scale(1); color:var(--ink); }
+    40%{ transform:scale(1.3); color:var(--heading); }
+    100%{ transform:scale(1); color:var(--ink); }
+  }
+
+  .switch{ display:inline-flex; align-items:center; gap:9px; font-size:13px; color:var(--ink-soft); cursor:pointer; user-select:none; }
+  .switch input{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
+  .switch-track{
+    position:relative; width:38px; height:22px; border-radius:11px; flex-shrink:0;
+    background:var(--control-border); opacity:.45; transition:background .2s ease, opacity .2s ease;
+  }
+  .switch-thumb{
+    position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.35); transition:transform .2s ease;
+  }
+  .switch input:checked + .switch-track{ background:var(--heading); opacity:1; }
+  .switch input:checked + .switch-track .switch-thumb{ transform:translateX(16px); }
+  .switch input:focus-visible + .switch-track{ outline:2px solid var(--heading); outline-offset:2px; }
+  .switch:hover .switch-track{ opacity:.7; }
+  .switch input:checked:hover + .switch-track{ opacity:.85; }
+
+  .hint{ font-size:12px; color:var(--ink-soft); margin:0 0 22px; line-height:1.5; max-width:680px; }
+  .error{ font-size:13px; color:#a00; margin:0 0 16px; }
+  .grid {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:16px; align-items:start;
+  }
+  .grid.masonry{
+    display:flex; align-items:flex-start; gap:16px;
+  }
+  .masonry-col{
+    display:flex; flex-direction:column; gap:16px; min-width:0; flex:1 1 0;
+  }
+  .card {
+    position:relative;
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px;
+    padding:14px 10px 12px; text-align:center;
+  }
+  .grid.no-border .card{ border-color:transparent; }
+  .chord-title-row{ display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:4px; }
+  .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--heading); cursor:pointer; }
+  .card h2:hover { opacity:.72; }
+  .play-chord-btn{
+    flex:0 0 18px; width:18px; height:18px; padding:0; border:none; background:transparent;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--heading);
+    opacity:0; transform:scale(.7); transition:opacity .18s ease, transform .18s ease;
+    cursor:pointer;
+  }
+  .card:hover .play-chord-btn, .play-chord-btn:focus-visible{
+    opacity:1; transform:scale(1);
+  }
+  .chord-title-spacer{ flex:0 0 18px; visibility:hidden; }
+  .card svg { display:block; margin:0 auto; }
+  .note-dot { cursor:pointer; }
+  .note-dot:hover { opacity:.72; }
+  .copy-btn{
+    position:absolute; top:8px; right:8px; width:28px; height:28px;
+    border-radius:14px; padding:0; display:flex; align-items:center; justify-content:center;
+    background:var(--card-bg); border:none; color:var(--ink);
+    opacity:0; transform:translateY(-4px) scale(.9);
+    transition:opacity .18s ease, transform .18s ease, width .2s ease;
+    cursor:pointer; font-size:10px; overflow:hidden;
+  }
+  .card:hover .copy-btn, .copy-btn:focus-visible{ opacity:1; transform:translateY(0) scale(1); }
+  .copy-btn.is-flash{ width:64px; }
+  .copy-btn-icon, .copy-btn-label{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .copy-btn-icon{ opacity:1; transform:scale(1); }
+  .copy-btn-label{ opacity:0; transform:scale(.7); font-size:11px; font-weight:600; white-space:nowrap; }
+  .copy-btn.is-flash .copy-btn-icon{ opacity:0; transform:scale(.7); }
+  .copy-btn.is-flash .copy-btn-label{ opacity:1; transform:scale(1); }
+  .copy-btn svg{ width:15px; height:15px; stroke:currentColor; fill:none; }
+  @media print {
+    body{ padding:16px; background:#fff !important; }
+    .grid{ gap:12px; }
+    .grid.masonry{ gap:12px; }
+    .masonry-col{ gap:12px; }
+    .no-print{ display:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="pageTitle">Mandolin chords — GDAE tuning</h1>
+
+  <section class="settings-section no-print" aria-label="Chords">
+    <h2 class="settings-section-title">Chords</h2>
+    <div class="controls">
+      <input type="text" id="chordInput" value="Am/C, C, Am, D7, F, G7">
+      <div class="tuning-select" id="tuningSelectWrap">
+        <button type="button" class="tuning-select-trigger" id="tuningSelectBtn" aria-haspopup="listbox" aria-expanded="false">
+          <span class="tuning-select-icon" id="tuningSelectIcon"></span>
+          <span class="tuning-select-text">
+            <span class="tuning-select-name" id="tuningSelectName"></span>
+            <span class="tuning-select-tuning" id="tuningSelectTuning"></span>
+          </span>
+          <svg class="tuning-select-chevron" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <ul class="tuning-select-menu" id="tuningSelectMenu" role="listbox" aria-label="Instrument"></ul>
+      </div>
+    </div>
+    <div class="controls settings-actions-row">
+      <label class="switch">
+        <input type="checkbox" id="rootToggle">
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <span>Highlight root note</span>
+      </label>
+      <div class="actions-right">
+        <button id="generateBtn">Generate</button>
+        <button id="printBtn" class="secondary">Print</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="settings-section no-print" aria-label="Appearance">
+    <h2 class="settings-section-title">Appearance</h2>
+    <div class="controls">
+      <label class="switch">
+        <input type="checkbox" id="borderToggle" checked>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <span>Show tile border</span>
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="bwToggle">
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <span>Black &amp; white (for printing/copying)</span>
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="masonryToggle">
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <span>Masonry layout</span>
+      </label>
+    </div>
+    <div class="controls">
+      <div class="stepper" id="columnsStepper">
+        <span class="stepper-label">Columns</span>
+        <button type="button" class="stepper-btn" id="columnsMinus" aria-label="Fewer columns">−</button>
+        <span class="stepper-value" id="columnsValue" aria-live="polite">Auto</span>
+        <button type="button" class="stepper-btn" id="columnsPlus" aria-label="More columns">+</button>
+      </div>
+      <div class="stepper" id="thresholdStepper">
+        <span class="stepper-label">Shorten past fret</span>
+        <button type="button" class="stepper-btn" id="thresholdMinus" aria-label="Lower shorten-past-fret threshold">−</button>
+        <span class="stepper-value" id="thresholdValue" aria-live="polite">5</span>
+        <button type="button" class="stepper-btn" id="thresholdPlus" aria-label="Raise shorten-past-fret threshold">+</button>
+      </div>
+    </div>
+  </section>
+
+  <p class="hint no-print">
+    Comma-separated chord names. Supported qualities: major, m, 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6.
+    Slash/inversion chords work too, e.g. Am/C, D7/F#, G/B. Hover a tile to copy it as an image.
+    Click a fingering dot to hear that note, or the chord name to hear the whole chord.
+  </p>
+  <div class="error no-print" id="errorBox"></div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const NOTE_PC = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+const MAX_FRET = 11;
+
+const CHORD_TONES = {
+  major:[0,4,7], minor:[0,3,7],
+  dom7:[0,4,7,10], min7:[0,3,7,10], maj7:[0,4,7,11],
+  dim:[0,3,6], dim7:[0,3,6,9], m7b5:[0,3,6,10],
+  aug:[0,4,8], sus2:[0,2,7], sus4:[0,5,7],
+  six:[0,4,7,9], m6:[0,3,7,9],
+};
+
+const TUNINGS = [
+  { id:'uke_high_g',  name:'Ukulele (high G)',    tuningLabel:'GCEA', labels:['G','C','E','A'], openAbs:[67,60,64,69], icon:'ukulele' },
+  { id:'uke_low_g',   name:'Ukulele (low G)',     tuningLabel:'GCEA', labels:['G','C','E','A'], openAbs:[55,60,64,69], icon:'ukulele' },
+  { id:'bari_uke',    name:'Baritone ukulele',    tuningLabel:'DGBE', labels:['D','G','B','E'], openAbs:[50,55,59,64], icon:'ukulele' },
+  { id:'mandolin',    name:'Mandolin',            tuningLabel:'GDAE', labels:['G','D','A','E'], openAbs:[55,62,69,76], icon:'mandolin' },
+  { id:'mandola',     name:'Mandola',             tuningLabel:'CGDA', labels:['C','G','D','A'], openAbs:[48,55,62,69], icon:'mandolin' },
+  { id:'tenor_banjo', name:'Tenor banjo',         tuningLabel:'CGDA', labels:['C','G','D','A'], openAbs:[48,55,62,69], icon:'banjo' },
+  { id:'plectrum_banjo', name:'Plectrum banjo',   tuningLabel:'CGBD', labels:['C','G','B','D'], openAbs:[48,55,59,62], icon:'banjo' },
+];
+TUNINGS.forEach(t => t.openPCs = t.openAbs.map(a => ((a%12)+12)%12));
+
+const INSTRUMENT_ICONS = {
+  mandolin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2v6"/>
+    <path d="M12 7c-4.4 0-7.5 3.5-7.5 7.7C4.5 19.4 8 22 12 22s7.5-2.6 7.5-7.3C19.5 10.5 16.4 7 12 7Z"/>
+    <circle cx="12" cy="14.3" r="1.5"/>
+    <line class="string" style="animation-delay:0s"    x1="9"  y1="3"   x2="9"  y2="19"/>
+    <line class="string" style="animation-delay:.05s"  x1="11" y1="2.4" x2="11" y2="20"/>
+    <line class="string" style="animation-delay:.1s"   x1="13" y1="2.4" x2="13" y2="20"/>
+    <line class="string" style="animation-delay:.15s"  x1="15" y1="3"   x2="15" y2="19"/>
+  </svg>`,
+  ukulele: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="2" x2="12" y2="10"/>
+    <circle cx="12" cy="12.3" r="3"/>
+    <circle cx="12" cy="17.8" r="4.2"/>
+    <circle cx="12" cy="17.8" r="1.3"/>
+    <line class="string" style="animation-delay:0s"    x1="9.5"  y1="3"   x2="9.5"  y2="21"/>
+    <line class="string" style="animation-delay:.05s"  x1="11"   y1="2.4" x2="11"   y2="22"/>
+    <line class="string" style="animation-delay:.1s"   x1="13"   y1="2.4" x2="13"   y2="22"/>
+    <line class="string" style="animation-delay:.15s"  x1="14.5" y1="3"   x2="14.5" y2="21"/>
+  </svg>`,
+  banjo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="1.5" x2="12" y2="10"/>
+    <circle cx="12" cy="16" r="6.2"/>
+    <circle cx="12" cy="16" r="6.2" stroke-width="1.2" stroke-dasharray=".4 3.15"/>
+    <line class="string" style="animation-delay:0s"    x1="8.5"  y1="2.5" x2="8.5"  y2="21.5"/>
+    <line class="string" style="animation-delay:.05s"  x1="10.5" y1="2"   x2="10.5" y2="22"/>
+    <line class="string" style="animation-delay:.1s"   x1="13.5" y1="2"   x2="13.5" y2="22"/>
+    <line class="string" style="animation-delay:.15s"  x1="15.5" y1="2.5" x2="15.5" y2="21.5"/>
+  </svg>`,
+};
+
+const EXPORT_HEADING_FONT = "Georgia, 'Times New Roman', serif";
+const NICE_COLORS = {
+  ink:'#3a2a18', dotFill:'#b8860f', dotStroke:'#7d5b0a',
+  cardBg:'#f9f3e4', cardBorder:'#c3ad82', heading:'#6d3323', rootColor:'#6d3323',
+  lineOpacity:0.55, markerOpacity:0.3, exportHeadingFont:EXPORT_HEADING_FONT
+};
+const BW_COLORS = {
+  ink:'#000000', dotFill:'#000000', dotStroke:'#000000',
+  cardBg:'#ffffff', cardBorder:'#000000', heading:'#000000', rootColor:'#000000',
+  lineOpacity:1, markerOpacity:0.25, exportHeadingFont:EXPORT_HEADING_FONT
+};
+function currentColors(){ return document.body.classList.contains('bw-mode') ? BW_COLORS : NICE_COLORS; }
+
+function noteToPC(letter, acc){
+  let pc = NOTE_PC[letter.toUpperCase()];
+  if(acc === '#') pc = (pc+1)%12;
+  else if(acc === 'b') pc = (pc+11)%12;
+  return pc;
+}
+
+function resolveQuality(raw){
+  if(raw === 'M7') return 'maj7';
+  const q = raw.toLowerCase().trim();
+  const map = {
+    '':'major', 'maj':'major',
+    'm':'minor', 'min':'minor', '-':'minor',
+    '7':'dom7',
+    'm7':'min7', 'min7':'min7', '-7':'min7',
+    'maj7':'maj7', 'ma7':'maj7',
+    'dim':'dim', '°':'dim', 'o':'dim',
+    'dim7':'dim7', '°7':'dim7', 'o7':'dim7',
+    'm7b5':'m7b5', 'm7-5':'m7b5', 'ø':'m7b5', 'ø7':'m7b5', 'halfdim':'m7b5', 'halfdim7':'m7b5',
+    'aug':'aug', '+':'aug',
+    'sus2':'sus2',
+    'sus4':'sus4', 'sus':'sus4',
+    '6':'six',
+    'm6':'m6', 'min6':'m6',
+  };
+  return map.hasOwnProperty(q) ? map[q] : null;
+}
+
+function parseChord(input){
+  const raw = input.trim();
+  const m = raw.match(/^([A-Ga-g])(#|b)?(.*?)(?:\/([A-Ga-g])(#|b)?)?$/);
+  if(!m) return { error:`Could not parse "${raw}"` };
+  const rootPC = noteToPC(m[1], m[2]||'');
+  const qualityKey = resolveQuality(m[3]||'');
+  if(qualityKey===null) return { error:`Unknown chord quality in "${raw}"` };
+  const requiredPCs = [...new Set(CHORD_TONES[qualityKey].map(iv => (rootPC+iv)%12))];
+  let bassPC = null;
+  if(m[4]) bassPC = noteToPC(m[4], m[5]||'');
+  return { label: raw, requiredPCs, bassPC, rootPC };
+}
+
+function findVoicing(requiredPCs, bassPC, tuning){
+  const perString = tuning.openPCs.map((openPC,i)=>{
+    const opts = [];
+    for(let f=0; f<=MAX_FRET; f++){
+      opts.push({ fret:f, pc:(openPC+f)%12, abs: tuning.openAbs[i]+f });
+    }
+    opts.push({ fret:null, pc:null, abs:null });
+    return opts;
+  });
+
+  let best=null, bestCost=Infinity;
+  for(const o0 of perString[0]) for(const o1 of perString[1])
+  for(const o2 of perString[2]) for(const o3 of perString[3]){
+    const combo=[o0,o1,o2,o3];
+    const active = combo.filter(o=>o.fret!==null);
+    if(active.length===0) continue;
+    const pcSet = new Set(active.map(o=>o.pc));
+    if(!requiredPCs.every(pc=>pcSet.has(pc))) continue;
+    if(bassPC!==null){
+      const minAbs = Math.min(...active.map(o=>o.abs));
+      const bassEntry = active.find(o=>o.abs===minAbs);
+      if(bassEntry.pc !== bassPC) continue;
+    }
+    const mutedCount = 4-active.length;
+    const extraCount = active.filter(o=>!requiredPCs.includes(o.pc)).length;
+    const frettedNZ = active.filter(o=>o.fret>0).map(o=>o.fret);
+    const maxFret = frettedNZ.length ? Math.max(...frettedNZ) : 0;
+    const minFret = frettedNZ.length ? Math.min(...frettedNZ) : 0;
+    const span = frettedNZ.length>1 ? (maxFret-minFret) : 0;
+    const openCount = active.filter(o=>o.fret===0).length;
+    const sumFrets = frettedNZ.reduce((a,b)=>a+b,0);
+    const cost = mutedCount*1000 + extraCount*300 + span*15 + maxFret*5 - openCount*5 + sumFrets*1;
+    if(cost < bestCost){ bestCost = cost; best = combo.map(o=>o.fret); }
+  }
+  return best;
+}
+
+const XS = [30,70,110,150];
+const NUT_Y = 34, FRET_H = 34;
+const FRET_MARKERS = [3,5,7,10,12];
+function rowCenter(fret){ return NUT_Y + (fret-0.5)*FRET_H; }
+
+function escapeXML(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret){
+  startFret = startFret || 0;
+  const numRows = Math.max(3, numFrets - startFret);
+  const bottomY = NUT_Y + numRows*FRET_H;
+  let s = '';
+  labels.forEach((lab,i)=>{
+    s += `<text x="${XS[i]}" y="12" text-anchor="middle" font-size="12" fill="${colors.ink}" font-family="Arial,sans-serif" font-weight="600">${escapeXML(lab)}</text>`;
+  });
+  const topLineWidth = startFret === 0 ? 3 : 1;
+  const topLineOpacity = startFret === 0 ? 1 : colors.lineOpacity;
+  s += `<line x1="20" y1="${NUT_Y}" x2="160" y2="${NUT_Y}" stroke="${colors.ink}" stroke-width="${topLineWidth}" opacity="${topLineOpacity}"/>`;
+  for(let i=1;i<=numRows;i++){
+    const y = NUT_Y + i*FRET_H;
+    s += `<line x1="20" y1="${y}" x2="160" y2="${y}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
+    s += `<text x="167" y="${rowCenter(i)+4}" font-size="10" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${startFret+i}</text>`;
+  }
+  XS.forEach(x=>{
+    s += `<line x1="${x}" y1="${NUT_Y}" x2="${x}" y2="${bottomY}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
+  });
+  const markerX = (XS[1]+XS[2])/2;
+  FRET_MARKERS.forEach(f=>{
+    if(f>startFret && f<=startFret+numRows){
+      s += `<circle cx="${markerX}" cy="${rowCenter(f-startFret)}" r="3" fill="${colors.ink}" opacity="${colors.markerOpacity}"/>`;
+    }
+  });
+  frets.forEach((fret,i)=>{
+    const x = XS[i];
+    const pc = fret!==null ? (openPCs[i]+fret)%12 : null;
+    const isRoot = highlightRoot && pc!==null && pc===rootPC;
+    const abs = (fret!==null && openAbs) ? openAbs[i]+fret : null;
+    const noteAttrs = abs!==null ? ` class="note-dot" data-abs="${abs}" tabindex="0" role="button" aria-label="Play ${escapeXML(labels[i])} string, ${escapeXML(String(fret))}${fret===0?' open':''}"` : '';
+    if(fret===null){
+      s += `<line x1="${x-6}" y1="16" x2="${x+6}" y2="28" stroke="${colors.ink}" stroke-width="1.5"/>`;
+      s += `<line x1="${x-6}" y1="28" x2="${x+6}" y2="16" stroke="${colors.ink}" stroke-width="1.5"/>`;
+    } else if(fret===0){
+      if(isRoot){
+        s += `<circle cx="${x}" cy="22" r="6" fill="${colors.cardBg}" stroke="${colors.rootColor}" stroke-width="3"${noteAttrs}/>`;
+      } else {
+        s += `<circle cx="${x}" cy="22" r="6" fill="${colors.cardBg}" stroke="${colors.ink}" stroke-width="1.5"${noteAttrs}/>`;
+      }
+    } else {
+      const y = rowCenter(fret-startFret);
+      if(isRoot){
+        s += `<circle cx="${x}" cy="${y}" r="9" fill="${colors.cardBg}" stroke="${colors.rootColor}" stroke-width="4"${noteAttrs}/>`;
+      } else {
+        s += `<circle cx="${x}" cy="${y}" r="9" fill="${colors.dotFill}" stroke="${colors.dotStroke}" stroke-width="1"${noteAttrs}/>`;
+      }
+    }
+  });
+  return s;
+}
+
+function chordSVG(name, frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret){
+  const numRows = Math.max(3, numFrets - (startFret||0));
+  const bottomY = NUT_Y + numRows*FRET_H;
+  let s = `<svg viewBox="0 0 188 ${bottomY+12}" width="164" role="img" aria-label="${escapeXML(name)} chord diagram">`;
+  s += diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret);
+  s += '</svg>';
+  return s;
+}
+
+function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret){
+  const PAD = 14, headerH = 32;
+  const diagW = 188;
+  const numRows = Math.max(3, numFrets - (startFret||0));
+  const bottomY = NUT_Y + numRows*FRET_H;
+  const diagH = bottomY + 12;
+  const tileW = diagW + PAD*2;
+  const tileH = PAD + headerH + diagH + PAD;
+  const strokeAttr = showBorder ? `stroke="${colors.cardBorder}" stroke-width="2"` : `stroke="none"`;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${tileW} ${tileH}" width="${tileW}" height="${tileH}">`;
+  s += `<rect x="1" y="1" width="${tileW-2}" height="${tileH-2}" rx="12" fill="${colors.cardBg}" ${strokeAttr}/>`;
+  s += `<text x="${tileW/2}" y="${PAD+headerH*0.7}" text-anchor="middle" font-size="21" font-weight="700" fill="${colors.heading}" font-family="${colors.exportHeadingFont}">${escapeXML(label)}</text>`;
+  s += `<g transform="translate(${PAD},${PAD+headerH})">${diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret)}</g>`;
+  s += '</svg>';
+  return s;
+}
+
+const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+const PLAY_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+
+async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl){
+  const colors = currentColors();
+  const showBorder = document.getElementById('borderToggle').checked;
+  const highlightRoot = document.getElementById('rootToggle').checked;
+  const svgStr = exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret);
+  const scale = 3;
+  const vbMatch = svgStr.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+  const w = parseFloat(vbMatch[1]), h = parseFloat(vbMatch[2]);
+
+  const img = new Image();
+  const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+
+  try{
+    await new Promise((resolve,reject)=>{ img.onload=resolve; img.onerror=reject; img.src=dataUrl; });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(w*scale); canvas.height = Math.round(h*scale);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+    try{
+      if(!navigator.clipboard || !window.ClipboardItem) throw new Error('no-clipboard-api');
+      await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
+      flashButton(btnEl, 'Copied');
+    }catch(clipErr){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${label.replace(/[^\w#]/g,'_')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      flashButton(btnEl, 'Saved');
+    }
+  }catch(err){
+    console.error(err);
+    flashButton(btnEl, 'Failed');
+  }
+}
+
+function flashButton(btnEl, text){
+  if(btnEl._flashTimeout) clearTimeout(btnEl._flashTimeout);
+  btnEl.querySelector('.copy-btn-label').textContent = text;
+  btnEl.classList.add('is-flash');
+  btnEl.disabled = true;
+  btnEl._flashTimeout = setTimeout(()=>{
+    btnEl.classList.remove('is-flash');
+    btnEl.disabled = false;
+  }, 1300);
+}
+
+let audioCtx = null;
+function getAudioCtx(){
+  if(!audioCtx){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+  }
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function midiToFreq(midi){ return 440 * Math.pow(2, (midi-69)/12); }
+
+function playNote(midi, opts){
+  const ctx = getAudioCtx();
+  const delay = (opts && opts.delay) || 0;
+  const peak = (opts && opts.gain) || 0.22;
+  const t0 = ctx.currentTime + delay;
+  const freq = midiToFreq(midi);
+
+  const osc = ctx.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(freq, t0);
+
+  // lowpass sweep gives the triangle wave a plucked-string character
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.Q.value = 0.6;
+  filter.frequency.setValueAtTime(freq*8, t0);
+  filter.frequency.exponentialRampToValueAtTime(Math.max(freq*1.2, 200), t0+0.5);
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(peak, t0+0.006);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0+1.4);
+
+  osc.connect(filter).connect(gain).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0+1.5);
+}
+
+function chordAbsNotes(frets, openAbs){
+  return frets.map((f,i)=> f===null ? null : openAbs[i]+f).filter(n=>n!==null);
+}
+
+function playChord(midiNotes){
+  midiNotes.forEach((m,i)=> playNote(m, { delay:i*0.025, gain:0.18 }));
+}
+
+let selectedTuningId = TUNINGS[0].id;
+function currentTuning(){
+  return TUNINGS.find(t=>t.id===selectedTuningId) || TUNINGS[0];
+}
+
+const COLUMNS_MIN = 1, COLUMNS_MAX = 8;
+let columnsValue = 'auto';
+
+const THRESHOLD_MIN = 1, THRESHOLD_MAX = 11;
+let shortenThreshold = 5;
+
+const SETTINGS_KEY = 'chordChartGenerator.settings';
+
+function loadSettings(){
+  try{
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  }catch(err){ return {}; }
+}
+
+function saveSettings(){
+  const settings = {
+    chordInput: document.getElementById('chordInput').value,
+    tuningId: selectedTuningId,
+    showBorder: document.getElementById('borderToggle').checked,
+    bwMode: document.getElementById('bwToggle').checked,
+    highlightRoot: document.getElementById('rootToggle').checked,
+    columns: columnsValue,
+    masonry: document.getElementById('masonryToggle').checked,
+    shortenThreshold: shortenThreshold,
+  };
+  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(err){}
+}
+
+const MASONRY_GAP = 16, MASONRY_MIN_COL_WIDTH = 190;
+
+// Native CSS column-count is a *maximum*: its balance algorithm often settles on
+// fewer, evenly-divisible columns for a handful of same-height cards. Distributing
+// cards into explicit column elements guarantees the chosen count is always used.
+function layoutCards(cardEls){
+  const grid = document.getElementById('grid');
+  const cols = columnsValue;
+  const masonry = document.getElementById('masonryToggle').checked;
+  grid.classList.toggle('masonry', masonry);
+  grid.innerHTML = '';
+
+  if(!masonry){
+    grid.style.gridTemplateColumns = cols === 'auto' ? 'repeat(auto-fit,minmax(190px,1fr))' : `repeat(${cols}, 1fr)`;
+    cardEls.forEach(c => grid.appendChild(c));
+    return;
+  }
+
+  grid.style.gridTemplateColumns = '';
+  const colCount = cols === 'auto'
+    ? Math.max(1, Math.floor((grid.clientWidth + MASONRY_GAP) / (MASONRY_MIN_COL_WIDTH + MASONRY_GAP)))
+    : cols;
+  const columns = Array.from({length: colCount}, () => {
+    const col = document.createElement('div');
+    col.className = 'masonry-col';
+    grid.appendChild(col);
+    return col;
+  });
+
+  // Card height depends only on the chord's fret span (fixed SVG width), not column
+  // width, so it's safe to measure once and then bin-pack by running column height.
+  cardEls.forEach(c => columns[0].appendChild(c));
+  const heights = cardEls.map(c => c.getBoundingClientRect().height);
+  const colHeights = new Array(colCount).fill(0);
+  cardEls.forEach((c, i) => {
+    let target = 0;
+    for(let j=1;j<colCount;j++){ if(colHeights[j] < colHeights[target]) target = j; }
+    columns[target].appendChild(c);
+    colHeights[target] += heights[i] + MASONRY_GAP;
+  });
+}
+
+function updateColumnsUI(){
+  document.getElementById('columnsValue').textContent = columnsValue === 'auto' ? 'Auto' : String(columnsValue);
+  document.getElementById('columnsMinus').disabled = columnsValue === 'auto';
+  document.getElementById('columnsPlus').disabled = columnsValue === COLUMNS_MAX;
+}
+
+function stepColumns(delta){
+  if(columnsValue === 'auto'){
+    if(delta > 0) columnsValue = COLUMNS_MIN;
+  } else {
+    const next = columnsValue + delta;
+    columnsValue = next < COLUMNS_MIN ? 'auto' : Math.min(next, COLUMNS_MAX);
+  }
+  updateColumnsUI();
+  const valueEl = document.getElementById('columnsValue');
+  valueEl.classList.remove('bump');
+  void valueEl.offsetWidth;
+  valueEl.classList.add('bump');
+  generate();
+}
+
+function updateThresholdUI(){
+  document.getElementById('thresholdValue').textContent = String(shortenThreshold);
+  document.getElementById('thresholdMinus').disabled = shortenThreshold === THRESHOLD_MIN;
+  document.getElementById('thresholdPlus').disabled = shortenThreshold === THRESHOLD_MAX;
+}
+
+function stepThreshold(delta){
+  shortenThreshold = Math.min(THRESHOLD_MAX, Math.max(THRESHOLD_MIN, shortenThreshold + delta));
+  updateThresholdUI();
+  const valueEl = document.getElementById('thresholdValue');
+  valueEl.classList.remove('bump');
+  void valueEl.offsetWidth;
+  valueEl.classList.add('bump');
+  generate();
+}
+
+function generate(){
+  const tuning = currentTuning();
+  document.getElementById('pageTitle').textContent = `${tuning.name} chords — ${tuning.tuningLabel} tuning`;
+
+  const raw = document.getElementById('chordInput').value;
+  const tokens = raw.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean);
+  const errorBox = document.getElementById('errorBox');
+  const errors = [];
+  const results = [];
+  const cardEls = [];
+
+  tokens.forEach(tok=>{
+    const parsed = parseChord(tok);
+    if(parsed.error){ errors.push(parsed.error); return; }
+    const frets = findVoicing(parsed.requiredPCs, parsed.bassPC, tuning);
+    if(!frets){ errors.push(`No practical voicing found for "${tok}"`); return; }
+    results.push({ label: parsed.label, frets, rootPC: parsed.rootPC });
+  });
+
+  errorBox.textContent = errors.join('  ·  ');
+  const colors = currentColors();
+  const highlightRoot = document.getElementById('rootToggle').checked;
+
+  results.forEach(r=>{
+    let fretMax = 3;
+    r.frets.forEach(f => { if(f && f>fretMax) fretMax = f; });
+    const frettedNZ = r.frets.filter(f => f && f>0);
+    const minFret = frettedNZ.length ? Math.min(...frettedNZ) : 0;
+    const startFret = minFret > shortenThreshold ? minFret-2 : 0;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(r.label)} chord" aria-label="Play ${escapeXML(r.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(r.label)} chord">${escapeXML(r.label)}</h2><span class="chord-title-spacer no-print" aria-hidden="true"></span></div>${chordSVG(r.label, r.frets, fretMax, tuning.labels, colors, tuning.openPCs, r.rootPC, highlightRoot, tuning.openAbs, startFret)}`;
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-btn no-print';
+    copyBtn.title = `Copy ${r.label} as image`;
+    copyBtn.setAttribute('aria-label', `Copy ${r.label} chord as image`);
+    copyBtn.innerHTML = `<span class="copy-btn-icon">${COPY_ICON}</span><span class="copy-btn-label"></span>`;
+    copyBtn.addEventListener('click', ()=> copyChordAsImage(r.label, r.frets, fretMax, tuning.labels, tuning.openPCs, r.rootPC, startFret, copyBtn));
+    card.appendChild(copyBtn);
+
+    const playChordHere = ()=> playChord(chordAbsNotes(r.frets, tuning.openAbs));
+    const heading = card.querySelector('h2');
+    heading.addEventListener('click', playChordHere);
+    heading.addEventListener('keydown', e=>{
+      if(e.key==='Enter' || e.key===' '){ e.preventDefault(); playChordHere(); }
+    });
+    card.querySelector('.play-chord-btn').addEventListener('click', e=>{ e.stopPropagation(); playChordHere(); });
+    card.querySelectorAll('.note-dot').forEach(dot=>{
+      const playThisNote = e=>{ e.stopPropagation(); playNote(parseFloat(dot.dataset.abs)); };
+      dot.addEventListener('click', playThisNote);
+      dot.addEventListener('keydown', e=>{
+        if(e.key==='Enter' || e.key===' '){ e.preventDefault(); playThisNote(e); }
+      });
+    });
+
+    cardEls.push(card);
+  });
+
+  layoutCards(cardEls);
+  saveSettings();
+}
+
+const tuningWrap = document.getElementById('tuningSelectWrap');
+const tuningBtn = document.getElementById('tuningSelectBtn');
+const tuningMenu = document.getElementById('tuningSelectMenu');
+const tuningIconEl = document.getElementById('tuningSelectIcon');
+const tuningNameEl = document.getElementById('tuningSelectName');
+const tuningTuningEl = document.getElementById('tuningSelectTuning');
+
+function buildTuningMenu(){
+  tuningMenu.innerHTML = '';
+  TUNINGS.forEach(t=>{
+    const li = document.createElement('li');
+    li.className = 'tuning-select-option';
+    li.setAttribute('role','option');
+    li.dataset.id = t.id;
+    li.innerHTML = `
+      <span class="tuning-select-icon">${INSTRUMENT_ICONS[t.icon]}</span>
+      <span class="tuning-select-text">
+        <span class="tuning-select-name">${t.name}</span>
+        <span class="tuning-select-tuning">${t.tuningLabel}</span>
+      </span>
+      <svg class="check" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    li.addEventListener('click', ()=> selectTuning(t.id));
+    tuningMenu.appendChild(li);
+  });
+}
+
+function updateTuningMenuSelection(){
+  [...tuningMenu.children].forEach(li=>{
+    li.classList.toggle('selected', li.dataset.id === selectedTuningId);
+  });
+}
+
+function selectTuning(id, opts){
+  selectedTuningId = id;
+  const t = currentTuning();
+  tuningIconEl.innerHTML = INSTRUMENT_ICONS[t.icon];
+  tuningNameEl.textContent = t.name;
+  tuningTuningEl.textContent = t.tuningLabel;
+  updateTuningMenuSelection();
+  if(!opts || !opts.silent){
+    closeTuningMenu();
+    generate();
+  }
+}
+
+function openTuningMenu(){
+  tuningWrap.classList.add('open');
+  tuningBtn.setAttribute('aria-expanded','true');
+  document.addEventListener('click', onTuningDocClick);
+}
+function closeTuningMenu(){
+  tuningWrap.classList.remove('open');
+  tuningBtn.setAttribute('aria-expanded','false');
+  document.removeEventListener('click', onTuningDocClick);
+}
+function onTuningDocClick(e){
+  if(!tuningWrap.contains(e.target)) closeTuningMenu();
+}
+tuningBtn.addEventListener('click', ()=>{
+  tuningWrap.classList.contains('open') ? closeTuningMenu() : openTuningMenu();
+});
+tuningBtn.addEventListener('keydown', e=>{
+  const opts = [...tuningMenu.children];
+  const idx = opts.findIndex(li=>li.dataset.id===selectedTuningId);
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(!tuningWrap.classList.contains('open')) openTuningMenu();
+    selectTuning(opts[Math.min(idx+1, opts.length-1)].dataset.id);
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(!tuningWrap.classList.contains('open')) openTuningMenu();
+    selectTuning(opts[Math.max(idx-1, 0)].dataset.id);
+  } else if(e.key==='Escape'){
+    closeTuningMenu();
+  } else if(e.key==='Enter' || e.key===' '){
+    e.preventDefault();
+    tuningWrap.classList.contains('open') ? closeTuningMenu() : openTuningMenu();
+  }
+});
+
+const savedSettings = loadSettings();
+
+if(typeof savedSettings.chordInput === 'string'){
+  document.getElementById('chordInput').value = savedSettings.chordInput;
+}
+if(typeof savedSettings.showBorder === 'boolean'){
+  document.getElementById('borderToggle').checked = savedSettings.showBorder;
+  document.getElementById('grid').classList.toggle('no-border', !savedSettings.showBorder);
+}
+if(typeof savedSettings.bwMode === 'boolean'){
+  document.getElementById('bwToggle').checked = savedSettings.bwMode;
+  document.body.classList.toggle('bw-mode', savedSettings.bwMode);
+}
+if(typeof savedSettings.highlightRoot === 'boolean'){
+  document.getElementById('rootToggle').checked = savedSettings.highlightRoot;
+}
+if(typeof savedSettings.masonry === 'boolean'){
+  document.getElementById('masonryToggle').checked = savedSettings.masonry;
+}
+if(savedSettings.columns === 'auto' || (Number.isInteger(savedSettings.columns) && savedSettings.columns >= COLUMNS_MIN && savedSettings.columns <= COLUMNS_MAX)){
+  columnsValue = savedSettings.columns;
+}
+if(Number.isInteger(savedSettings.shortenThreshold) && savedSettings.shortenThreshold >= THRESHOLD_MIN && savedSettings.shortenThreshold <= THRESHOLD_MAX){
+  shortenThreshold = savedSettings.shortenThreshold;
+}
+const initialTuningId = (savedSettings.tuningId && TUNINGS.some(t=>t.id===savedSettings.tuningId))
+  ? savedSettings.tuningId : TUNINGS[0].id;
+
+buildTuningMenu();
+selectTuning(initialTuningId, { silent:true });
+
+document.getElementById('generateBtn').addEventListener('click', generate);
+document.getElementById('printBtn').addEventListener('click', ()=>window.print());
+document.getElementById('chordInput').addEventListener('keydown', e=>{ if(e.key==='Enter') generate(); });
+document.getElementById('borderToggle').addEventListener('change', e=>{
+  document.getElementById('grid').classList.toggle('no-border', !e.target.checked);
+  saveSettings();
+});
+document.getElementById('bwToggle').addEventListener('change', e=>{
+  document.body.classList.toggle('bw-mode', e.target.checked);
+  generate();
+});
+document.getElementById('rootToggle').addEventListener('change', generate);
+document.getElementById('columnsMinus').addEventListener('click', ()=> stepColumns(-1));
+document.getElementById('columnsPlus').addEventListener('click', ()=> stepColumns(1));
+document.getElementById('columnsStepper').addEventListener('keydown', e=>{
+  if(e.key==='ArrowUp' || e.key==='ArrowRight'){ e.preventDefault(); stepColumns(1); }
+  else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ e.preventDefault(); stepColumns(-1); }
+});
+document.getElementById('masonryToggle').addEventListener('change', generate);
+document.getElementById('thresholdMinus').addEventListener('click', ()=> stepThreshold(-1));
+document.getElementById('thresholdPlus').addEventListener('click', ()=> stepThreshold(1));
+document.getElementById('thresholdStepper').addEventListener('keydown', e=>{
+  if(e.key==='ArrowUp' || e.key==='ArrowRight'){ e.preventDefault(); stepThreshold(1); }
+  else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ e.preventDefault(); stepThreshold(-1); }
+});
+
+updateColumnsUI();
+updateThresholdUI();
+generate();
+</script>
+</body>
+</html>
