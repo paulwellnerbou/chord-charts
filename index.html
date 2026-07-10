@@ -353,6 +353,7 @@
   }
 
   /* --- transpose control (compact stepper in the Chords label row) --- */
+  .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
   .field-label-row{ display:flex; align-items:end; justify-content:space-between; flex-wrap:wrap; gap:6px 14px; margin:0 0 6px; }
   .field-label-row .field-label{ margin:0; }
   .stepper-sm{ height:28px; border-radius:7px; }
@@ -706,8 +707,9 @@
           <div class="stepper stepper-sm" id="transposeStepper" role="group" aria-label="Transpose all chords" title="Shift every chord up or down in semitones — the chord text itself is rewritten">
             <span class="stepper-label">Transpose</span>
             <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone" title="Down a semitone">−</button>
-            <button type="button" class="stepper-value" id="transposeValue" aria-live="polite" disabled>0</button>
+            <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
             <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone" title="Up a semitone">+</button>
+            <span class="sr-only" id="transposeStatus" role="status"></span>
           </div>
         </div>
         <div class="input-clear-wrap" id="chordInputWrap">
@@ -1639,9 +1641,10 @@ function transposedNoteName(letter, acc, delta, inheritFlat){
 }
 
 function transposeToken(core, delta){
-  // same token shape parseChord accepts; the quality text passes through untouched
   const m = core.match(/^([A-Ga-g])(#|b)?(.*?)(?:\/([A-Ga-g])(#|b)?)?$/);
-  if(!m) return core;
+  // mirror parseChord's validation: a token it rejects ("Chorus:", "Cmaj13") is
+  // not a chord here either and must not be rewritten; quality text passes through
+  if(!m || resolveQuality(m[3]||'') === null) return core;
   const root = transposedNoteName(m[1], m[2]||'', delta, false);
   let out = root + (m[3]||'');
   if(m[4]){
@@ -1682,6 +1685,9 @@ function updateTransposeUI(){
   const empty = document.getElementById('chordInput').value.trim() === '';
   document.getElementById('transposeMinus').disabled = empty || offset === TRANSPOSE_MIN;
   document.getElementById('transposePlus').disabled = empty || offset === TRANSPOSE_MAX;
+  // stale text would silence a later identical announcement (role=status only
+  // fires on change), so drop it once the offset is back at 0
+  if(offset === 0) document.getElementById('transposeStatus').textContent = '';
 }
 
 function setTransposeOffset(offset){
@@ -1704,6 +1710,12 @@ function setTransposeOffset(offset){
   // a pending debounced generate from typing would only duplicate this one
   clearTimeout(chordInputDebounce);
   generate();
+  // announced via a separate always-enabled region: live updates on the disabled
+  // value button are unreliable in some screen readers. Written after generate(),
+  // which clears the region at offset 0 — "restored" must survive that
+  document.getElementById('transposeStatus').textContent = transposeState.offset === 0
+    ? 'Restored the original chords'
+    : `Transposed ${transposeState.offset > 0 ? 'up' : 'down'} ${Math.abs(transposeState.offset)} semitone${Math.abs(transposeState.offset) === 1 ? '' : 's'}`;
 }
 
 function stepTranspose(delta){ setTransposeOffset(currentTransposeOffset() + delta); }
