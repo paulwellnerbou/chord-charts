@@ -81,7 +81,7 @@
   .brand-mark svg{ width:26px; height:26px; }
   .brand-title{ font-family:var(--heading-font); font-size:28px; line-height:1; font-weight:650; }
   .brand-tagline{ margin:5px 0 0; color:var(--ink-soft); font-size:12.5px; }
-  #pageTitle{ text-align:right; }
+  #pageTitle{ margin:0; text-align:right; }
   .page-title-main{
     display:block; font-family:var(--heading-font); font-weight:600;
     font-size:19px; line-height:1.15; color:var(--ink);
@@ -595,7 +595,7 @@
         <p class="brand-tagline">Build, hear, share and print four-string chord diagrams.</p>
       </div>
     </div>
-    <div id="pageTitle" aria-live="polite"><span class="page-title-main" id="pageTitleMain">Mandolin chords</span><span class="page-title-sub" id="pageTitleSub">GDAE tuning</span></div>
+    <h2 id="pageTitle" aria-live="polite"><span class="page-title-main" id="pageTitleMain">Mandolin chords</span><span class="page-title-sub" id="pageTitleSub">GDAE tuning</span></h2>
   </header>
 
   <section class="settings-section no-print" aria-label="Chords">
@@ -1216,14 +1216,39 @@ async function copyAllChordsAsImage(btnEl){
   }
 }
 
+function copyTextFallback(text){
+  const helper = document.createElement('textarea');
+  helper.value = text;
+  helper.setAttribute('readonly', '');
+  helper.setAttribute('aria-hidden', 'true');
+  helper.tabIndex = -1;
+  helper.style.position = 'fixed';
+  helper.style.opacity = '0';
+  helper.style.pointerEvents = 'none';
+  document.body.appendChild(helper);
+  helper.select();
+  helper.setSelectionRange(0, helper.value.length);
+  let copied = false;
+  try{ copied = document.execCommand('copy'); }catch(err){}
+  helper.remove();
+  return copied;
+}
+
 async function copyShareLink(btnEl){
+  // Share must include edits made during the input debounce window.
+  updateURLParam(document.getElementById('chordInput').value);
+  const link = window.location.href;
   try{
     if(!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('no-clipboard-api');
-    await navigator.clipboard.writeText(window.location.href);
+    await navigator.clipboard.writeText(link);
     flashButtonText(btnEl, 'Copied');
   }catch(err){
-    console.error(err);
-    flashButtonText(btnEl, 'Failed');
+    if(copyTextFallback(link)){
+      flashButtonText(btnEl, 'Copied');
+    } else {
+      window.prompt('Copy this chart link:', link);
+      flashButtonText(btnEl, 'Shown');
+    }
   }
 }
 
@@ -2113,7 +2138,11 @@ updateColumnsUI();
 updateThresholdUI();
 updateMaxFretUI();
 resizeChordInput();
-window.addEventListener('resize', resizeChordInput);
+let chordInputResizeTimer = null;
+window.addEventListener('resize', ()=>{
+  clearTimeout(chordInputResizeTimer);
+  chordInputResizeTimer = setTimeout(resizeChordInput, 120);
+});
 generate();
 </script>
 </body>
