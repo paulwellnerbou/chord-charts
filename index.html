@@ -618,11 +618,14 @@ const EXPORT_HEADING_FONT = "Georgia, 'Times New Roman', serif";
 const NICE_COLORS = {
   ink:'#3a2a18', dotFill:'#b8860f', dotStroke:'#7d5b0a',
   cardBg:'#f9f3e4', cardBorder:'#c3ad82', heading:'#6d3323', rootColor:'#6d3323',
+  rootFill:'#b8860f',
   lineOpacity:0.55, markerOpacity:0.3, exportHeadingFont:EXPORT_HEADING_FONT
 };
 const BW_COLORS = {
   ink:'#000000', dotFill:'#000000', dotStroke:'#000000',
   cardBg:'#ffffff', cardBorder:'#000000', heading:'#000000', rootColor:'#000000',
+  // solid black root would vanish among normal dots in print — keep the hollow ring
+  rootFill:'#ffffff',
   lineOpacity:1, markerOpacity:0.25, exportHeadingFont:EXPORT_HEADING_FONT
 };
 function currentColors(){ return document.body.classList.contains('bw-mode') ? BW_COLORS : NICE_COLORS; }
@@ -767,7 +770,7 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
     } else {
       const y = rowCenter(fret-startFret);
       if(isRoot){
-        s += `<circle cx="${x}" cy="${y}" r="9" fill="${colors.cardBg}" stroke="${colors.rootColor}" stroke-width="4"${noteAttrs}/>`;
+        s += `<circle cx="${x}" cy="${y}" r="9" fill="${colors.rootFill}" stroke="${colors.rootColor}" stroke-width="4"${noteAttrs}/>`;
       } else {
         s += `<circle cx="${x}" cy="${y}" r="9" fill="${colors.dotFill}" stroke="${colors.dotStroke}" stroke-width="1"${noteAttrs}/>`;
       }
