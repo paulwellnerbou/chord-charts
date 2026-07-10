@@ -1503,11 +1503,13 @@ function updateChordInputClearUI(){
 
 function resizeChordInput(){
   const input = document.getElementById('chordInput');
+  const styles = getComputedStyle(input);
+  const minHeight = parseFloat(styles.minHeight) || 66;
+  const maxHeight = parseFloat(styles.maxHeight) || 150;
   input.style.height = 'auto';
-  const minHeight = parseFloat(getComputedStyle(input).minHeight) || 66;
-  const nextHeight = Math.min(input.scrollHeight, 150);
+  const nextHeight = Math.min(input.scrollHeight, maxHeight);
   input.style.height = `${Math.max(minHeight, nextHeight)}px`;
-  input.style.overflowY = input.scrollHeight > 150 ? 'auto' : 'hidden';
+  input.style.overflowY = input.scrollHeight > maxHeight ? 'auto' : 'hidden';
 }
 
 // one-shot voicing preference consumed by the next generate(), so collapsing an
