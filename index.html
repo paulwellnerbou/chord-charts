@@ -1527,6 +1527,27 @@ function layoutCards(cardEls){
   });
 }
 
+// generate() blocks the main thread long enough (voicing search × chords) that
+// running it inside a click handler delays the control's own visual feedback.
+// rAF + setTimeout runs it right after the next paint; the timeout fallback
+// still runs it on hidden pages, where rAF never fires. Callers coalesce
+// rapid clicks and key-repeats into one rebuild via their pending flag.
+function afterNextPaint(fn){
+  requestAnimationFrame(()=> setTimeout(fn, 0));
+  setTimeout(fn, 100);
+}
+
+let generatePending = false;
+function scheduleGenerate(){
+  if(generatePending) return;
+  generatePending = true;
+  afterNextPaint(()=>{
+    if(!generatePending) return;
+    generatePending = false;
+    generate();
+  });
+}
+
 function updateColumnsUI(){
   document.getElementById('columnsValue').textContent = columnsValue === 'auto' ? 'Auto' : String(columnsValue);
   document.getElementById('columnsMinus').disabled = columnsValue === 'auto';
@@ -1545,7 +1566,7 @@ function stepColumns(delta){
   valueEl.classList.remove('bump');
   void valueEl.offsetWidth;
   valueEl.classList.add('bump');
-  generate();
+  scheduleGenerate();
 }
 
 function updateThresholdUI(){
@@ -1561,7 +1582,7 @@ function stepThreshold(delta){
   valueEl.classList.remove('bump');
   void valueEl.offsetWidth;
   valueEl.classList.add('bump');
-  generate();
+  scheduleGenerate();
 }
 
 function updateMaxFretUI(){
@@ -1577,7 +1598,7 @@ function stepMaxFret(delta){
   valueEl.classList.remove('bump');
   void valueEl.offsetWidth;
   valueEl.classList.add('bump');
-  generate();
+  scheduleGenerate();
 }
 
 function updateChordInputClearUI(){
@@ -1967,10 +1988,23 @@ document.getElementById('voicingModalMasonry').addEventListener('change', ()=>{
   if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
   saveSettings();
 });
+// deferred like scheduleGenerate(), and re-checks chooser state at run time
+// because the modal may close before the callback fires
+let chooserRenderPending = false;
+function scheduleChooserRender(){
+  if(chooserRenderPending) return;
+  chooserRenderPending = true;
+  afterNextPaint(()=>{
+    if(!chooserRenderPending) return;
+    chooserRenderPending = false;
+    if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
+  });
+}
+
 function stepChooserMaxFret(delta){
   chooserMaxFretValue = Math.min(MAX_FRET_MAX, Math.max(MAX_FRET_MIN, chooserMaxFretValue + delta));
   syncVoicingModalControls();
-  if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
+  scheduleChooserRender();
   saveSettings();
 }
 document.getElementById('voicingModalMaxFretMinus').addEventListener('click', ()=> stepChooserMaxFret(-1));
