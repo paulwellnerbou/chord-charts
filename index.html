@@ -1533,8 +1533,15 @@ function layoutCards(cardEls){
 // still runs it on hidden pages, where rAF never fires. Callers coalesce
 // rapid clicks and key-repeats into one rebuild via their pending flag.
 function afterNextPaint(fn){
-  requestAnimationFrame(()=> setTimeout(fn, 0));
-  setTimeout(fn, 100);
+  let done = false;
+  const run = ()=>{
+    if(done) return;
+    done = true;
+    clearTimeout(fallback);
+    fn();
+  };
+  const fallback = setTimeout(run, 100);
+  requestAnimationFrame(()=> setTimeout(run, 0));
 }
 
 let generatePending = false;
