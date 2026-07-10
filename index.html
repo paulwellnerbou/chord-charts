@@ -1722,11 +1722,11 @@ function transposeChordText(text, delta){
   for(let i=0; i<parts.length; i+=2){
     const trimmed = parts[i].trim();
     if(trimmed === '') continue;
-    const hasStar = /\*$/.test(trimmed);
-    const core = hasStar ? trimmed.slice(0,-1).trim() : trimmed;
+    const starMatch = trimmed.match(/(\s*\*)$/);
+    const core = starMatch ? trimmed.slice(0, -starMatch[1].length) : trimmed;
     const lead = parts[i].match(/^\s*/)[0];
     const trail = parts[i].match(/\s*$/)[0];
-    parts[i] = lead + transposeToken(core, delta) + (hasStar ? '*' : '') + trail;
+    parts[i] = lead + transposeToken(core, delta) + (starMatch ? starMatch[1] : '') + trail;
   }
   return parts.join('');
 }
