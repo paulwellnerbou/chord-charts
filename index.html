@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chord chart generator</title>
-<meta name="description" content="Generate printable chord diagrams for ukulele, mandolin, mandola, tenor and plectrum banjo. Alternate voicings, custom tunings, and shareable links.">
+<meta name="description" content="Generate printable chord diagrams for ukulele, mandolin, mandola, tenor and plectrum banjo. Explore alternate voicings and shareable charts.">
 
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="favicon.ico">
@@ -13,7 +13,7 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://chords.wbou.dev/">
 <meta property="og:title" content="Chord chart generator">
-<meta property="og:description" content="Generate printable chord diagrams for ukulele, mandolin, mandola, tenor and plectrum banjo. Alternate voicings, custom tunings, and shareable links.">
+<meta property="og:description" content="Generate printable chord diagrams for ukulele, mandolin, mandola, tenor and plectrum banjo. Explore alternate voicings and shareable charts.">
 <meta property="og:image" content="https://chords.wbou.dev/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -24,27 +24,32 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&amp;display=swap" rel="stylesheet">
 <style>
   :root{
-    --page-bg:#f1ead6;
-    --ink:#2c2419;
-    --ink-soft:#75674f;
-    --accent:#31604d;
-    --card-bg:#fbf8ee;
-    --card-border:#d9caa3;
-    --control-border:#a3906f;
-    --btn-bg:#2c2419;
-    --btn-fg:#fbf8ee;
+    --page-bg:#f6f0e5;
+    --ink:#292621;
+    --ink-soft:#716a61;
+    --accent:#a44737;
+    --accent-strong:#783027;
+    --accent-soft:#f6e5df;
+    --card-bg:#fffcf7;
+    --card-border:#ddd3c5;
+    --control-border:#b9ac9d;
+    --btn-bg:#a44737;
+    --btn-fg:#ffffff;
     --heading-font:'Fraunces', Georgia, serif;
-    --body-font:'Alegreya Sans', -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
-    --control-h:40px;
+    --body-font:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --control-h:48px;
+    --builder-control-h:66px;
   }
   body.bw-mode{
     --page-bg:#ffffff;
     --ink:#000000;
     --ink-soft:#333333;
     --accent:#000000;
+    --accent-strong:#000000;
+    --accent-soft:#f0f0f0;
     --card-bg:#ffffff;
     --card-border:#000000;
     --control-border:#000000;
@@ -56,59 +61,100 @@
   body {
     margin:0; background-color:var(--page-bg); color:var(--ink);
     /* faint paper grain — felt more than seen */
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    font-family: var(--body-font);
-    padding: 32px 24px 40px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.075 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    font-family:var(--body-font); font-size:15px; line-height:1.45;
+    padding:28px 24px 48px;
   }
   body.bw-mode{ background-image:none; }
-  .wrap{ max-width:960px; margin:0 auto; }
-  .masthead{ border-bottom:4px double var(--card-border); padding-bottom:14px; margin-bottom:20px; }
+  .wrap{ max-width:1040px; margin:0 auto; }
+  .masthead{
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    border-bottom:1px solid var(--card-border); padding-bottom:18px; margin-bottom:20px;
+  }
   h1{ margin:0; }
+  .brand-lockup{ display:flex; align-items:center; gap:12px; min-width:0; }
+  .brand-mark{
+    display:grid; place-items:center; width:42px; height:42px; flex:0 0 42px;
+    color:var(--accent); background:var(--accent-soft); border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);
+    border-radius:13px;
+  }
+  .brand-mark svg{ width:26px; height:26px; }
+  .brand-title{ font-family:var(--heading-font); font-size:28px; line-height:1; font-weight:650; }
+  .brand-tagline{ margin:5px 0 0; color:var(--ink-soft); font-size:12.5px; }
+  #pageTitle{ margin:0; text-align:right; }
   .page-title-main{
     display:block; font-family:var(--heading-font); font-weight:600;
-    font-size:clamp(28px, 4vw, 34px); line-height:1.15; color:var(--ink);
+    font-size:19px; line-height:1.15; color:var(--ink);
   }
   .page-title-sub{
-    display:block; margin-top:6px;
-    font-size:13px; font-weight:700; letter-spacing:.18em; text-transform:uppercase;
+    display:block; margin-top:4px;
+    font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
     color:var(--ink-soft);
   }
-  .settings-section{ margin-bottom:16px; }
+  .settings-section{
+    margin-bottom:18px; padding:18px;
+    background:color-mix(in srgb,var(--card-bg) 93%,transparent);
+    border:1px solid var(--card-border); border-radius:16px;
+    box-shadow:0 12px 32px -30px rgba(41,38,33,.7);
+  }
+  .builder-heading{ margin-bottom:14px; }
+  .builder-kicker{ display:block; margin-bottom:3px; color:var(--accent); font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+  .builder-title{ margin:0; font-family:var(--heading-font); font-size:21px; font-weight:600; }
+  .builder-grid{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px; align-items:end; }
+  .field-label{ display:block; margin:0 0 6px; color:var(--ink); font-size:12px; font-weight:750; letter-spacing:.04em; }
   .settings-section-title{
     font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.13em;
     color:var(--ink-soft); margin:0 0 8px;
   }
-  .controls{
-    display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin-bottom:10px;
+  .controls{ display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin-bottom:10px; }
+  .syntax-help{ margin:10px 0 0; font-size:12.5px; color:var(--ink-soft); line-height:1.55; max-width:760px; }
+  .syntax-summary{
+    display:block; min-height:0; width:100%; padding:0; border:0; border-radius:4px;
+    background:transparent; color:inherit; font:inherit; line-height:inherit; text-align:left; cursor:pointer;
   }
-  .syntax-help{ margin:2px 0 0; font-size:14px; color:var(--ink-soft); line-height:1.55; max-width:720px; }
-  .syntax-help summary{ list-style:none; cursor:pointer; }
-  .syntax-help summary::-webkit-details-marker{ display:none; }
-  .syntax-help summary:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  .syntax-summary:hover{ background:transparent; border-color:transparent; color:inherit; }
+  .syntax-summary:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   .syntax-help code{ font-family:inherit; font-size:inherit; font-weight:600; color:var(--ink); }
   .syntax-toggle{ display:inline-flex; align-items:center; gap:3px; color:var(--accent); font-weight:600; white-space:nowrap; }
-  .syntax-help summary:hover .syntax-toggle{ text-decoration:underline; }
+  .syntax-summary:hover .syntax-toggle{ text-decoration:underline; }
   .syntax-toggle svg{ width:11px; height:11px; transition:transform .2s ease; }
-  .syntax-help[open] .syntax-toggle svg{ transform:rotate(180deg); }
+  .syntax-summary[aria-expanded="true"] .syntax-toggle svg{ transform:rotate(180deg); }
+  .syntax-panel{
+    display:grid; grid-template-rows:0fr; opacity:0; transform:translateY(-4px);
+    transition:grid-template-rows .28s cubic-bezier(.4,0,.2,1),opacity .2s ease,transform .28s cubic-bezier(.4,0,.2,1);
+  }
+  .syntax-panel.open{ grid-template-rows:1fr; opacity:1; transform:translateY(0); }
+  .syntax-panel-inner{ min-height:0; overflow:hidden; }
   .syntax-help p{ margin:7px 0 0; }
+  @media (prefers-reduced-motion:reduce){
+    .syntax-panel,.syntax-toggle svg{ transition:none; }
+  }
 
   .results-toolbar{
-    display:flex; align-items:center; justify-content:space-between; gap:10px 14px; flex-wrap:wrap;
-    margin:4px 0 12px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px 18px; flex-wrap:wrap;
+    margin:2px 0 14px; padding-bottom:14px; border-bottom:1px solid var(--card-border);
   }
+  .results-summary{ display:flex; align-items:baseline; gap:8px; min-width:max-content; }
+  .results-count{ font-family:var(--heading-font); font-size:19px; font-weight:600; color:var(--ink); }
+  .results-context{ color:var(--ink-soft); font-size:12.5px; }
   .results-actions{
     display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap;
-    margin:0 0 10px;
+    margin:0;
   }
   .btn-iconic{ display:inline-flex; align-items:center; gap:7px; }
   .btn-iconic svg{ width:15px; height:15px; flex-shrink:0; }
-  .btn-label{ position:relative; transition:color .15s ease; }
+  .btn-label{ position:relative; display:inline-grid; place-items:center; }
+  .btn-label-default{
+    grid-area:1 / 1; transition:opacity .16s ease,transform .16s ease;
+  }
   .btn-label-flash{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    visibility:hidden; opacity:0; transition:opacity .15s ease, visibility .15s;
+    visibility:hidden; opacity:0; color:var(--ink); transform:translateY(4px);
+    transition:opacity .16s ease,transform .16s ease,visibility .16s;
   }
-  .is-flash .btn-label{ color:transparent; }
-  .is-flash .btn-label-flash{ visibility:visible; opacity:1; color:var(--ink); }
+  .is-flash .btn-label-default{ opacity:0; transform:translateY(-4px); }
+  .is-flash .btn-label-flash{ visibility:visible; opacity:1; transform:translateY(0); }
+  #shareBtn .btn-label{ min-width:48px; }
   .options-toggle .chev{ width:13px; height:13px; margin-left:-2px; transition:transform .25s cubic-bezier(.4,0,.2,1); }
   .options-toggle[aria-expanded="true"] .chev{ transform:rotate(180deg); }
 
@@ -126,15 +172,16 @@
   .options-group .settings-section-title{ margin-bottom:2px; }
   .options-group-desc{ font-size:13.5px; color:var(--ink-soft); margin:0 0 10px; }
   .options-group .controls{ margin-bottom:0; row-gap:12px; }
-  .input-clear-wrap{ position:relative; flex:1 1 300px; }
+  .input-clear-wrap{ position:relative; }
   #chordInput{
-    width:100%; height:var(--control-h); padding:0 34px 0 10px; font-size:16px;
-    border:1px solid var(--control-border); border-radius:6px; font-family:inherit;
-    background:var(--card-bg); color:var(--ink);
+    display:block; width:100%; height:var(--builder-control-h); min-height:var(--builder-control-h); max-height:150px; padding:10px 38px 10px 12px; font-size:15px; line-height:1.45;
+    border:1px solid var(--control-border); border-radius:10px; font-family:inherit; resize:none; overflow-y:hidden;
+    background:var(--card-bg); color:var(--ink); transition:border-color .15s ease,box-shadow .15s ease;
   }
+  #chordInput:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent); }
   .input-clear-btn{
-    position:absolute; top:50%; right:5px; transform:translateY(-50%);
-    width:24px; height:24px; padding:0; border:none; background:transparent; color:var(--ink-soft);
+    position:absolute; top:8px; right:7px;
+    min-height:28px; width:28px; height:28px; padding:0; border:none; background:transparent; color:var(--ink-soft);
     font-size:17px; line-height:1; border-radius:50%; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
     opacity:0; visibility:hidden; transition:opacity .15s ease, color .15s ease, background-color .15s ease, visibility .15s;
@@ -146,13 +193,13 @@
   .tuning-select{ position:relative; font-family:inherit; }
   .tuning-select-trigger{
     display:flex; align-items:center; gap:10px;
-    height:var(--control-h); padding:0 14px 0 8px; font-size:15px; font-family:inherit;
+    min-width:210px; height:var(--builder-control-h); padding:0 14px 0 10px; font-size:14px; font-family:inherit;
     border:1px solid var(--control-border); border-radius:10px;
     background:var(--card-bg); color:var(--ink);
     cursor:pointer; text-align:left;
-    transition:border-color .2s ease, box-shadow .2s ease, transform .15s ease;
+    transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .15s ease;
   }
-  .tuning-select-trigger:hover{ border-color:var(--accent); transform:translateY(-1px); box-shadow:0 3px 8px rgba(44,36,25,.12); }
+  .tuning-select-trigger:hover{ background:var(--card-bg); color:var(--ink); border-color:var(--accent); transform:translateY(-1px); box-shadow:0 3px 8px rgba(41,38,33,.12); }
   .tuning-select-trigger:active{ transform:translateY(0) scale(.98); }
   .tuning-select-trigger:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   .tuning-select.open .tuning-select-trigger{ border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
@@ -176,7 +223,7 @@
     position:absolute; top:calc(100% + 8px); left:0; min-width:100%; z-index:20;
     list-style:none; margin:0; padding:6px;
     background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-    box-shadow:0 14px 30px -10px rgba(44,36,25,.32), 0 2px 8px rgba(44,36,25,.12);
+    box-shadow:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
     transform-origin:top left;
     opacity:0; visibility:hidden; transform:translateY(-6px) scale(.96);
     transition:opacity .16s ease, transform .2s cubic-bezier(.34,1.56,.64,1), visibility .2s;
@@ -218,17 +265,21 @@
   }
 
   button{
-    padding:9px 16px; font-size:15.5px; font-weight:500; font-family:inherit;
-    background:var(--btn-bg); color:var(--btn-fg); border:1px solid var(--btn-bg); border-radius:6px;
+    min-height:40px; padding:9px 15px; font-size:13.5px; font-weight:650; font-family:inherit;
+    background:var(--btn-bg); color:var(--btn-fg); border:1px solid var(--btn-bg); border-radius:9px;
     cursor:pointer;
+    transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .12s ease;
     /* rapid taps (voicing arrows) must not trigger double-tap zoom */
     touch-action:manipulation;
   }
+  button:hover{ background:var(--accent-strong); border-color:var(--accent-strong); }
   button.secondary{ background:var(--card-bg); color:var(--ink); border:1px solid var(--control-border); }
+  button.secondary:hover{ background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent); }
+  button:focus-visible{ outline:3px solid color-mix(in srgb,var(--accent) 26%,transparent); outline-offset:2px; }
 
   /* --- columns stepper --- */
   .stepper{
-    display:inline-flex; align-items:center; height:30px;
+    display:inline-flex; align-items:center; height:34px;
     border:1px solid var(--control-border); border-radius:8px;
     background:var(--card-bg); overflow:hidden;
     transition:border-color .2s ease, box-shadow .2s ease;
@@ -238,13 +289,14 @@
   .stepper-label{ font-size:15px; color:var(--ink-soft); padding:0 4px 0 12px; white-space:nowrap; }
   .stepper-btn{
     display:flex; align-items:center; justify-content:center;
-    width:30px; height:100%; padding:0; border:none; background:transparent; color:var(--ink);
+    min-height:0; width:30px; height:100%; padding:0; border:none; background:transparent; color:var(--ink);
     font-size:16px; font-family:inherit; line-height:1; cursor:pointer;
     transition:background-color .15s ease, color .15s ease, transform .1s ease;
   }
   .stepper-btn:hover:not(:disabled){ background:var(--page-bg); color:var(--accent); }
   .stepper-btn:active:not(:disabled){ transform:scale(.85); }
   .stepper-btn:disabled{ color:var(--card-border); cursor:not-allowed; }
+  .stepper-btn:disabled:hover{ background:transparent; border-color:transparent; }
   .stepper-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
   .stepper-value{
     min-width:44px; height:100%; display:flex; align-items:center; justify-content:center;
@@ -280,17 +332,17 @@
   .switch-wrap{ position:relative; display:inline-flex; align-items:center; gap:6px; }
   .info-btn{
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
-    width:16px; height:16px; padding:0; border-radius:50%;
+    min-height:24px; width:24px; height:24px; padding:0; border-radius:50%;
     border:1px solid var(--control-border); background:transparent; color:var(--ink-soft);
     font-family:Georgia,'Times New Roman',serif; font-style:italic; font-weight:700; font-size:11px; line-height:1;
-    cursor:pointer; transition:border-color .15s ease, color .15s ease;
+    cursor:pointer; transition:background-color .18s ease,border-color .18s ease,color .18s ease;
   }
-  .info-btn:hover, .info-btn:focus-visible, .switch-wrap.open .info-btn{ border-color:var(--accent); color:var(--accent); }
+  .info-btn:hover, .info-btn:focus-visible, .switch-wrap.open .info-btn{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
   .info-popover{
     position:absolute; top:calc(100% + 8px); left:0; z-index:20; width:240px;
     padding:10px 12px; font-size:14px; line-height:1.5; text-align:left; font-weight:400;
     background:var(--card-bg); color:var(--ink); border:1px solid var(--card-border); border-radius:10px;
-    box-shadow:0 14px 30px -10px rgba(44,36,25,.32), 0 2px 8px rgba(44,36,25,.12);
+    box-shadow:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
     opacity:0; visibility:hidden; transform:translateY(-4px);
     transition:opacity .16s ease, transform .16s ease, visibility .16s;
   }
@@ -304,15 +356,15 @@
   .threshold-example .fret-num{ font-size:20px; opacity:.85; transform:translateY(3px); }
 
   .tip-card{
-    display:inline-flex; align-items:flex-start; gap:9px; max-width:100%;
-    background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-    padding:9px 10px 9px 12px; margin:0 0 18px; font-size:14.5px; color:var(--ink); line-height:1.4;
+    display:inline-flex; align-items:center; gap:8px; max-width:100%;
+    background:transparent; border:none; border-radius:10px;
+    padding:0; margin:0 0 14px; font-size:12.5px; color:var(--ink-soft); line-height:1.4;
   }
   .tip-emoji{ font-size:15px; flex-shrink:0; margin-top:1px; }
-  .tip-line{ display:block; }
-  .tip-line + .tip-line{ margin-top:4px; }
+  .tip-line{ display:inline; }
+  .tip-line + .tip-line::before{ content:' '; }
   .tip-dismiss{
-    flex-shrink:0; width:20px; height:20px; padding:0; margin-left:2px; border:none; background:transparent;
+    flex-shrink:0; min-height:20px; width:20px; height:20px; padding:0; margin-left:2px; border:none; background:transparent;
     color:var(--ink-soft); font-size:15px; line-height:1; border-radius:50%; cursor:pointer;
     display:flex; align-items:center; justify-content:center; transition:color .15s ease, background-color .15s ease;
   }
@@ -323,12 +375,12 @@
     .tip-pointer-text{ display:none; }
     .tip-touch-text{ display:inline; }
   }
-  .error{ font-size:14.5px; color:#9e2a20; margin:10px 0 0; }
+  .error{ font-size:13px; font-weight:600; color:#9e2a20; margin:9px 0 0; }
   .error:empty{ display:none; }
   .empty-hint{ font-size:14.5px; font-style:italic; color:var(--ink-soft); margin:6px 0; }
   .grid {
     display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
-    gap:16px; align-items:start;
+    gap:14px; align-items:start;
   }
   .grid.masonry{
     display:flex; align-items:flex-start; gap:16px;
@@ -338,43 +390,37 @@
   }
   .card {
     position:relative;
-    background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px;
-    padding:14px 10px 12px; text-align:center;
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px;
+    padding:14px 10px 13px; text-align:center; overflow:hidden;
+    box-shadow:0 2px 2px rgba(41,38,33,.02),0 10px 24px -24px rgba(41,38,33,.7);
+    transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
   }
-  .grid.no-border .card{ border-color:transparent; }
-  .chord-title-row{ display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:4px; }
+  .card:hover{ transform:translateY(-2px); border-color:color-mix(in srgb,var(--accent) 34%,var(--card-border)); box-shadow:0 12px 28px -22px rgba(41,38,33,.75); }
+  .grid.no-border .card,
+  .grid.no-border .card:hover{ border-color:transparent; box-shadow:none; }
+  .chord-title-row{ display:flex; align-items:center; justify-content:center; gap:8px; min-height:30px; margin-bottom:4px; padding:0 30px; }
   .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--accent); cursor:pointer; }
   .card h2:hover { opacity:.72; }
   .play-chord-btn{
-    flex:0 0 18px; width:18px; height:18px; padding:0; border:none; background:transparent;
+    position:absolute; top:9px; left:9px; min-height:32px; flex:0 0 32px; width:32px; height:32px; padding:0; border:none; border-radius:50%; background:var(--accent-soft);
     display:flex; align-items:center; justify-content:center;
     color:var(--accent);
-    transition:opacity .18s ease, transform .18s ease;
+    transition:background-color .18s ease,color .18s ease,opacity .18s ease,transform .18s ease;
     cursor:pointer;
   }
-  /* reveal-on-hover only where hovering exists; touch devices keep tile controls visible */
-  @media (hover: hover){
-    .play-chord-btn{ opacity:0; transform:scale(.7); }
-    .card:hover .play-chord-btn, .play-chord-btn:focus-visible{
-      opacity:1; transform:scale(1);
-    }
-  }
-  .chord-title-spacer{ flex:0 0 18px; visibility:hidden; }
-  .card svg { display:block; margin:0 auto; }
+  .play-chord-btn:hover{ background:var(--accent); color:#fff; border-color:transparent; }
+  .card svg { display:block; max-width:100%; height:auto; margin:0 auto; }
   .omit-note{ font-size:10px; font-style:italic; color:var(--ink-soft); margin:4px 0 0; }
   .note-dot { cursor:pointer; }
   .note-dot:hover { opacity:.72; }
   .copy-btn{
-    position:absolute; top:8px; right:8px; width:28px; height:28px;
-    border-radius:14px; padding:0; display:flex; align-items:center; justify-content:center;
-    background:var(--card-bg); border:none; color:var(--ink);
-    transition:opacity .18s ease, transform .18s ease, width .2s ease;
+    position:absolute; top:9px; right:9px; min-height:32px; width:32px; height:32px;
+    border-radius:50%; padding:0; display:flex; align-items:center; justify-content:center;
+    background:var(--accent-soft); border:none; color:var(--accent-strong);
+    transition:background-color .18s ease,color .18s ease,opacity .18s ease,transform .18s ease,width .2s ease;
     cursor:pointer; font-size:10px; overflow:hidden;
   }
-  @media (hover: hover){
-    .copy-btn{ opacity:0; transform:translateY(-4px) scale(.9); }
-    .card:hover .copy-btn, .copy-btn:focus-visible{ opacity:1; transform:translateY(0) scale(1); }
-  }
+  .copy-btn:hover{ background:var(--accent); color:#fff; border-color:transparent; }
   .copy-btn.is-flash{ width:64px; }
   .copy-btn-icon, .copy-btn-label{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
@@ -385,28 +431,42 @@
   .copy-btn.is-flash .copy-btn-icon{ opacity:0; transform:scale(.7); }
   .copy-btn.is-flash .copy-btn-label{ opacity:1; transform:scale(1); }
   .copy-btn svg{ width:15px; height:15px; stroke:currentColor; fill:none; }
-  .card.has-alt-voicings{ padding-bottom:24px; }
+  .card.has-alt-voicings{ padding-bottom:45px; }
   .voicing-nav{
-    position:absolute; left:50%; bottom:4px; transform:translateX(-50%);
-    display:flex; align-items:center; gap:4px;
+    position:absolute; left:10px; right:10px; bottom:5px;
+    display:flex; align-items:center; justify-content:center; gap:5px; padding-top:5px;
+    border-top:1px solid var(--card-border);
     transition:opacity .18s ease;
   }
-  @media (hover: hover){
-    .voicing-nav{ opacity:0; }
-    .card:hover .voicing-nav, .voicing-nav:focus-within{ opacity:1; }
-  }
   .voicing-nav-btn{
-    width:20px; height:20px; padding:0; border:none; background:transparent; color:var(--ink);
+    min-height:28px; width:28px; height:28px; padding:0; border:none; border-radius:50%; background:transparent; color:var(--ink);
     display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:background-color .2s ease,color .2s ease,border-color .2s ease,transform .16s ease;
   }
+  .voicing-nav-btn:hover{
+    background:color-mix(in srgb,var(--accent) 9%,var(--card-bg));
+    color:var(--accent-strong); border-color:transparent; transform:translateY(-1px);
+  }
+  .voicing-nav-btn:active{ transform:translateY(0) scale(.94); }
   .voicing-nav-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .voicing-nav-count{ font-size:11.5px; color:var(--ink-soft); min-width:26px; text-align:center; }
+  body.card-controls-hidden .play-chord-btn,
+  body.card-controls-hidden .copy-btn,
+  body.card-controls-hidden .voicing-nav{ display:none; }
+  body.card-controls-hidden .card.has-alt-voicings{ padding-bottom:13px; }
+  body.card-controls-hidden .card:hover{ transform:none; border-color:var(--card-border); box-shadow:0 2px 2px rgba(41,38,33,.02),0 10px 24px -24px rgba(41,38,33,.7); }
+  body.card-controls-hidden .grid.no-border .card:hover{ border-color:transparent; box-shadow:none; }
   button.voicing-nav-count{
-    height:20px; padding:0 3px; border:none; border-radius:4px;
+    min-height:28px; height:28px; padding:0 5px; border:none; border-radius:4px;
     background:transparent; font-family:inherit; font-weight:500; cursor:pointer;
-    transition:color .15s ease;
+    transition:background-color .2s ease,color .2s ease,border-color .2s ease,transform .16s ease;
   }
-  button.voicing-nav-count:hover{ color:var(--accent); text-decoration:underline; text-underline-offset:2px; }
+  button.voicing-nav-count:hover{
+    background:color-mix(in srgb,var(--accent) 9%,var(--card-bg));
+    color:var(--accent-strong); border-color:transparent; transform:translateY(-1px);
+    text-decoration:underline; text-underline-offset:2px;
+  }
+  button.voicing-nav-count:active{ transform:translateY(0) scale(.97); }
   button.voicing-nav-count:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   /* expanded cards keep their voicing index visible (and printable) */
   .voicing-nav-static{ opacity:1; }
@@ -415,7 +475,7 @@
   .voicing-modal-backdrop{
     position:fixed; inset:0; z-index:60; padding:24px;
     display:flex; align-items:center; justify-content:center;
-    background:rgba(44,36,25,.45);
+    background:rgba(41,38,33,.45);
     animation:voicing-backdrop-in .15s ease;
   }
   .voicing-modal-backdrop[hidden]{ display:none; }
@@ -424,7 +484,7 @@
     display:flex; flex-direction:column; width:100%; max-width:680px;
     max-height:min(calc(100vh - 48px), 940px);
     background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px;
-    box-shadow:0 24px 60px -18px rgba(44,36,25,.5), 0 4px 14px rgba(44,36,25,.18);
+    box-shadow:0 24px 60px -18px rgba(41,38,33,.5), 0 4px 14px rgba(41,38,33,.18);
     animation:voicing-modal-in .2s cubic-bezier(.34,1.56,.64,1);
   }
   @keyframes voicing-modal-in{ from{ opacity:0; transform:translateY(8px) scale(.97); } }
@@ -436,7 +496,7 @@
     margin:0; font-family:var(--heading-font); font-weight:600; font-size:20px; color:var(--accent);
   }
   .voicing-modal-close{
-    width:28px; height:28px; padding:0; border:none; border-radius:50%; flex-shrink:0;
+    min-height:28px; width:28px; height:28px; padding:0; border:none; border-radius:50%; flex-shrink:0;
     background:transparent; color:var(--ink-soft); font-size:20px; line-height:1; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
     transition:color .15s ease, background-color .15s ease;
@@ -455,10 +515,15 @@
   .voicing-modal-grid .empty-hint{ grid-column:1/-1; }
   .voicing-choice{
     position:relative; padding:10px 2px 2px; border:1px solid var(--card-border); border-radius:10px;
-    background:var(--card-bg); cursor:pointer;
-    transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+    background:var(--card-bg); color:var(--ink); cursor:pointer;
+    transition:background-color .2s ease,color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .16s ease;
   }
-  .voicing-choice:hover{ border-color:var(--accent); transform:translateY(-1px); }
+  .voicing-choice:hover{
+    background:color-mix(in srgb,var(--accent) 6%,var(--card-bg));
+    color:var(--ink); border-color:color-mix(in srgb,var(--accent) 55%,var(--card-border));
+    transform:translateY(-1px); box-shadow:0 6px 18px -14px rgba(41,38,33,.55);
+  }
+  .voicing-choice:active{ transform:translateY(0) scale(.99); }
   .voicing-choice:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   .voicing-choice.selected{ border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent); }
   .voicing-choice svg{ display:block; width:100%; height:auto; }
@@ -471,27 +536,49 @@
     padding:10px 18px 14px; border-top:1px solid var(--card-border);
   }
   .voicing-modal-hint{ font-size:12.5px; color:var(--ink-soft); }
-  /* bigger tap targets where touch is the primary input */
-  @media (hover: none){
-    .play-chord-btn{ flex-basis:22px; width:22px; height:22px; }
-    .chord-title-spacer{ flex-basis:22px; }
-    .copy-btn{ width:32px; height:32px; }
-    .voicing-nav-btn{ width:28px; height:28px; }
-    button.voicing-nav-count{ height:28px; }
-    .card.has-alt-voicings{ padding-bottom:32px; }
-  }
   @media (max-width:600px){
-    body{ padding:20px 14px 36px; }
-    .masthead{ padding-bottom:11px; margin-bottom:16px; }
+    body{ padding:16px 12px 32px; }
+    .masthead{ align-items:flex-start; gap:10px; padding-bottom:14px; margin-bottom:14px; }
+    .brand-mark{ width:38px; height:38px; flex-basis:38px; border-radius:11px; }
+    .brand-title{ font-size:24px; }
+    .brand-tagline{ display:none; }
+    .page-title-main{ font-size:15px; }
+    .page-title-sub{ font-size:9.5px; letter-spacing:.1em; }
+    .settings-section{ padding:14px; border-radius:14px; }
+    .builder-heading{ margin-bottom:12px; }
+    .builder-title{ font-size:19px; }
+    .builder-grid{ grid-template-columns:1fr; gap:11px; }
+    .tuning-select-trigger{ width:100%; min-width:0; }
+    .tuning-select-menu{ width:100%; }
     /* 16px stops iOS Safari from auto-zooming the page on focus */
     #chordInput{ font-size:16px; }
+    .results-toolbar{ align-items:stretch; }
+    .results-summary{ width:100%; }
+    .results-actions{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; gap:8px; }
+    .results-actions button{ justify-content:center; padding-inline:10px; }
+    .tip-card{ margin-bottom:12px; }
     .options-card{ padding:13px 14px 15px; gap:16px 24px; }
+    .stepper{ height:40px; }
+    .stepper-btn{ width:38px; }
+    .info-btn{ min-height:32px; width:32px; height:32px; }
+    .grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .card{ padding:11px 5px 10px; border-radius:14px; }
+    .card.has-alt-voicings{ padding-bottom:44px; }
+    .card h2{ font-size:20px; }
+    .chord-title-row{ padding:0 29px; }
+    .play-chord-btn,.copy-btn{ top:7px; width:30px; height:30px; min-height:30px; }
+    .play-chord-btn{ left:6px; }
+    .copy-btn{ right:6px; }
+    .omit-note{ font-size:9px; }
+    .voicing-nav{ left:6px; right:6px; }
   }
+  @media (max-width:340px){ .grid{ grid-template-columns:1fr; } }
   @media print {
     body{ padding:16px; background:#fff !important; }
     .grid{ gap:12px; }
     .grid.masonry{ gap:12px; }
     .masonry-col{ gap:12px; }
+    .card{ break-inside:avoid; box-shadow:none; }
     .no-print{ display:none !important; }
   }
 </style>
@@ -499,41 +586,79 @@
 <body>
 <div class="wrap">
   <header class="masthead">
-    <h1 id="pageTitle"><span class="page-title-main" id="pageTitleMain">Mandolin chords</span><span class="page-title-sub" id="pageTitleSub">GDAE tuning</span></h1>
+    <div class="brand-lockup">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7 4v20M12 4v20M17 4v20M22 4v20M5 8h19M5 14h19M5 20h19"/><circle cx="17" cy="11" r="2.5" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r="2.5" fill="currentColor" stroke="none"/><circle cx="22" cy="23" r="2.5" fill="currentColor" stroke="none"/></svg>
+      </span>
+      <div>
+        <h1 class="brand-title">Chord Charts</h1>
+        <p class="brand-tagline">Build, hear, share and print four-string chord diagrams.</p>
+      </div>
+    </div>
+    <h2 id="pageTitle" aria-live="polite"><span class="page-title-main" id="pageTitleMain">Mandolin chords</span><span class="page-title-sub" id="pageTitleSub">GDAE tuning</span></h2>
   </header>
 
   <section class="settings-section no-print" aria-label="Chords">
-    <div class="controls">
-      <div class="input-clear-wrap" id="chordInputWrap">
-        <input type="text" id="chordInput" placeholder="e.g. C, Am7, F, G7" value="C, Cm, C7, Cm7, Cmaj7, Cdim, Cdim7, Cm7b5, Caug, Csus2, Csus4, C6, Cm6, Cadd9, Cmadd9, C9, C6/9, Cmaj9, G/B">
-        <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
+    <div class="builder-heading">
+      <span class="builder-kicker">Chart builder</span>
+      <h2 class="builder-title">Which chords do you need?</h2>
+    </div>
+    <div class="builder-grid">
+      <div class="field">
+        <label class="field-label" for="chordInput">Chords</label>
+        <div class="input-clear-wrap" id="chordInputWrap">
+          <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, Cm, C7, Cm7, Cmaj7, Cdim, Cdim7, Cm7b5, Caug, Csus2, Csus4, C6, Cm6, Cadd9, Cmadd9, C9, C6/9, Cmaj9, G/B</textarea>
+          <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
+        </div>
       </div>
-      <div class="tuning-select" id="tuningSelectWrap">
-        <button type="button" class="tuning-select-trigger" id="tuningSelectBtn" aria-haspopup="listbox" aria-expanded="false">
-          <span class="tuning-select-icon" id="tuningSelectIcon"></span>
-          <span class="tuning-select-text">
-            <span class="tuning-select-name" id="tuningSelectName"></span>
-            <span class="tuning-select-tuning" id="tuningSelectTuning"></span>
-          </span>
-          <svg class="tuning-select-chevron" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <ul class="tuning-select-menu" id="tuningSelectMenu" role="listbox" aria-label="Instrument"></ul>
+      <div class="field">
+        <span class="field-label" id="instrumentLabel">Instrument &amp; tuning</span>
+        <div class="tuning-select" id="tuningSelectWrap">
+          <button type="button" class="tuning-select-trigger" id="tuningSelectBtn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="instrumentLabel tuningSelectName tuningSelectTuning">
+            <span class="tuning-select-icon" id="tuningSelectIcon"></span>
+            <span class="tuning-select-text">
+              <span class="tuning-select-name" id="tuningSelectName"></span>
+              <span class="tuning-select-tuning" id="tuningSelectTuning"></span>
+            </span>
+            <svg class="tuning-select-chevron" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <ul class="tuning-select-menu" id="tuningSelectMenu" role="listbox" aria-label="Instrument"></ul>
+        </div>
       </div>
     </div>
-    <details class="syntax-help no-print">
-      <summary>Comma-separated chord names, updated as you type — e.g. <code>C, Am7, D7/F#, G/B</code>. <span class="syntax-toggle">All supported qualities <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></summary>
-      <p>major, m, 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9) — plus slash/inversion chords like Am/C, D7/F#, G/B.</p>
-      <p>Append <code>*</code> to a chord to lay out every voicing as its own tile — e.g. <code>C*</code>. Or click the <code>1 / 9</code> counter under a tile.</p>
-    </details>
-    <div class="error" id="errorBox"></div>
+    <div class="syntax-help no-print">
+      <button type="button" class="syntax-summary" id="syntaxToggleBtn" aria-expanded="false" aria-controls="syntaxPanel">Separate chords with commas or new lines. Try <code>C, Am7, D7/F#, G/B</code>. <span class="syntax-toggle">Supported qualities <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></button>
+      <div class="syntax-panel" id="syntaxPanel" aria-hidden="true">
+        <div class="syntax-panel-inner">
+          <p>major, m, 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9) — plus slash/inversion chords like Am/C, D7/F#, G/B.</p>
+          <p>Append <code>*</code> to a chord to lay out every voicing as its own tile — e.g. <code>C*</code>. Or select the <code>1 / 9</code> counter under a tile.</p>
+        </div>
+      </div>
+    </div>
+    <div class="error" id="errorBox" role="status" aria-live="polite"></div>
   </section>
 
   <div class="results-toolbar no-print">
-    <button type="button" id="optionsToggleBtn" class="secondary btn-iconic options-toggle" aria-expanded="false" aria-controls="optionsPanel">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg>
-      Options
-      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-    </button>
+    <div class="results-summary"><span class="results-count" id="resultsCount">Chord chart</span><span class="results-context" id="resultsContext">updates as you type</span></div>
+    <div class="results-actions">
+      <button type="button" id="optionsToggleBtn" class="secondary btn-iconic options-toggle" aria-expanded="false" aria-controls="optionsPanel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg>
+        Options
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <button type="button" id="shareBtn" class="secondary btn-iconic" title="Copy a link to this chart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
+        <span class="btn-label"><span class="btn-label-default">Share</span><span class="btn-label-flash" aria-hidden="true"></span></span>
+      </button>
+      <button type="button" id="copyAllBtn" class="secondary btn-iconic" title="Copy one image of all displayed chord diagrams">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span class="btn-label"><span class="btn-label-default">Copy chart</span><span class="btn-label-flash" aria-hidden="true"></span></span>
+      </button>
+      <button type="button" id="printBtn" class="btn-iconic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print / PDF
+      </button>
+    </div>
   </div>
 
   <div class="options-panel no-print" id="optionsPanel">
@@ -548,16 +673,16 @@
               <span class="switch-track"><span class="switch-thumb"></span></span>
               <span>Highlight root note</span>
             </label>
-            <span class="switch-wrap" id="omitInfoWrap">
+            <div class="switch-wrap" id="omitInfoWrap">
               <label class="switch" title="Chords like 7add9, 6add9 and maj7add9 have 5 notes, but these instruments only have 4 strings — the 5th is dropped. When on, affected chords show a note naming the dropped tone.">
                 <input type="checkbox" id="omitToggle" checked>
                 <span class="switch-track"><span class="switch-thumb"></span></span>
-                <span>Show note under diagram if notes of 5-note-chords are omitted</span>
+                <span>Show omitted-note labels</span>
               </label>
               <button type="button" class="info-btn" id="omitInfoBtn" aria-label="About the omitted-note note" aria-expanded="false">i</button>
               <div class="info-popover" id="omitInfoPopover" role="tooltip">Chords like 7add9, 6add9 and maj7add9 have 5 notes, but these instruments only have 4 strings — the 5th is dropped. When on, affected chords show a note naming the dropped tone.</div>
-            </span>
-            <span class="switch-wrap" id="thresholdInfoWrap">
+            </div>
+            <div class="switch-wrap" id="thresholdInfoWrap">
               <div class="stepper" id="thresholdStepper" title="Diagrams normally start at the nut. If a chord's lowest fretted note is above this fret, the diagram is cropped to a short window at the chord's position instead.">
                 <span class="stepper-label">Crop above fret</span>
                 <button type="button" class="stepper-btn" id="thresholdMinus" aria-label="Lower crop threshold">−</button>
@@ -569,14 +694,14 @@
                 <p>Diagrams normally start at the nut. If a chord's lowest fretted note is above this fret, the diagram is cropped to a short window at the chord's position instead. Example — a chord played entirely at fret 5:</p>
                 <div class="threshold-example" id="thresholdExample" aria-hidden="true"></div>
               </div>
-            </span>
+            </div>
           </div>
         </div>
         <div class="options-group" role="group" aria-label="Alternative voicing options">
           <h3 class="settings-section-title">Alternative voicings</h3>
           <p class="options-group-desc">How far up the neck voicings are searched</p>
           <div class="controls">
-            <span class="switch-wrap" id="maxFretInfoWrap">
+            <div class="switch-wrap" id="maxFretInfoWrap">
               <div class="stepper" id="maxFretStepper" title="Highest fret considered when searching for a chord voicing. Raise it to unlock higher positions and more alternative voicings; lower it to keep chords near the nut.">
                 <span class="stepper-label">Max fret</span>
                 <button type="button" class="stepper-btn" id="maxFretMinus" aria-label="Lower max fret">−</button>
@@ -585,7 +710,7 @@
               </div>
               <button type="button" class="info-btn" id="maxFretInfoBtn" aria-label="About the max fret control" aria-expanded="false">i</button>
               <div class="info-popover" id="maxFretInfoPopover" role="tooltip">Highest fret considered when searching for a chord voicing. Raise it to unlock higher positions and more alternative voicings; lower it to keep chords near the nut.</div>
-            </span>
+            </div>
           </div>
         </div>
         <div class="options-group" role="group" aria-label="Layout and color options">
@@ -597,12 +722,21 @@
               <span class="switch-track"><span class="switch-thumb"></span></span>
               <span>Show border</span>
             </label>
+            <div class="switch-wrap" id="cardControlsInfoWrap">
+              <label class="switch">
+                <input type="checkbox" id="cardControlsToggle" checked>
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <span>Show chord card controls</span>
+              </label>
+              <button type="button" class="info-btn" id="cardControlsInfoBtn" aria-label="About chord card controls" aria-expanded="false">i</button>
+              <div class="info-popover" id="cardControlsInfoPopover" role="tooltip">Turn this off to remove the play button, copy button, and alternative-voicing arrows from chord cards for clean screenshots.</div>
+            </div>
             <label class="switch">
               <input type="checkbox" id="bwToggle">
               <span class="switch-track"><span class="switch-thumb"></span></span>
               <span>Black &amp; white</span>
             </label>
-            <span class="switch-wrap" id="masonryInfoWrap">
+            <div class="switch-wrap" id="masonryInfoWrap">
               <label class="switch" title="Off: cards align in even rows. On: cards pack into columns by height (masonry).">
                 <input type="checkbox" id="masonryToggle">
                 <svg class="switch-side-icon icon-layout-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
@@ -612,7 +746,7 @@
               </label>
               <button type="button" class="info-btn" id="masonryInfoBtn" aria-label="About the masonry layout" aria-expanded="false">i</button>
               <div class="info-popover" id="masonryInfoPopover" role="tooltip">Packs tiles into columns by height instead of aligning them in even rows. This only makes a visible difference when tiles have different heights — with equal-height tiles both layouts look the same.</div>
-            </span>
+            </div>
             <div class="stepper" id="columnsStepper">
               <span class="stepper-label">Columns</span>
               <button type="button" class="stepper-btn" id="columnsMinus" aria-label="Fewer columns">−</button>
@@ -627,19 +761,8 @@
 
   <div class="tip-card no-print" id="tipsCard">
     <span class="tip-emoji" aria-hidden="true">💡</span>
-    <span class="tip-text"><span class="tip-pointer-text"><span class="tip-line">Click a chord name or a dot to hear it.</span><span class="tip-line">Hover a tile to copy it as an image or to flip through alternative voicings with ‹ › — click the count between them to pick from all voicings at once.</span></span><span class="tip-touch-text"><span class="tip-line">Tap a chord name or a dot to hear it.</span><span class="tip-line">Tap the count under a tile to pick from all voicings at once.</span></span></span>
+    <span class="tip-text"><span class="tip-pointer-text"><span class="tip-line">Select a chord name or dot to hear it.</span><span class="tip-line">Use the arrows to explore voicings, or select the count to see them all.</span></span><span class="tip-touch-text">Tap a chord name or dot to hear it; tap the count to see all voicings.</span></span>
     <button type="button" class="tip-dismiss" id="tipDismissBtn" aria-label="Dismiss tip">&times;</button>
-  </div>
-
-  <div class="results-actions no-print">
-    <button type="button" id="copyAllBtn" class="secondary btn-iconic" title="Copies one image of all displayed chord diagrams">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      <span class="btn-label">Copy as image<span class="btn-label-flash" aria-hidden="true"></span></span>
-    </button>
-    <button type="button" id="printBtn" class="secondary btn-iconic">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-      Print
-    </button>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -749,9 +872,9 @@ const INSTRUMENT_ICONS = {
 
 const EXPORT_HEADING_FONT = "Georgia, 'Times New Roman', serif";
 const NICE_COLORS = {
-  ink:'#2c2419', dotFill:'#b8860f', dotStroke:'#7d5b0a',
-  cardBg:'#fbf8ee', cardBorder:'#d9caa3', heading:'#31604d', rootColor:'#31604d',
-  rootFill:'#b8860f',
+  ink:'#292621', dotFill:'#554f49', dotStroke:'#37332f',
+  cardBg:'#fffcf7', cardBorder:'#ddd3c5', heading:'#a44737', rootColor:'#a44737',
+  rootFill:'#f1cfc5',
   lineOpacity:0.55, markerOpacity:0.3, exportHeadingFont:EXPORT_HEADING_FONT
 };
 const BW_COLORS = {
@@ -886,7 +1009,7 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
   const bottomY = NUT_Y + numRows*FRET_H;
   let s = '';
   labels.forEach((lab,i)=>{
-    s += `<text x="${XS[i]}" y="12" text-anchor="middle" font-size="14" fill="${colors.ink}" font-family="'Alegreya Sans',Arial,sans-serif" font-weight="700">${escapeXML(lab)}</text>`;
+    s += `<text x="${XS[i]}" y="12" text-anchor="middle" font-size="13" fill="${colors.ink}" font-family="Arial,sans-serif" font-weight="700">${escapeXML(lab)}</text>`;
   });
   const topLineWidth = startFret === 0 ? 3 : 1;
   const topLineOpacity = startFret === 0 ? 1 : colors.lineOpacity;
@@ -894,7 +1017,7 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
   for(let i=1;i<=numRows;i++){
     const y = NUT_Y + i*FRET_H;
     s += `<line x1="20" y1="${y}" x2="160" y2="${y}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
-    s += `<text class="fret-num" x="167" y="${rowCenter(i)+4}" font-size="16" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="'Alegreya Sans',Arial,sans-serif">${startFret+i}</text>`;
+    s += `<text class="fret-num" x="167" y="${rowCenter(i)+4}" font-size="14" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${startFret+i}</text>`;
   }
   XS.forEach(x=>{
     s += `<line x1="${x}" y1="${NUT_Y}" x2="${x}" y2="${bottomY}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
@@ -956,7 +1079,7 @@ function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openP
   s += `<text x="${tileW/2}" y="${PAD+headerH*0.7}" text-anchor="middle" font-size="21" font-weight="700" fill="${colors.heading}" font-family="${colors.exportHeadingFont}">${escapeXML(label)}</text>`;
   s += `<g transform="translate(${PAD},${PAD+headerH})">${diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret)}</g>`;
   if(omitted){
-    s += `<text x="${tileW/2}" y="${PAD+headerH+diagH+11}" text-anchor="middle" font-size="9" font-style="italic" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="'Alegreya Sans',Arial,sans-serif">${escapeXML(omitted.label)} (${escapeXML(omitted.note)}) omitted</text>`;
+    s += `<text x="${tileW/2}" y="${PAD+headerH+diagH+11}" text-anchor="middle" font-size="9" font-style="italic" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${escapeXML(omitted.label)} (${escapeXML(omitted.note)}) omitted</text>`;
   }
   s += '</svg>';
   return s;
@@ -1075,7 +1198,7 @@ async function copyAllChordsAsImage(btnEl){
     try{
       if(!navigator.clipboard || !window.ClipboardItem) throw new Error('no-clipboard-api');
       await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
-      flashButtonText(btnEl, 'Copied!');
+      flashButtonText(btnEl, 'Copied');
     }catch(clipErr){
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1085,11 +1208,55 @@ async function copyAllChordsAsImage(btnEl){
       a.click();
       a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 4000);
-      flashButtonText(btnEl, 'Saved!');
+      flashButtonText(btnEl, 'Saved');
     }
   }catch(err){
     console.error(err);
     flashButtonText(btnEl, 'Failed');
+  }
+}
+
+function copyTextFallback(text){
+  const helper = document.createElement('textarea');
+  const previousFocus = document.activeElement;
+  helper.value = text;
+  helper.setAttribute('readonly', '');
+  helper.setAttribute('aria-hidden', 'true');
+  helper.tabIndex = -1;
+  helper.style.position = 'fixed';
+  helper.style.opacity = '0';
+  helper.style.pointerEvents = 'none';
+  try{
+    document.body.appendChild(helper);
+    helper.select();
+    helper.setSelectionRange(0, helper.value.length);
+    return document.execCommand('copy');
+  }catch(err){
+    return false;
+  }finally{
+    helper.remove();
+    if(previousFocus instanceof HTMLElement && previousFocus.isConnected){
+      try{ previousFocus.focus({ preventScroll:true }); }
+      catch(err){ try{ previousFocus.focus(); }catch(focusErr){} }
+    }
+  }
+}
+
+async function copyShareLink(btnEl){
+  // Share must include edits made during the input debounce window.
+  updateURLParam(document.getElementById('chordInput').value);
+  const link = window.location.href;
+  try{
+    if(!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('no-clipboard-api');
+    await navigator.clipboard.writeText(link);
+    flashButtonText(btnEl, 'Copied');
+  }catch(err){
+    if(copyTextFallback(link)){
+      flashButtonText(btnEl, 'Copied');
+    } else {
+      window.prompt('Copy this chart link:', link);
+      flashButtonText(btnEl, 'Shown');
+    }
   }
 }
 
@@ -1221,6 +1388,7 @@ function saveSettings(){
   const settings = {
     tuningId: selectedTuningId,
     showBorder: document.getElementById('borderToggle').checked,
+    showCardControls: document.getElementById('cardControlsToggle').checked,
     bwMode: document.getElementById('bwToggle').checked,
     highlightRoot: document.getElementById('rootToggle').checked,
     columns: columnsValue,
@@ -1253,7 +1421,8 @@ function layoutCards(cardEls){
   grid.innerHTML = '';
 
   if(!masonry){
-    grid.style.gridTemplateColumns = cols === 'auto' ? 'repeat(auto-fit,minmax(190px,1fr))' : `repeat(${cols}, 1fr)`;
+    const visibleCols = cols === 'auto' ? 'auto' : (window.innerWidth <= 600 ? Math.min(cols, 2) : cols);
+    grid.style.gridTemplateColumns = visibleCols === 'auto' ? '' : `repeat(${visibleCols}, 1fr)`;
     cardEls.forEach(c => grid.appendChild(c));
     return;
   }
@@ -1340,6 +1509,17 @@ function updateChordInputClearUI(){
   document.getElementById('chordInputWrap').classList.toggle('has-value', hasValue);
 }
 
+function resizeChordInput(){
+  const input = document.getElementById('chordInput');
+  const styles = getComputedStyle(input);
+  const minHeight = parseFloat(styles.minHeight) || 66;
+  const maxHeight = parseFloat(styles.maxHeight) || 150;
+  input.style.height = 'auto';
+  const nextHeight = Math.min(input.scrollHeight, maxHeight);
+  input.style.height = `${Math.max(minHeight, nextHeight)}px`;
+  input.style.overflowY = input.scrollHeight > maxHeight ? 'auto' : 'hidden';
+}
+
 // one-shot voicing preference consumed by the next generate(), so collapsing an
 // expanded chord keeps the voicing whose card the user clicked
 let pendingVoicingPref = null;
@@ -1352,7 +1532,7 @@ function buildCard(result, ctx){
   const card = document.createElement('div');
   card.className = 'card';
   card._chordResult = result;
-  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${escapeXML(result.label)}</h2><span class="chord-title-spacer no-print" aria-hidden="true"></span></div><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret)}</div>${omitHTML}`;
+  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${escapeXML(result.label)}</h2></div><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret)}</div>${omitHTML}`;
 
   bindNoteDotHandlers(card.querySelector('.diagram-slot'));
 
@@ -1465,6 +1645,11 @@ function generate(){
   pendingVoicingPref = null;
 
   errorBox.textContent = errors.join('  ·  ');
+  const countLabel = `${results.length} ${results.length === 1 ? 'chord' : 'chords'}`;
+  document.getElementById('resultsCount').textContent = countLabel;
+  document.getElementById('resultsContext').textContent = errors.length
+    ? `${errors.length} ${errors.length === 1 ? 'entry needs' : 'entries need'} attention`
+    : 'ready to hear, share or print';
   const colors = currentColors();
   const highlightRoot = document.getElementById('rootToggle').checked;
   const showOmitted = document.getElementById('omitToggle').checked;
@@ -1805,6 +1990,7 @@ setupInfoPopover('omitInfoWrap', 'omitInfoBtn');
 setupInfoPopover('thresholdInfoWrap', 'thresholdInfoBtn');
 setupInfoPopover('maxFretInfoWrap', 'maxFretInfoBtn');
 setupInfoPopover('masonryInfoWrap', 'masonryInfoBtn');
+setupInfoPopover('cardControlsInfoWrap', 'cardControlsInfoBtn');
 
 const savedSettings = loadSettings();
 
@@ -1825,6 +2011,10 @@ let chordInputIsDefault = !savedChordInputExists && !chordsParamExists;
 if(typeof savedSettings.showBorder === 'boolean'){
   document.getElementById('borderToggle').checked = savedSettings.showBorder;
   document.getElementById('grid').classList.toggle('no-border', !savedSettings.showBorder);
+}
+if(typeof savedSettings.showCardControls === 'boolean'){
+  document.getElementById('cardControlsToggle').checked = savedSettings.showCardControls;
+  document.body.classList.toggle('card-controls-hidden', !savedSettings.showCardControls);
 }
 if(typeof savedSettings.bwMode === 'boolean'){
   document.getElementById('bwToggle').checked = savedSettings.bwMode;
@@ -1872,7 +2062,17 @@ document.getElementById('tipDismissBtn').addEventListener('click', ()=>{
 });
 
 document.getElementById('copyAllBtn').addEventListener('click', ()=> copyAllChordsAsImage(document.getElementById('copyAllBtn')));
+document.getElementById('shareBtn').addEventListener('click', ()=> copyShareLink(document.getElementById('shareBtn')));
 document.getElementById('printBtn').addEventListener('click', ()=>window.print());
+
+const syntaxToggleBtn = document.getElementById('syntaxToggleBtn');
+const syntaxPanel = document.getElementById('syntaxPanel');
+syntaxToggleBtn.addEventListener('click', ()=>{
+  const open = syntaxToggleBtn.getAttribute('aria-expanded') !== 'true';
+  syntaxToggleBtn.setAttribute('aria-expanded', String(open));
+  syntaxPanel.setAttribute('aria-hidden', String(!open));
+  syntaxPanel.classList.toggle('open', open);
+});
 
 const optionsPanel = document.getElementById('optionsPanel');
 const optionsToggleBtn = document.getElementById('optionsToggleBtn');
@@ -1896,6 +2096,7 @@ chordInputEl.addEventListener('keydown', e=>{
 chordInputEl.addEventListener('input', ()=>{
   chordInputIsDefault = false;
   updateChordInputClearUI();
+  resizeChordInput();
   // debounce long enough that partial tokens rarely flash a parse error
   clearTimeout(chordInputDebounce);
   chordInputDebounce = setTimeout(generate, 450);
@@ -1906,10 +2107,15 @@ document.getElementById('chordInputClear').addEventListener('click', ()=>{
   input.value = '';
   chordInputIsDefault = false;
   input.focus();
+  resizeChordInput();
   generate();
 });
 document.getElementById('borderToggle').addEventListener('change', e=>{
   document.getElementById('grid').classList.toggle('no-border', !e.target.checked);
+  saveSettings();
+});
+document.getElementById('cardControlsToggle').addEventListener('change', e=>{
+  document.body.classList.toggle('card-controls-hidden', !e.target.checked);
   saveSettings();
 });
 document.getElementById('bwToggle').addEventListener('change', e=>{
@@ -1941,6 +2147,12 @@ document.getElementById('maxFretStepper').addEventListener('keydown', e=>{
 updateColumnsUI();
 updateThresholdUI();
 updateMaxFretUI();
+resizeChordInput();
+let chordInputResizeTimer = null;
+window.addEventListener('resize', ()=>{
+  clearTimeout(chordInputResizeTimer);
+  chordInputResizeTimer = setTimeout(resizeChordInput, 120);
+});
 generate();
 </script>
 </body>
