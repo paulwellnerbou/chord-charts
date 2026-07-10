@@ -27,16 +27,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&amp;display=swap" rel="stylesheet">
 <style>
   :root{
-    --page-bg:#f5f7fa;
-    --ink:#1f2937;
-    --ink-soft:#667085;
-    --accent:#315da8;
-    --accent-strong:#24477f;
-    --accent-soft:#eaf0fa;
-    --card-bg:#ffffff;
-    --card-border:#d9e1ea;
-    --control-border:#aeb9c6;
-    --btn-bg:#315da8;
+    --page-bg:#f6f0e5;
+    --ink:#292621;
+    --ink-soft:#716a61;
+    --accent:#a44737;
+    --accent-strong:#783027;
+    --accent-soft:#f6e5df;
+    --card-bg:#fffcf7;
+    --card-border:#ddd3c5;
+    --control-border:#b9ac9d;
+    --btn-bg:#a44737;
     --btn-fg:#ffffff;
     --heading-font:'Fraunces', Georgia, serif;
     --body-font:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -61,7 +61,7 @@
   body {
     margin:0; background-color:var(--page-bg); color:var(--ink);
     /* faint paper grain — felt more than seen */
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.025 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.075 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     font-family:var(--body-font); font-size:15px; line-height:1.45;
     padding:28px 24px 48px;
   }
@@ -95,7 +95,7 @@
     margin-bottom:18px; padding:18px;
     background:color-mix(in srgb,var(--card-bg) 93%,transparent);
     border:1px solid var(--card-border); border-radius:16px;
-    box-shadow:0 12px 32px -30px rgba(31,41,55,.7);
+    box-shadow:0 12px 32px -30px rgba(41,38,33,.7);
   }
   .builder-heading{ margin-bottom:14px; }
   .builder-kicker{ display:block; margin-bottom:3px; color:var(--accent); font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
@@ -108,15 +108,27 @@
   }
   .controls{ display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin-bottom:10px; }
   .syntax-help{ margin:10px 0 0; font-size:12.5px; color:var(--ink-soft); line-height:1.55; max-width:760px; }
-  .syntax-help summary{ list-style:none; cursor:pointer; }
-  .syntax-help summary::-webkit-details-marker{ display:none; }
-  .syntax-help summary:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  .syntax-summary{
+    display:block; min-height:0; width:100%; padding:0; border:0; border-radius:4px;
+    background:transparent; color:inherit; font:inherit; line-height:inherit; text-align:left; cursor:pointer;
+  }
+  .syntax-summary:hover{ background:transparent; border-color:transparent; color:inherit; }
+  .syntax-summary:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   .syntax-help code{ font-family:inherit; font-size:inherit; font-weight:600; color:var(--ink); }
   .syntax-toggle{ display:inline-flex; align-items:center; gap:3px; color:var(--accent); font-weight:600; white-space:nowrap; }
-  .syntax-help summary:hover .syntax-toggle{ text-decoration:underline; }
+  .syntax-summary:hover .syntax-toggle{ text-decoration:underline; }
   .syntax-toggle svg{ width:11px; height:11px; transition:transform .2s ease; }
-  .syntax-help[open] .syntax-toggle svg{ transform:rotate(180deg); }
+  .syntax-summary[aria-expanded="true"] .syntax-toggle svg{ transform:rotate(180deg); }
+  .syntax-panel{
+    display:grid; grid-template-rows:0fr; opacity:0; transform:translateY(-4px);
+    transition:grid-template-rows .28s cubic-bezier(.4,0,.2,1),opacity .2s ease,transform .28s cubic-bezier(.4,0,.2,1);
+  }
+  .syntax-panel.open{ grid-template-rows:1fr; opacity:1; transform:translateY(0); }
+  .syntax-panel-inner{ min-height:0; overflow:hidden; }
   .syntax-help p{ margin:7px 0 0; }
+  @media (prefers-reduced-motion:reduce){
+    .syntax-panel,.syntax-toggle svg{ transition:none; }
+  }
 
   .results-toolbar{
     display:flex; align-items:center; justify-content:space-between; gap:12px 18px; flex-wrap:wrap;
@@ -185,9 +197,9 @@
     border:1px solid var(--control-border); border-radius:10px;
     background:var(--card-bg); color:var(--ink);
     cursor:pointer; text-align:left;
-    transition:border-color .2s ease, box-shadow .2s ease, transform .15s ease;
+    transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .15s ease;
   }
-  .tuning-select-trigger:hover{ background:var(--card-bg); color:var(--ink); border-color:var(--accent); transform:translateY(-1px); box-shadow:0 3px 8px rgba(31,41,55,.12); }
+  .tuning-select-trigger:hover{ background:var(--card-bg); color:var(--ink); border-color:var(--accent); transform:translateY(-1px); box-shadow:0 3px 8px rgba(41,38,33,.12); }
   .tuning-select-trigger:active{ transform:translateY(0) scale(.98); }
   .tuning-select-trigger:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   .tuning-select.open .tuning-select-trigger{ border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
@@ -211,7 +223,7 @@
     position:absolute; top:calc(100% + 8px); left:0; min-width:100%; z-index:20;
     list-style:none; margin:0; padding:6px;
     background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-    box-shadow:0 14px 30px -10px rgba(31,41,55,.28), 0 2px 8px rgba(31,41,55,.1);
+    box-shadow:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
     transform-origin:top left;
     opacity:0; visibility:hidden; transform:translateY(-6px) scale(.96);
     transition:opacity .16s ease, transform .2s cubic-bezier(.34,1.56,.64,1), visibility .2s;
@@ -256,6 +268,7 @@
     min-height:40px; padding:9px 15px; font-size:13.5px; font-weight:650; font-family:inherit;
     background:var(--btn-bg); color:var(--btn-fg); border:1px solid var(--btn-bg); border-radius:9px;
     cursor:pointer;
+    transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .12s ease;
     /* rapid taps (voicing arrows) must not trigger double-tap zoom */
     touch-action:manipulation;
   }
@@ -322,14 +335,14 @@
     min-height:24px; width:24px; height:24px; padding:0; border-radius:50%;
     border:1px solid var(--control-border); background:transparent; color:var(--ink-soft);
     font-family:Georgia,'Times New Roman',serif; font-style:italic; font-weight:700; font-size:11px; line-height:1;
-    cursor:pointer; transition:border-color .15s ease, color .15s ease;
+    cursor:pointer; transition:background-color .18s ease,border-color .18s ease,color .18s ease;
   }
   .info-btn:hover, .info-btn:focus-visible, .switch-wrap.open .info-btn{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
   .info-popover{
     position:absolute; top:calc(100% + 8px); left:0; z-index:20; width:240px;
     padding:10px 12px; font-size:13px; line-height:1.5; text-align:left; font-weight:400;
     background:var(--card-bg); color:var(--ink); border:1px solid var(--card-border); border-radius:10px;
-    box-shadow:0 14px 30px -10px rgba(31,41,55,.28), 0 2px 8px rgba(31,41,55,.1);
+    box-shadow:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
     opacity:0; visibility:hidden; transform:translateY(-4px);
     transition:opacity .16s ease, transform .16s ease, visibility .16s;
   }
@@ -379,11 +392,12 @@
     position:relative;
     background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px;
     padding:14px 10px 13px; text-align:center; overflow:hidden;
-    box-shadow:0 2px 2px rgba(31,41,55,.02),0 10px 24px -24px rgba(31,41,55,.7);
+    box-shadow:0 2px 2px rgba(41,38,33,.02),0 10px 24px -24px rgba(41,38,33,.7);
     transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
   }
-  .card:hover{ transform:translateY(-2px); border-color:color-mix(in srgb,var(--accent) 34%,var(--card-border)); box-shadow:0 12px 28px -22px rgba(31,41,55,.75); }
-  .grid.no-border .card{ border-color:transparent; }
+  .card:hover{ transform:translateY(-2px); border-color:color-mix(in srgb,var(--accent) 34%,var(--card-border)); box-shadow:0 12px 28px -22px rgba(41,38,33,.75); }
+  .grid.no-border .card,
+  .grid.no-border .card:hover{ border-color:transparent; box-shadow:none; }
   .chord-title-row{ display:flex; align-items:center; justify-content:center; gap:8px; min-height:30px; margin-bottom:4px; padding:0 30px; }
   .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--accent); cursor:pointer; }
   .card h2:hover { opacity:.72; }
@@ -391,7 +405,7 @@
     position:absolute; top:9px; left:9px; min-height:32px; flex:0 0 32px; width:32px; height:32px; padding:0; border:none; border-radius:50%; background:var(--accent-soft);
     display:flex; align-items:center; justify-content:center;
     color:var(--accent);
-    transition:opacity .18s ease, transform .18s ease;
+    transition:background-color .18s ease,color .18s ease,opacity .18s ease,transform .18s ease;
     cursor:pointer;
   }
   .play-chord-btn:hover{ background:var(--accent); color:#fff; border-color:transparent; }
@@ -403,7 +417,7 @@
     position:absolute; top:9px; right:9px; min-height:32px; width:32px; height:32px;
     border-radius:50%; padding:0; display:flex; align-items:center; justify-content:center;
     background:var(--accent-soft); border:none; color:var(--accent-strong);
-    transition:opacity .18s ease, transform .18s ease, width .2s ease;
+    transition:background-color .18s ease,color .18s ease,opacity .18s ease,transform .18s ease,width .2s ease;
     cursor:pointer; font-size:10px; overflow:hidden;
   }
   .copy-btn:hover{ background:var(--accent); color:#fff; border-color:transparent; }
@@ -427,18 +441,17 @@
   .voicing-nav-btn{
     min-height:28px; width:28px; height:28px; padding:0; border:none; border-radius:50%; background:transparent; color:var(--ink);
     display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:background-color .18s ease,color .18s ease,transform .12s ease;
   }
   .voicing-nav-btn:hover{ background:var(--accent-soft); color:var(--accent); border-color:transparent; }
   .voicing-nav-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .voicing-nav-count{ font-size:11.5px; color:var(--ink-soft); min-width:26px; text-align:center; }
-  body.print-view .play-chord-btn,
-  body.print-view .copy-btn,
-  body.print-view .voicing-nav{ display:none; }
-  body.print-view .card.has-alt-voicings{ padding-bottom:13px; }
-  body.print-view .card:hover{ transform:none; border-color:var(--card-border); box-shadow:0 2px 2px rgba(31,41,55,.02),0 10px 24px -24px rgba(31,41,55,.7); }
-  body.print-view .grid.no-border .card:hover{ border-color:transparent; }
-  body.print-view .tip-card{ display:none; }
-  .print-view-toggle[aria-pressed="true"]{ background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent); }
+  body.card-controls-hidden .play-chord-btn,
+  body.card-controls-hidden .copy-btn,
+  body.card-controls-hidden .voicing-nav{ display:none; }
+  body.card-controls-hidden .card.has-alt-voicings{ padding-bottom:13px; }
+  body.card-controls-hidden .card:hover{ transform:none; border-color:var(--card-border); box-shadow:0 2px 2px rgba(41,38,33,.02),0 10px 24px -24px rgba(41,38,33,.7); }
+  body.card-controls-hidden .grid.no-border .card:hover{ border-color:transparent; box-shadow:none; }
   @media (max-width:600px){
     body{ padding:16px 12px 32px; }
     .masthead{ align-items:flex-start; gap:10px; padding-bottom:14px; margin-bottom:14px; }
@@ -459,7 +472,6 @@
     .results-summary{ width:100%; }
     .results-actions{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; gap:8px; }
     .results-actions button{ justify-content:center; padding-inline:10px; }
-    .results-actions #printBtn{ grid-column:span 2; }
     .tip-card{ margin-bottom:12px; }
     .options-card{ padding:13px 14px 15px; gap:16px 24px; }
     .stepper{ height:40px; }
@@ -530,10 +542,12 @@
         </div>
       </div>
     </div>
-    <details class="syntax-help no-print">
-      <summary>Separate chords with commas or new lines. Try <code>C, Am7, D7/F#, G/B</code>. <span class="syntax-toggle">Supported qualities <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></summary>
-      <p>major, m, 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9) — plus slash/inversion chords like Am/C, D7/F#, G/B.</p>
-    </details>
+    <div class="syntax-help no-print">
+      <button type="button" class="syntax-summary" id="syntaxToggleBtn" aria-expanded="false" aria-controls="syntaxPanel">Separate chords with commas or new lines. Try <code>C, Am7, D7/F#, G/B</code>. <span class="syntax-toggle">Supported qualities <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></button>
+      <div class="syntax-panel" id="syntaxPanel" aria-hidden="true">
+        <div class="syntax-panel-inner"><p>major, m, 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9) — plus slash/inversion chords like Am/C, D7/F#, G/B.</p></div>
+      </div>
+    </div>
     <div class="error" id="errorBox" role="status" aria-live="polite"></div>
   </section>
 
@@ -544,10 +558,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg>
         Options
         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <button type="button" id="printViewBtn" class="secondary btn-iconic print-view-toggle" aria-pressed="false" title="Hide card controls for clean screenshots">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.7a2 2 0 0 0 2.7 2.7"/><path d="M9.9 4.2A10.7 10.7 0 0 1 12 4c5.5 0 9.5 5 9.5 8a7.8 7.8 0 0 1-1.7 3.6M6.6 6.7C4 8.3 2.5 10.5 2.5 12c0 3 4 8 9.5 8a10.5 10.5 0 0 0 4.1-.8"/></svg>
-        <span id="printViewLabel">Print view</span>
       </button>
       <button type="button" id="shareBtn" class="secondary btn-iconic" title="Copy a link to this chart">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
@@ -625,6 +635,15 @@
               <span class="switch-track"><span class="switch-thumb"></span></span>
               <span>Show border</span>
             </label>
+            <div class="switch-wrap" id="cardControlsInfoWrap">
+              <label class="switch">
+                <input type="checkbox" id="cardControlsToggle" checked>
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <span>Show chord card controls</span>
+              </label>
+              <button type="button" class="info-btn" id="cardControlsInfoBtn" aria-label="About chord card controls" aria-expanded="false">i</button>
+              <div class="info-popover" id="cardControlsInfoPopover" role="tooltip">Turn this off to remove the play button, copy button, and alternative-voicing arrows from chord cards for clean screenshots.</div>
+            </div>
             <label class="switch">
               <input type="checkbox" id="bwToggle">
               <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -734,9 +753,9 @@ const INSTRUMENT_ICONS = {
 
 const EXPORT_HEADING_FONT = "Georgia, 'Times New Roman', serif";
 const NICE_COLORS = {
-  ink:'#1f2937', dotFill:'#596579', dotStroke:'#364152',
-  cardBg:'#ffffff', cardBorder:'#d9e1ea', heading:'#315da8', rootColor:'#315da8',
-  rootFill:'#dce7fa',
+  ink:'#292621', dotFill:'#554f49', dotStroke:'#37332f',
+  cardBg:'#fffcf7', cardBorder:'#ddd3c5', heading:'#a44737', rootColor:'#a44737',
+  rootFill:'#f1cfc5',
   lineOpacity:0.55, markerOpacity:0.3, exportHeadingFont:EXPORT_HEADING_FONT
 };
 const BW_COLORS = {
@@ -1196,6 +1215,7 @@ function saveSettings(){
   const settings = {
     tuningId: selectedTuningId,
     showBorder: document.getElementById('borderToggle').checked,
+    showCardControls: document.getElementById('cardControlsToggle').checked,
     bwMode: document.getElementById('bwToggle').checked,
     highlightRoot: document.getElementById('rootToggle').checked,
     columns: columnsValue,
@@ -1548,6 +1568,7 @@ setupInfoPopover('omitInfoWrap', 'omitInfoBtn');
 setupInfoPopover('thresholdInfoWrap', 'thresholdInfoBtn');
 setupInfoPopover('maxFretInfoWrap', 'maxFretInfoBtn');
 setupInfoPopover('masonryInfoWrap', 'masonryInfoBtn');
+setupInfoPopover('cardControlsInfoWrap', 'cardControlsInfoBtn');
 
 const savedSettings = loadSettings();
 
@@ -1568,6 +1589,10 @@ let chordInputIsDefault = !savedChordInputExists && !chordsParamExists;
 if(typeof savedSettings.showBorder === 'boolean'){
   document.getElementById('borderToggle').checked = savedSettings.showBorder;
   document.getElementById('grid').classList.toggle('no-border', !savedSettings.showBorder);
+}
+if(typeof savedSettings.showCardControls === 'boolean'){
+  document.getElementById('cardControlsToggle').checked = savedSettings.showCardControls;
+  document.body.classList.toggle('card-controls-hidden', !savedSettings.showCardControls);
 }
 if(typeof savedSettings.bwMode === 'boolean'){
   document.getElementById('bwToggle').checked = savedSettings.bwMode;
@@ -1611,11 +1636,14 @@ document.getElementById('tipDismissBtn').addEventListener('click', ()=>{
 document.getElementById('copyAllBtn').addEventListener('click', ()=> copyAllChordsAsImage(document.getElementById('copyAllBtn')));
 document.getElementById('shareBtn').addEventListener('click', ()=> copyShareLink(document.getElementById('shareBtn')));
 document.getElementById('printBtn').addEventListener('click', ()=>window.print());
-document.getElementById('printViewBtn').addEventListener('click', e=>{
-  const active = document.body.classList.toggle('print-view');
-  e.currentTarget.setAttribute('aria-pressed', String(active));
-  e.currentTarget.title = active ? 'Show card controls again' : 'Hide card controls for clean screenshots';
-  document.getElementById('printViewLabel').textContent = active ? 'Exit print view' : 'Print view';
+
+const syntaxToggleBtn = document.getElementById('syntaxToggleBtn');
+const syntaxPanel = document.getElementById('syntaxPanel');
+syntaxToggleBtn.addEventListener('click', ()=>{
+  const open = syntaxToggleBtn.getAttribute('aria-expanded') !== 'true';
+  syntaxToggleBtn.setAttribute('aria-expanded', String(open));
+  syntaxPanel.setAttribute('aria-hidden', String(!open));
+  syntaxPanel.classList.toggle('open', open);
 });
 
 const optionsPanel = document.getElementById('optionsPanel');
@@ -1656,6 +1684,10 @@ document.getElementById('chordInputClear').addEventListener('click', ()=>{
 });
 document.getElementById('borderToggle').addEventListener('change', e=>{
   document.getElementById('grid').classList.toggle('no-border', !e.target.checked);
+  saveSettings();
+});
+document.getElementById('cardControlsToggle').addEventListener('change', e=>{
+  document.body.classList.toggle('card-controls-hidden', !e.target.checked);
   saveSettings();
 });
 document.getElementById('bwToggle').addEventListener('change', e=>{
