@@ -352,6 +352,24 @@
     100%{ transform:scale(1); color:var(--ink); }
   }
 
+  /* --- transpose control (compact stepper in the Chords label row) --- */
+  .field-label-row{ display:flex; align-items:end; justify-content:space-between; flex-wrap:wrap; gap:6px 14px; margin:0 0 6px; }
+  .field-label-row .field-label{ margin:0; }
+  .stepper-sm{ height:28px; border-radius:7px; }
+  .stepper-sm .stepper-label{ font-size:12px; padding-left:10px; }
+  .stepper-sm .stepper-btn{ width:27px; font-size:14px; }
+  .stepper-sm .stepper-value{ min-width:36px; font-size:12.5px; }
+  button.stepper-value{
+    min-height:0; padding:0; background:transparent; color:var(--ink);
+    border-top:none; border-bottom:none; border-radius:0; cursor:default;
+    font-family:inherit; transition:color .15s ease, background-color .15s ease;
+  }
+  button.stepper-value:hover{ background:transparent; }
+  button.stepper-value:disabled{ color:var(--ink); }
+  button.stepper-value:not(:disabled){ color:var(--accent); cursor:pointer; }
+  button.stepper-value:not(:disabled):hover{ background:var(--page-bg); text-decoration:underline; text-underline-offset:3px; }
+  button.stepper-value:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+
   .switch{ display:inline-flex; align-items:center; gap:9px; font-size:15px; color:var(--ink-soft); cursor:pointer; user-select:none; }
   .switch input{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
   .switch-track{
@@ -624,6 +642,9 @@
     .options-card{ padding:13px 14px 15px; gap:16px 24px; }
     .stepper{ height:40px; }
     .stepper-btn{ width:38px; }
+    .stepper-sm{ height:36px; }
+    .stepper-sm .stepper-btn{ width:34px; }
+    .stepper-sm .stepper-value{ min-width:42px; }
     .info-btn{ min-height:32px; width:32px; height:32px; }
     .grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
     .card{ padding:11px 5px 10px; border-radius:14px; }
@@ -680,7 +701,15 @@
     </div>
     <div class="builder-grid">
       <div class="field">
-        <label class="field-label" for="chordInput">Chords</label>
+        <div class="field-label-row">
+          <label class="field-label" for="chordInput">Chords</label>
+          <div class="stepper stepper-sm" id="transposeStepper" role="group" aria-label="Transpose all chords" title="Shift every chord up or down in semitones — the chord text itself is rewritten">
+            <span class="stepper-label">Transpose</span>
+            <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone" title="Down a semitone">−</button>
+            <button type="button" class="stepper-value" id="transposeValue" aria-live="polite" disabled>0</button>
+            <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone" title="Up a semitone">+</button>
+          </div>
+        </div>
         <div class="input-clear-wrap" id="chordInputWrap">
           <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, Cm, C7, Cm7, Cmaj7, Cdim, Cdim7, Cm7b5, Caug, Csus2, Csus4, C6, Cm6, Cadd9, Cmadd9, C9, C6/9, Cmaj9, G/B</textarea>
           <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
@@ -1596,6 +1625,89 @@ function resizeChordInput(){
   input.style.overflowY = input.scrollHeight > maxHeight ? 'auto' : 'hidden';
 }
 
+const TRANSPOSE_MIN = -11, TRANSPOSE_MAX = 11;
+// Transpose rewrites the chord input itself, so the result round-trips through
+// share links and localStorage like a hand-typed edit. baseText (the offset-0
+// text) is kept so stepping back to 0 restores the original spelling exactly;
+// lastValue detects outside edits, which start a fresh baseline.
+let transposeState = null; // { baseText, offset, lastValue }
+
+function transposedNoteName(letter, acc, delta, inheritFlat){
+  const pc = (((noteToPC(letter, acc) + delta) % 12) + 12) % 12;
+  const name = pcName(pc, acc === 'b' || (!acc && inheritFlat));
+  return letter === letter.toLowerCase() ? name.charAt(0).toLowerCase() + name.slice(1) : name;
+}
+
+function transposeToken(core, delta){
+  // same token shape parseChord accepts; the quality text passes through untouched
+  const m = core.match(/^([A-Ga-g])(#|b)?(.*?)(?:\/([A-Ga-g])(#|b)?)?$/);
+  if(!m) return core;
+  const root = transposedNoteName(m[1], m[2]||'', delta, false);
+  let out = root + (m[3]||'');
+  if(m[4]){
+    // an unmarked bass follows the new root's accidental family (E/G#, not E/Ab)
+    out += '/' + transposedNoteName(m[4], m[5]||'', delta, root.length > 1 && root.endsWith('b'));
+  }
+  return out;
+}
+
+function transposeChordText(text, delta){
+  const parts = text.split(/([,\n]+)/);
+  for(let i=0; i<parts.length; i+=2){
+    const trimmed = parts[i].trim();
+    if(trimmed === '') continue;
+    const hasStar = /\*$/.test(trimmed);
+    const core = hasStar ? trimmed.slice(0,-1).trim() : trimmed;
+    const lead = parts[i].match(/^\s*/)[0];
+    const trail = parts[i].match(/\s*$/)[0];
+    parts[i] = lead + transposeToken(core, delta) + (hasStar ? '*' : '') + trail;
+  }
+  return parts.join('');
+}
+
+function currentTransposeOffset(){
+  return (transposeState && transposeState.lastValue === document.getElementById('chordInput').value)
+    ? transposeState.offset : 0;
+}
+
+function updateTransposeUI(){
+  const offset = currentTransposeOffset();
+  const valueEl = document.getElementById('transposeValue');
+  valueEl.textContent = offset > 0 ? `+${offset}` : offset < 0 ? `−${-offset}` : '0';
+  valueEl.disabled = offset === 0;
+  valueEl.title = offset === 0 ? '' : 'Back to the original chords';
+  valueEl.setAttribute('aria-label', offset === 0
+    ? 'Not transposed'
+    : `Transposed ${offset > 0 ? 'up' : 'down'} ${Math.abs(offset)} semitone${Math.abs(offset) === 1 ? '' : 's'} — restore the original chords`);
+  const empty = document.getElementById('chordInput').value.trim() === '';
+  document.getElementById('transposeMinus').disabled = empty || offset === TRANSPOSE_MIN;
+  document.getElementById('transposePlus').disabled = empty || offset === TRANSPOSE_MAX;
+}
+
+function setTransposeOffset(offset){
+  const input = document.getElementById('chordInput');
+  if(!transposeState || transposeState.lastValue !== input.value){
+    transposeState = { baseText: input.value, offset: 0, lastValue: input.value };
+  }
+  transposeState.offset = Math.min(TRANSPOSE_MAX, Math.max(TRANSPOSE_MIN, offset));
+  const next = transposeState.offset === 0
+    ? transposeState.baseText
+    : transposeChordText(transposeState.baseText, transposeState.offset);
+  input.value = next;
+  transposeState.lastValue = next;
+  chordInputIsDefault = false;
+  const valueEl = document.getElementById('transposeValue');
+  valueEl.classList.remove('bump');
+  void valueEl.offsetWidth;
+  valueEl.classList.add('bump');
+  resizeChordInput();
+  // a pending debounced generate from typing would only duplicate this one
+  clearTimeout(chordInputDebounce);
+  generate();
+}
+
+function stepTranspose(delta){ setTransposeOffset(currentTransposeOffset() + delta); }
+
 // one-shot voicing preference consumed by the next generate(), so collapsing an
 // expanded chord keeps the voicing whose card the user clicked
 let pendingVoicingPref = null;
@@ -1666,6 +1778,7 @@ function buildCard(result, ctx){
 
 function generate(){
   updateChordInputClearUI();
+  updateTransposeUI();
   // the chooser points at cards that are about to be replaced; re-bind it to the
   // rebuilt card afterwards so settings changed from inside it apply live
   const chooserLabel = voicingChooserState ? voicingChooserState.result.label : null;
@@ -2198,6 +2311,8 @@ chordInputEl.addEventListener('keydown', e=>{
 chordInputEl.addEventListener('input', ()=>{
   chordInputIsDefault = false;
   updateChordInputClearUI();
+  // manual edits re-baseline the transpose control; reflect that before the debounce
+  updateTransposeUI();
   resizeChordInput();
   // debounce long enough that partial tokens rarely flash a parse error
   clearTimeout(chordInputDebounce);
@@ -2244,6 +2359,17 @@ document.getElementById('maxFretPlus').addEventListener('click', ()=> stepMaxFre
 document.getElementById('maxFretStepper').addEventListener('keydown', e=>{
   if(e.key==='ArrowUp' || e.key==='ArrowRight'){ e.preventDefault(); stepMaxFret(1); }
   else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ e.preventDefault(); stepMaxFret(-1); }
+});
+document.getElementById('transposeMinus').addEventListener('click', ()=> stepTranspose(-1));
+document.getElementById('transposePlus').addEventListener('click', ()=> stepTranspose(1));
+document.getElementById('transposeValue').addEventListener('click', ()=>{
+  setTransposeOffset(0);
+  // the reset control disables itself at 0; keep focus inside the stepper
+  document.getElementById('transposePlus').focus();
+});
+document.getElementById('transposeStepper').addEventListener('keydown', e=>{
+  if(e.key==='ArrowUp' || e.key==='ArrowRight'){ e.preventDefault(); stepTranspose(1); }
+  else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ e.preventDefault(); stepTranspose(-1); }
 });
 
 // --- song search (companion backend: chord-charts-song-backend) ---
