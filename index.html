@@ -103,7 +103,7 @@
   .builder-grid{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px; align-items:end; }
   .field-label{ display:block; margin:0 0 6px; color:var(--ink); font-size:12px; font-weight:750; letter-spacing:.04em; }
   .settings-section-title{
-    font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.13em;
+    font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.13em;
     color:var(--ink-soft); margin:0 0 8px;
   }
   .controls{ display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin-bottom:10px; }
@@ -170,7 +170,7 @@
   }
   .options-group{ flex:1 1 240px; min-width:0; }
   .options-group .settings-section-title{ margin-bottom:2px; }
-  .options-group-desc{ font-size:12.5px; color:var(--ink-soft); margin:0 0 10px; }
+  .options-group-desc{ font-size:13.5px; color:var(--ink-soft); margin:0 0 10px; }
   .options-group .controls{ margin-bottom:0; row-gap:12px; }
   .input-clear-wrap{ position:relative; }
   #chordInput{
@@ -212,7 +212,7 @@
   .tuning-select.open .tuning-select-trigger > .tuning-select-icon{ transform:rotate(-10deg) scale(1.1); }
   .tuning-select-text{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.2; }
   .tuning-select-name{ font-weight:700; }
-  .tuning-select-tuning{ font-size:11px; font-weight:500; letter-spacing:.07em; color:var(--ink-soft); }
+  .tuning-select-tuning{ font-size:12px; font-weight:500; letter-spacing:.07em; color:var(--ink-soft); }
   .tuning-select-chevron{
     margin-left:2px; color:var(--ink-soft); flex-shrink:0;
     transition:transform .25s cubic-bezier(.4,0,.2,1), color .2s ease;
@@ -246,8 +246,8 @@
   .tuning-select-option .tuning-select-icon{ width:22px; height:22px; color:var(--ink-soft); transition:color .15s ease; }
   .tuning-select-option:hover, .tuning-select-option.active{ background:var(--page-bg); }
   .tuning-select-option:hover .tuning-select-icon, .tuning-select-option.active .tuning-select-icon{ color:var(--accent); }
-  .tuning-select-option .tuning-select-name{ font-weight:700; font-size:14px; color:var(--ink); }
-  .tuning-select-option .tuning-select-tuning{ font-size:11px; color:var(--ink-soft); }
+  .tuning-select-option .tuning-select-name{ font-weight:700; font-size:15px; color:var(--ink); }
+  .tuning-select-option .tuning-select-tuning{ font-size:12px; color:var(--ink-soft); }
   .tuning-select-option .check{
     margin-left:auto; flex-shrink:0; color:var(--accent);
     opacity:0; transform:scale(.4); transition:opacity .15s ease, transform .18s cubic-bezier(.34,1.56,.64,1);
@@ -286,7 +286,7 @@
   }
   .stepper:hover{ border-color:var(--accent); }
   .stepper:focus-within{ border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
-  .stepper-label{ font-size:14px; color:var(--ink-soft); padding:0 4px 0 12px; white-space:nowrap; }
+  .stepper-label{ font-size:15px; color:var(--ink-soft); padding:0 4px 0 12px; white-space:nowrap; }
   .stepper-btn{
     display:flex; align-items:center; justify-content:center;
     min-height:0; width:30px; height:100%; padding:0; border:none; background:transparent; color:var(--ink);
@@ -300,7 +300,7 @@
   .stepper-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
   .stepper-value{
     min-width:44px; height:100%; display:flex; align-items:center; justify-content:center;
-    font-weight:700; font-size:14px; color:var(--ink);
+    font-weight:700; font-size:15px; color:var(--ink);
     border-left:1px solid var(--card-border); border-right:1px solid var(--card-border);
   }
   .stepper-value.bump{ animation:stepper-bump .3s cubic-bezier(.34,1.56,.64,1); }
@@ -310,7 +310,7 @@
     100%{ transform:scale(1); color:var(--ink); }
   }
 
-  .switch{ display:inline-flex; align-items:center; gap:9px; font-size:14px; color:var(--ink-soft); cursor:pointer; user-select:none; }
+  .switch{ display:inline-flex; align-items:center; gap:9px; font-size:15px; color:var(--ink-soft); cursor:pointer; user-select:none; }
   .switch input{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
   .switch-track{
     position:relative; width:38px; height:22px; border-radius:11px; flex-shrink:0;
@@ -340,7 +340,7 @@
   .info-btn:hover, .info-btn:focus-visible, .switch-wrap.open .info-btn{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
   .info-popover{
     position:absolute; top:calc(100% + 8px); left:0; z-index:20; width:240px;
-    padding:10px 12px; font-size:13px; line-height:1.5; text-align:left; font-weight:400;
+    padding:10px 12px; font-size:14px; line-height:1.5; text-align:left; font-weight:400;
     background:var(--card-bg); color:var(--ink); border:1px solid var(--card-border); border-radius:10px;
     box-shadow:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
     opacity:0; visibility:hidden; transform:translateY(-4px);
@@ -377,7 +377,7 @@
   }
   .error{ font-size:13px; font-weight:600; color:#9e2a20; margin:9px 0 0; }
   .error:empty{ display:none; }
-  .empty-hint{ font-size:13.5px; font-style:italic; color:var(--ink-soft); margin:6px 0; }
+  .empty-hint{ font-size:14.5px; font-style:italic; color:var(--ink-soft); margin:6px 0; }
   .grid {
     display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
     gap:14px; align-items:start;
@@ -452,6 +452,76 @@
   body.card-controls-hidden .card.has-alt-voicings{ padding-bottom:13px; }
   body.card-controls-hidden .card:hover{ transform:none; border-color:var(--card-border); box-shadow:0 2px 2px rgba(41,38,33,.02),0 10px 24px -24px rgba(41,38,33,.7); }
   body.card-controls-hidden .grid.no-border .card:hover{ border-color:transparent; box-shadow:none; }
+  button.voicing-nav-count{
+    min-height:28px; height:28px; padding:0 5px; border:none; border-radius:4px;
+    background:transparent; font-family:inherit; font-weight:500; cursor:pointer;
+    transition:color .15s ease;
+  }
+  button.voicing-nav-count:hover{ color:var(--accent); text-decoration:underline; text-underline-offset:2px; }
+  button.voicing-nav-count:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  /* expanded cards keep their voicing index visible (and printable) */
+  .voicing-nav-static{ opacity:1; }
+  .voicing-collapse{ color:var(--accent); }
+
+  .voicing-modal-backdrop{
+    position:fixed; inset:0; z-index:60; padding:24px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(41,38,33,.45);
+    animation:voicing-backdrop-in .15s ease;
+  }
+  .voicing-modal-backdrop[hidden]{ display:none; }
+  @keyframes voicing-backdrop-in{ from{ opacity:0; } }
+  .voicing-modal{
+    display:flex; flex-direction:column; width:100%; max-width:680px;
+    max-height:min(calc(100vh - 48px), 940px);
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px;
+    box-shadow:0 24px 60px -18px rgba(41,38,33,.5), 0 4px 14px rgba(41,38,33,.18);
+    animation:voicing-modal-in .2s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes voicing-modal-in{ from{ opacity:0; transform:translateY(8px) scale(.97); } }
+  .voicing-modal-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:14px 18px 10px;
+  }
+  .voicing-modal-head h2{
+    margin:0; font-family:var(--heading-font); font-weight:600; font-size:20px; color:var(--accent);
+  }
+  .voicing-modal-close{
+    min-height:28px; width:28px; height:28px; padding:0; border:none; border-radius:50%; flex-shrink:0;
+    background:transparent; color:var(--ink-soft); font-size:20px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:color .15s ease, background-color .15s ease;
+  }
+  .voicing-modal-close:hover, .voicing-modal-close:focus-visible{ color:var(--accent); background:var(--page-bg); }
+  .voicing-modal-controls{
+    display:flex; align-items:center; gap:12px 24px; flex-wrap:wrap;
+    padding:0 18px 12px; border-bottom:1px solid var(--card-border);
+  }
+  .voicing-modal-grid{
+    overflow-y:auto; padding:12px 18px 14px;
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(124px, 1fr)); gap:10px; align-items:start;
+  }
+  .voicing-modal-grid.masonry{ display:flex; align-items:flex-start; gap:10px; }
+  .voicing-modal-grid .masonry-col{ gap:10px; }
+  .voicing-modal-grid .empty-hint{ grid-column:1/-1; }
+  .voicing-choice{
+    position:relative; padding:10px 2px 2px; border:1px solid var(--card-border); border-radius:10px;
+    background:var(--card-bg); cursor:pointer;
+    transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  }
+  .voicing-choice:hover{ border-color:var(--accent); transform:translateY(-1px); }
+  .voicing-choice:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .voicing-choice.selected{ border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent); }
+  .voicing-choice svg{ display:block; width:100%; height:auto; }
+  .voicing-choice-index{
+    position:absolute; top:5px; left:8px; font-size:10.5px; font-weight:700; color:var(--ink-soft);
+  }
+  .voicing-choice.selected .voicing-choice-index{ color:var(--accent); }
+  .voicing-modal-footer{
+    display:flex; align-items:center; justify-content:space-between; gap:10px 14px; flex-wrap:wrap;
+    padding:10px 18px 14px; border-top:1px solid var(--card-border);
+  }
+  .voicing-modal-hint{ font-size:12.5px; color:var(--ink-soft); }
   @media (max-width:600px){
     body{ padding:16px 12px 32px; }
     .masthead{ align-items:flex-start; gap:10px; padding-bottom:14px; margin-bottom:14px; }
@@ -545,7 +615,10 @@
     <div class="syntax-help no-print">
       <button type="button" class="syntax-summary" id="syntaxToggleBtn" aria-expanded="false" aria-controls="syntaxPanel">Separate chords with commas or new lines. Try <code>C, Am7, D7/F#, G/B</code>. <span class="syntax-toggle">Supported qualities <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></button>
       <div class="syntax-panel" id="syntaxPanel" aria-hidden="true">
-        <div class="syntax-panel-inner"><p>major, m, 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9) — plus slash/inversion chords like Am/C, D7/F#, G/B.</p></div>
+        <div class="syntax-panel-inner">
+          <p>major, m, 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9) — plus slash/inversion chords like Am/C, D7/F#, G/B.</p>
+          <p>Append <code>*</code> to a chord to lay out every voicing as its own tile — e.g. <code>C*</code>. Or select the <code>1 / 9</code> counter under a tile.</p>
+        </div>
       </div>
     </div>
     <div class="error" id="errorBox" role="status" aria-live="polite"></div>
@@ -674,11 +747,43 @@
 
   <div class="tip-card no-print" id="tipsCard">
     <span class="tip-emoji" aria-hidden="true">💡</span>
-    <span class="tip-text"><span class="tip-pointer-text"><span class="tip-line">Select a chord name or dot to hear it.</span><span class="tip-line">Use the arrows below a card to explore voicings.</span></span><span class="tip-touch-text">Tap a chord name or dot to hear it; use the arrows for other voicings.</span></span>
+    <span class="tip-text"><span class="tip-pointer-text"><span class="tip-line">Select a chord name or dot to hear it.</span><span class="tip-line">Use the arrows to explore voicings, or select the count to see them all.</span></span><span class="tip-touch-text">Tap a chord name or dot to hear it; tap the count to see all voicings.</span></span>
     <button type="button" class="tip-dismiss" id="tipDismissBtn" aria-label="Dismiss tip">&times;</button>
   </div>
 
   <div class="grid" id="grid"></div>
+</div>
+
+<div class="voicing-modal-backdrop no-print" id="voicingModal" hidden>
+  <div class="voicing-modal" role="dialog" aria-modal="true" aria-labelledby="voicingModalTitle">
+    <div class="voicing-modal-head">
+      <h2 id="voicingModalTitle"></h2>
+      <button type="button" class="voicing-modal-close" id="voicingModalClose" aria-label="Close voicing chooser">&times;</button>
+    </div>
+    <div class="voicing-modal-controls">
+      <label class="switch" title="Pack the tiles in this chooser into columns by height (masonry). Doesn't change the main page layout.">
+        <input type="checkbox" id="voicingModalMasonry">
+        <svg class="switch-side-icon icon-layout-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <svg class="switch-side-icon icon-layout-masonry" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="10.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="6.5" rx="1"/><rect x="13.5" y="12.5" width="7.5" height="8.5" rx="1"/><rect x="3" y="16.5" width="7.5" height="4.5" rx="1"/></svg>
+        <span>Masonry layout</span>
+      </label>
+      <div class="stepper" id="voicingModalMaxFretStepper" title="Highest fret searched for voicings in this chooser — raise it to reveal more alternatives. Doesn't change the main page's max fret.">
+        <span class="stepper-label">Max fret</span>
+        <button type="button" class="stepper-btn" id="voicingModalMaxFretMinus" aria-label="Lower max fret">−</button>
+        <span class="stepper-value" id="voicingModalMaxFretValue" aria-live="polite"></span>
+        <button type="button" class="stepper-btn" id="voicingModalMaxFretPlus" aria-label="Higher max fret">+</button>
+      </div>
+    </div>
+    <div class="voicing-modal-grid" id="voicingModalGrid"></div>
+    <div class="voicing-modal-footer">
+      <span class="voicing-modal-hint">Click a voicing to use it on the sheet.</span>
+      <button type="button" class="secondary btn-iconic" id="voicingModalShowAll" title="Lay out every voicing as its own tile (adds * to the chord)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
+        Show all on page
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -802,7 +907,10 @@ function resolveQuality(raw){
 
 function parseChord(input){
   const raw = input.trim();
-  const m = raw.match(/^([A-Ga-g])(#|b)?(.*?)(?:\/([A-Ga-g])(#|b)?)?$/);
+  // trailing "*" = show every voicing of this chord as its own tile
+  const showAll = /\*$/.test(raw);
+  const core = showAll ? raw.slice(0,-1).trim() : raw;
+  const m = core.match(/^([A-Ga-g])(#|b)?(.*?)(?:\/([A-Ga-g])(#|b)?)?$/);
   if(!m) return { error:`Could not parse "${raw}"` };
   const rootPC = noteToPC(m[1], m[2]||'');
   const qualityKey = resolveQuality(m[3]||'');
@@ -814,7 +922,7 @@ function parseChord(input){
   const omitted = omitInfo
     ? { label:omitInfo.label, note:pcName((rootPC+omitInfo.interval)%12, m[2]==='b') }
     : null;
-  return { label: raw, requiredPCs, bassPC, rootPC, omitted };
+  return { label: core, showAll, requiredPCs, bassPC, rootPC, omitted };
 }
 
 function findVoicings(requiredPCs, bassPC, tuning, maxFret, maxCount){
@@ -855,6 +963,23 @@ function findVoicings(requiredPCs, bassPC, tuning, maxFret, maxCount){
   return candidates.slice(0, maxCount).map(c=>c.frets);
 }
 
+// Validates a voicing that came from outside the current search (a chooser pick
+// made with a higher max fret) so it can be kept across regenerations — and
+// dropped when it stops spelling the chord (e.g. after a tuning change).
+function fretsSpellChord(frets, requiredPCs, bassPC, tuning){
+  const active = frets
+    .map((f,i)=> f===null ? null : { pc:(tuning.openPCs[i]+f)%12, abs:tuning.openAbs[i]+f })
+    .filter(Boolean);
+  if(!active.length) return false;
+  const pcSet = new Set(active.map(o=>o.pc));
+  if(!requiredPCs.every(pc=> pcSet.has(pc))) return false;
+  if(bassPC !== null){
+    const minAbs = Math.min(...active.map(o=>o.abs));
+    if(active.find(o=> o.abs === minAbs).pc !== bassPC) return false;
+  }
+  return true;
+}
+
 const XS = [30,70,110,150];
 const NUT_Y = 34, FRET_H = 34;
 const FRET_MARKERS = [3,5,7,10,12];
@@ -870,7 +995,7 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
   const bottomY = NUT_Y + numRows*FRET_H;
   let s = '';
   labels.forEach((lab,i)=>{
-    s += `<text x="${XS[i]}" y="12" text-anchor="middle" font-size="12" fill="${colors.ink}" font-family="Arial,sans-serif" font-weight="700">${escapeXML(lab)}</text>`;
+    s += `<text x="${XS[i]}" y="12" text-anchor="middle" font-size="13" fill="${colors.ink}" font-family="Arial,sans-serif" font-weight="700">${escapeXML(lab)}</text>`;
   });
   const topLineWidth = startFret === 0 ? 3 : 1;
   const topLineOpacity = startFret === 0 ? 1 : colors.lineOpacity;
@@ -878,7 +1003,7 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
   for(let i=1;i<=numRows;i++){
     const y = NUT_Y + i*FRET_H;
     s += `<line x1="20" y1="${y}" x2="160" y2="${y}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
-    s += `<text class="fret-num" x="167" y="${rowCenter(i)+4}" font-size="12" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${startFret+i}</text>`;
+    s += `<text class="fret-num" x="167" y="${rowCenter(i)+4}" font-size="14" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${startFret+i}</text>`;
   }
   XS.forEach(x=>{
     s += `<line x1="${x}" y1="${NUT_Y}" x2="${x}" y2="${bottomY}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
@@ -950,6 +1075,7 @@ const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const PLAY_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
 const CHEVRON_LEFT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>`;
 const CHEVRON_RIGHT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
+const CHECK_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 
 async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
   const colors = currentColors();
@@ -1223,6 +1349,8 @@ function saveSettings(){
     shortenThreshold: shortenThreshold,
     showOmitted: document.getElementById('omitToggle').checked,
     maxFret: maxFretValue,
+    chooserMasonry: document.getElementById('voicingModalMasonry').checked,
+    chooserMaxFret: chooserMaxFretValue,
   };
   // Only persist chordInput once the user has actually edited it — otherwise a
   // fresh visit would freeze in the built-in default forever instead of picking
@@ -1343,8 +1471,79 @@ function resizeChordInput(){
   input.style.overflowY = input.scrollHeight > 150 ? 'auto' : 'hidden';
 }
 
+// one-shot voicing preference consumed by the next generate(), so collapsing an
+// expanded chord keeps the voicing whose card the user clicked
+let pendingVoicingPref = null;
+
+function buildCard(result, ctx){
+  const { tuning, colors, highlightRoot, showOmitted } = ctx;
+  const { fretMax, startFret } = computeFretWindow(result.voicings[result.altIndex]);
+
+  const omitHTML = (showOmitted && result.omitted) ? `<p class="omit-note">${escapeXML(result.omitted.label)} (${escapeXML(result.omitted.note)}) omitted</p>` : '';
+  const card = document.createElement('div');
+  card.className = 'card';
+  card._chordResult = result;
+  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${escapeXML(result.label)}</h2></div><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret)}</div>${omitHTML}`;
+
+  bindNoteDotHandlers(card.querySelector('.diagram-slot'));
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn no-print';
+  copyBtn.title = `Copy ${result.label} as image`;
+  copyBtn.setAttribute('aria-label', `Copy ${result.label} chord as image`);
+  copyBtn.innerHTML = `<span class="copy-btn-icon">${COPY_ICON}</span><span class="copy-btn-label"></span>`;
+  copyBtn.addEventListener('click', ()=>{
+    const frets = result.voicings[result.altIndex];
+    const window_ = computeFretWindow(frets);
+    copyChordAsImage(result.label, frets, window_.fretMax, tuning.labels, tuning.openPCs, result.rootPC, window_.startFret, copyBtn, showOmitted ? result.omitted : null);
+  });
+  card.appendChild(copyBtn);
+
+  const playChordHere = ()=> playChord(chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs));
+  const heading = card.querySelector('h2');
+  heading.addEventListener('click', playChordHere);
+  heading.addEventListener('keydown', e=>{
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); playChordHere(); }
+  });
+  card.querySelector('.play-chord-btn').addEventListener('click', e=>{ e.stopPropagation(); playChordHere(); });
+
+  if(result.expanded){
+    card.classList.add('has-alt-voicings');
+    const nav = document.createElement('div');
+    nav.className = 'voicing-nav voicing-nav-static';
+    nav.innerHTML = `<span class="voicing-nav-count" title="Voicing ${result.altIndex+1} of ${result.voicings.length} for ${escapeXML(result.label)}">${result.altIndex+1} / ${result.voicings.length}</span><button type="button" class="voicing-nav-btn voicing-collapse no-print" title="Keep only this voicing" aria-label="Keep only this voicing of ${escapeXML(result.label)}">${CHECK_ICON}</button>`;
+    nav.querySelector('.voicing-collapse').addEventListener('click', ()=>{
+      const frets = result.voicings[result.altIndex];
+      pendingVoicingPref = { label: result.label, frets, custom: !!(result.customFrets && frets.every((f,i)=> f === result.customFrets[i])) };
+      setChordExpanded(result.label, false);
+    });
+    card.appendChild(nav);
+  } else if(result.voicings.length > 1){
+    card.classList.add('has-alt-voicings');
+    const nav = document.createElement('div');
+    nav.className = 'voicing-nav no-print';
+    nav.innerHTML = `<button type="button" class="voicing-nav-btn voicing-prev" title="Previous voicing" aria-label="Previous voicing for ${escapeXML(result.label)}">${CHEVRON_LEFT}</button><button type="button" class="voicing-nav-count" title="See all voicings and pick one" aria-label="See all voicings of ${escapeXML(result.label)} and pick one"></button><button type="button" class="voicing-nav-btn voicing-next" title="Next voicing" aria-label="Next voicing for ${escapeXML(result.label)}">${CHEVRON_RIGHT}</button>`;
+    card.appendChild(nav);
+    const cycleVoicing = delta=>{
+      const n = result.voicings.length;
+      result.altIndex = (result.altIndex + delta + n) % n;
+      updateCardDiagram(card, result, tuning, colors, highlightRoot);
+    };
+    nav.querySelector('.voicing-prev').addEventListener('click', ()=> cycleVoicing(-1));
+    nav.querySelector('.voicing-next').addEventListener('click', ()=> cycleVoicing(1));
+    const countBtn = nav.querySelector('.voicing-nav-count');
+    countBtn.addEventListener('click', ()=> openVoicingChooser(card, result, countBtn));
+    updateNavCount(card, result);
+  }
+
+  return card;
+}
+
 function generate(){
   updateChordInputClearUI();
+  // the chooser points at cards that are about to be replaced; re-bind it to the
+  // rebuilt card afterwards so settings changed from inside it apply live
+  const chooserLabel = voicingChooserState ? voicingChooserState.result.label : null;
   const tuning = currentTuning();
   document.getElementById('pageTitleMain').textContent = `${tuning.name} chords`;
   document.getElementById('pageTitleSub').textContent = `${tuning.tuningLabel} tuning`;
@@ -1361,7 +1560,10 @@ function generate(){
   const prevShown = new Map();
   document.querySelectorAll('#grid .card').forEach(card=>{
     const r = card._chordResult;
-    if(r) prevShown.set(r.label, r.voicings[r.altIndex]);
+    if(r && !r.expanded){
+      const shown = r.voicings[r.altIndex];
+      prevShown.set(r.label, { frets: shown, custom: !!(r.customFrets && shown.every((f,i)=> f === r.customFrets[i])) });
+    }
   });
 
   tokens.forEach(tok=>{
@@ -1371,12 +1573,27 @@ function generate(){
     if(!voicings.length){ errors.push(`No practical voicing found for "${tok}"`); return; }
     // re-select the same frets if they still exist in the new voicing list;
     // fall back to the best voicing when they don't (new tuning, lower max fret)
-    const prevFrets = prevShown.get(parsed.label);
-    const altIndex = prevFrets
-      ? Math.max(0, voicings.findIndex(v => v.every((f,i)=> f === prevFrets[i])))
-      : 0;
-    results.push({ label: parsed.label, voicings, altIndex, rootPC: parsed.rootPC, omitted: parsed.omitted });
+    const pref = (pendingVoicingPref && pendingVoicingPref.label === parsed.label)
+      ? pendingVoicingPref
+      : prevShown.get(parsed.label);
+    let altIndex = 0, customFrets = null;
+    if(pref){
+      const idx = voicings.findIndex(v => v.every((f,i)=> f === pref.frets[i]));
+      if(idx >= 0){
+        altIndex = idx;
+      } else if(pref.custom && fretsSpellChord(pref.frets, parsed.requiredPCs, parsed.bassPC, tuning)){
+        // hand-picked in the chooser under a deeper search than the page's
+        // max fret — keep it available, trading away the last search hit so
+        // the list never exceeds MAX_VOICINGS
+        if(voicings.length >= MAX_VOICINGS) voicings.length = MAX_VOICINGS - 1;
+        voicings.push(pref.frets);
+        altIndex = voicings.length - 1;
+        customFrets = pref.frets;
+      }
+    }
+    results.push({ label: parsed.label, showAll: parsed.showAll, requiredPCs: parsed.requiredPCs, bassPC: parsed.bassPC, voicings, altIndex, customFrets, rootPC: parsed.rootPC, omitted: parsed.omitted });
   });
+  pendingVoicingPref = null;
 
   errorBox.textContent = errors.join('  ·  ');
   const countLabel = `${results.length} ${results.length === 1 ? 'chord' : 'chords'}`;
@@ -1398,63 +1615,219 @@ function generate(){
       `<figure><figcaption>set to 4</figcaption>${chordSVG('Example: cropped', exFrets, 5, tuning.labels, colors, tuning.openPCs, null, false, undefined, 3)}</figure>`;
   }
 
+  const ctx = { tuning, colors, highlightRoot, showOmitted };
   results.forEach(result=>{
-    const { fretMax, startFret } = computeFretWindow(result.voicings[result.altIndex]);
-
-    const omitHTML = (showOmitted && result.omitted) ? `<p class="omit-note">${escapeXML(result.omitted.label)} (${escapeXML(result.omitted.note)}) omitted</p>` : '';
-    const card = document.createElement('div');
-    card.className = 'card';
-    card._chordResult = result;
-    card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${escapeXML(result.label)}</h2></div><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret)}</div>${omitHTML}`;
-
-    bindNoteDotHandlers(card.querySelector('.diagram-slot'));
-
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'copy-btn no-print';
-    copyBtn.title = `Copy ${result.label} as image`;
-    copyBtn.setAttribute('aria-label', `Copy ${result.label} chord as image`);
-    copyBtn.innerHTML = `<span class="copy-btn-icon">${COPY_ICON}</span><span class="copy-btn-label"></span>`;
-    copyBtn.addEventListener('click', ()=>{
-      const frets = result.voicings[result.altIndex];
-      const window_ = computeFretWindow(frets);
-      copyChordAsImage(result.label, frets, window_.fretMax, tuning.labels, tuning.openPCs, result.rootPC, window_.startFret, copyBtn, showOmitted ? result.omitted : null);
-    });
-    card.appendChild(copyBtn);
-
-    const playChordHere = ()=> playChord(chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs));
-    const heading = card.querySelector('h2');
-    heading.addEventListener('click', playChordHere);
-    heading.addEventListener('keydown', e=>{
-      if(e.key==='Enter' || e.key===' '){ e.preventDefault(); playChordHere(); }
-    });
-    card.querySelector('.play-chord-btn').addEventListener('click', e=>{ e.stopPropagation(); playChordHere(); });
-
-    if(result.voicings.length > 1){
-      card.classList.add('has-alt-voicings');
-      const nav = document.createElement('div');
-      nav.className = 'voicing-nav no-print';
-      nav.innerHTML = `<button type="button" class="voicing-nav-btn voicing-prev" title="Previous voicing" aria-label="Previous voicing for ${escapeXML(result.label)}">${CHEVRON_LEFT}</button><span class="voicing-nav-count" title="Alternative voicings for this chord"></span><button type="button" class="voicing-nav-btn voicing-next" title="Next voicing" aria-label="Next voicing for ${escapeXML(result.label)}">${CHEVRON_RIGHT}</button>`;
-      card.appendChild(nav);
-      const cycleVoicing = delta=>{
-        const n = result.voicings.length;
-        result.altIndex = (result.altIndex + delta + n) % n;
-        updateCardDiagram(card, result, tuning, colors, highlightRoot);
-      };
-      nav.querySelector('.voicing-prev').addEventListener('click', ()=> cycleVoicing(-1));
-      nav.querySelector('.voicing-next').addEventListener('click', ()=> cycleVoicing(1));
-      updateNavCount(card, result);
+    if(result.showAll){
+      // one tile per voicing; each clone carries its own altIndex so the
+      // per-card actions (copy, play) reuse the single-voicing code unchanged
+      result.voicings.forEach((_, i)=>{
+        cardEls.push(buildCard(Object.assign({}, result, { altIndex:i, expanded:true }), ctx));
+      });
+    } else {
+      cardEls.push(buildCard(result, ctx));
     }
-
-    cardEls.push(card);
   });
 
   layoutCards(cardEls);
   if(!cardEls.length && !errors.length){
     document.getElementById('grid').innerHTML = '<p class="empty-hint">Enter chord names above to see charts.</p>';
   }
+  if(chooserLabel){
+    const newCard = cardEls.find(c => c._chordResult.label === chooserLabel && !c._chordResult.expanded);
+    if(newCard) openVoicingChooser(newCard, newCard._chordResult, newCard.querySelector('button.voicing-nav-count'));
+    else closeVoicingChooser({ restoreFocus:false });
+  }
   saveSettings();
   updateURLParam(raw);
 }
+
+// Expanded/collapsed is expressed in the chord input itself (a trailing "*"),
+// so the state round-trips through ?chords= links and localStorage for free.
+function setChordExpanded(label, expanded){
+  const input = document.getElementById('chordInput');
+  const parts = input.value.split(/([,\n]+)/);
+  for(let i=0; i<parts.length; i+=2){
+    const trimmed = parts[i].trim();
+    if(trimmed === '') continue;
+    const hasStar = /\*$/.test(trimmed);
+    const bare = hasStar ? trimmed.slice(0,-1).trim() : trimmed;
+    if(bare !== label || hasStar === expanded) continue;
+    const lead = parts[i].match(/^\s*/)[0];
+    const trail = parts[i].match(/\s*$/)[0];
+    parts[i] = lead + bare + (expanded ? '*' : '') + trail;
+    input.value = parts.join('');
+    chordInputIsDefault = false;
+    generate();
+    return;
+  }
+}
+
+const voicingModalEl = document.getElementById('voicingModal');
+const voicingModalTitleEl = document.getElementById('voicingModalTitle');
+const voicingModalGridEl = document.getElementById('voicingModalGrid');
+let voicingChooserState = null;
+// The chooser's masonry toggle and max fret are its own settings (the checkbox
+// holds the masonry state); they never touch the main page's layout or search.
+let chooserMaxFretValue = MAX_FRET_DEFAULT;
+
+function syncVoicingModalControls(){
+  const valEl = document.getElementById('voicingModalMaxFretValue');
+  const newText = String(chooserMaxFretValue);
+  if(valEl.textContent !== '' && valEl.textContent !== newText){
+    valEl.textContent = newText;
+    valEl.classList.remove('bump');
+    void valEl.offsetWidth;
+    valEl.classList.add('bump');
+  } else {
+    valEl.textContent = newText;
+  }
+  document.getElementById('voicingModalMaxFretMinus').disabled = chooserMaxFretValue === MAX_FRET_MIN;
+  document.getElementById('voicingModalMaxFretPlus').disabled = chooserMaxFretValue === MAX_FRET_MAX;
+}
+
+function renderVoicingTiles(card, result){
+  const tuning = currentTuning();
+  const colors = currentColors();
+  const highlightRoot = document.getElementById('rootToggle').checked;
+  const masonry = document.getElementById('voicingModalMasonry').checked;
+  const voicings = findVoicings(result.requiredPCs, result.bassPC, tuning, chooserMaxFretValue, MAX_VOICINGS);
+  voicingModalTitleEl.textContent = `${result.label} — ${voicings.length} voicing${voicings.length === 1 ? '' : 's'}`;
+  const currentFrets = result.voicings[result.altIndex];
+  const scrollTop = voicingModalGridEl.scrollTop;
+  voicingModalGridEl.innerHTML = '';
+  voicingModalGridEl.classList.toggle('masonry', masonry);
+
+  if(!voicings.length){
+    voicingModalGridEl.innerHTML = `<p class="empty-hint">No voicings found up to fret ${chooserMaxFretValue} — raise the max fret.</p>`;
+    return;
+  }
+
+  const tiles = voicings.map((frets, i)=>{
+    const { fretMax, startFret } = computeFretWindow(frets);
+    const isCurrent = frets.every((f,j)=> f === currentFrets[j]);
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'voicing-choice' + (isCurrent ? ' selected' : '');
+    tile.setAttribute('aria-label', `Use voicing ${i+1} of ${voicings.length} for ${result.label}${isCurrent ? ' (current)' : ''}`);
+    // no openAbs: per-note dots would nest interactive elements inside the button
+    tile.innerHTML = `<span class="voicing-choice-index">${i+1}</span>` + chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, undefined, startFret);
+    tile.addEventListener('click', ()=>{
+      // the pick may not exist in the card's list (chooser searched deeper) —
+      // append it there so the card can show and cycle to it
+      const idx = result.voicings.findIndex(v => v.every((f,j)=> f === frets[j]));
+      if(idx >= 0){
+        result.altIndex = idx;
+      } else {
+        // one custom entry at a time, and never beyond MAX_VOICINGS in total
+        if(result.customFrets){
+          const prevIdx = result.voicings.findIndex(v => v.every((f,j)=> f === result.customFrets[j]));
+          if(prevIdx >= 0) result.voicings.splice(prevIdx, 1);
+        }
+        if(result.voicings.length >= MAX_VOICINGS) result.voicings.length = MAX_VOICINGS - 1;
+        result.voicings.push(frets);
+        result.altIndex = result.voicings.length - 1;
+        result.customFrets = frets;
+      }
+      updateCardDiagram(card, result, tuning, colors, highlightRoot);
+      playChord(chordAbsNotes(frets, tuning.openAbs));
+      closeVoicingChooser();
+    });
+    return tile;
+  });
+
+  if(!masonry){
+    tiles.forEach(t=> voicingModalGridEl.appendChild(t));
+  } else {
+    // same bin-packing as layoutCards; equal-width flex columns mean heights can
+    // be measured while everything still sits in the first column
+    const GAP = 10, MIN_TILE_W = 124;
+    const contentW = voicingModalGridEl.clientWidth - 36;
+    const colCount = Math.max(1, Math.floor((contentW + GAP) / (MIN_TILE_W + GAP)));
+    const columns = Array.from({length: colCount}, ()=>{
+      const col = document.createElement('div');
+      col.className = 'masonry-col';
+      voicingModalGridEl.appendChild(col);
+      return col;
+    });
+    tiles.forEach(t=> columns[0].appendChild(t));
+    const heights = tiles.map(t=> t.getBoundingClientRect().height);
+    const colHeights = new Array(colCount).fill(0);
+    tiles.forEach((t, i)=>{
+      let target = 0;
+      for(let j=1; j<colCount; j++){ if(colHeights[j] < colHeights[target]) target = j; }
+      columns[target].appendChild(t);
+      colHeights[target] += heights[i] + GAP;
+    });
+  }
+  voicingModalGridEl.scrollTop = scrollTop;
+}
+
+function openVoicingChooser(card, result, opener){
+  const wasOpen = !!voicingChooserState;
+  voicingChooserState = { card, result, opener };
+  syncVoicingModalControls();
+  if(!wasOpen){
+    // must be visible before masonry can measure tile heights
+    voicingModalEl.hidden = false;
+    document.addEventListener('keydown', onVoicingModalKeydown);
+  }
+  renderVoicingTiles(card, result);
+  if(!wasOpen){
+    const focusTarget = voicingModalGridEl.querySelector('.voicing-choice.selected') || voicingModalGridEl.querySelector('.voicing-choice');
+    if(focusTarget) focusTarget.focus();
+  }
+}
+
+function closeVoicingChooser(opts){
+  if(!voicingChooserState) return;
+  const { opener } = voicingChooserState;
+  voicingChooserState = null;
+  voicingModalEl.hidden = true;
+  document.removeEventListener('keydown', onVoicingModalKeydown);
+  if((!opts || opts.restoreFocus !== false) && opener && opener.isConnected) opener.focus();
+}
+
+function onVoicingModalKeydown(e){
+  if(e.key === 'Escape'){ closeVoicingChooser(); return; }
+  // aria-modal promises focus containment — cycle Tab inside the dialog
+  if(e.key === 'Tab'){
+    const list = [...voicingModalEl.querySelectorAll('button:not(:disabled), input')];
+    if(!list.length) return;
+    const first = list[0], last = list[list.length - 1];
+    const active = document.activeElement;
+    if(e.shiftKey && (active === first || !voicingModalEl.contains(active))){
+      e.preventDefault(); last.focus();
+    } else if(!e.shiftKey && (active === last || !voicingModalEl.contains(active))){
+      e.preventDefault(); first.focus();
+    }
+  }
+}
+
+voicingModalEl.addEventListener('click', e=>{
+  if(e.target === voicingModalEl) closeVoicingChooser();
+});
+document.getElementById('voicingModalClose').addEventListener('click', ()=> closeVoicingChooser());
+document.getElementById('voicingModalShowAll').addEventListener('click', ()=>{
+  const state = voicingChooserState;
+  closeVoicingChooser({ restoreFocus:false });
+  if(state) setChordExpanded(state.result.label, true);
+});
+document.getElementById('voicingModalMasonry').addEventListener('change', ()=>{
+  if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
+  saveSettings();
+});
+function stepChooserMaxFret(delta){
+  chooserMaxFretValue = Math.min(MAX_FRET_MAX, Math.max(MAX_FRET_MIN, chooserMaxFretValue + delta));
+  syncVoicingModalControls();
+  if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
+  saveSettings();
+}
+document.getElementById('voicingModalMaxFretMinus').addEventListener('click', ()=> stepChooserMaxFret(-1));
+document.getElementById('voicingModalMaxFretPlus').addEventListener('click', ()=> stepChooserMaxFret(1));
+document.getElementById('voicingModalMaxFretStepper').addEventListener('keydown', e=>{
+  if(e.key==='ArrowUp' || e.key==='ArrowRight'){ e.preventDefault(); stepChooserMaxFret(1); }
+  else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ e.preventDefault(); stepChooserMaxFret(-1); }
+});
 
 function updateURLParam(chordInputValue){
   const params = new URLSearchParams(window.location.search);
@@ -1616,6 +1989,12 @@ if(Number.isInteger(savedSettings.shortenThreshold) && savedSettings.shortenThre
 if(Number.isInteger(savedSettings.maxFret) && savedSettings.maxFret >= MAX_FRET_MIN && savedSettings.maxFret <= MAX_FRET_MAX){
   maxFretValue = savedSettings.maxFret;
 }
+// chooser settings are independent; seed them from the page settings on first use
+chooserMaxFretValue = (Number.isInteger(savedSettings.chooserMaxFret) && savedSettings.chooserMaxFret >= MAX_FRET_MIN && savedSettings.chooserMaxFret <= MAX_FRET_MAX)
+  ? savedSettings.chooserMaxFret : maxFretValue;
+document.getElementById('voicingModalMasonry').checked = typeof savedSettings.chooserMasonry === 'boolean'
+  ? savedSettings.chooserMasonry
+  : (typeof savedSettings.masonry === 'boolean' ? savedSettings.masonry : false);
 const tuningParam = new URLSearchParams(window.location.search).get('tuning');
 const initialTuningId = (tuningParam && TUNINGS.some(t=>t.id===tuningParam))
   ? tuningParam
