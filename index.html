@@ -421,8 +421,9 @@
 
   .tip-card{
     display:inline-flex; align-items:center; gap:8px; max-width:100%;
-    background:transparent; border:none; border-radius:10px;
-    padding:0; margin:0 0 14px; font-size:12.5px; color:var(--ink-soft); line-height:1.4;
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
+    padding:9px 13px; margin:0 0 16px; font-size:12.5px; color:var(--ink-soft); line-height:1.4;
+    box-shadow:0 2px 2px rgba(41,38,33,.02),0 10px 24px -24px rgba(41,38,33,.7);
   }
   .tip-emoji{ font-size:15px; flex-shrink:0; margin-top:1px; }
   .tip-line{ display:inline; }
@@ -447,15 +448,17 @@
   .single-chord-tip a:hover{ text-decoration:underline; text-underline-offset:2px; }
   .single-chord-tip a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
   .grid {
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
-    gap:14px; align-items:start;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,240px));
+    justify-content:center; gap:14px; align-items:start;
   }
+  .grid .empty-hint{ grid-column:1/-1; }
   .grid.masonry{
-    display:flex; align-items:flex-start; gap:16px;
+    display:flex; align-items:flex-start; justify-content:center; gap:16px;
   }
   .masonry-col{
     display:flex; flex-direction:column; gap:16px; min-width:0; flex:1 1 0;
   }
+  .grid.masonry .masonry-col{ max-width:240px; }
   .card {
     position:relative;
     width:100%; max-width:240px; margin:0 auto;
@@ -651,7 +654,7 @@
     .stepper-sm .stepper-btn{ width:34px; }
     .stepper-sm .stepper-value{ min-width:42px; }
     .info-btn{ min-height:32px; width:32px; height:32px; }
-    .grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .grid{ grid-template-columns:repeat(2,minmax(0,240px)); gap:12px; }
     .card{ padding:11px 5px 10px; border-radius:14px; }
     .card.has-alt-voicings{ padding-bottom:44px; }
     .card h2{ font-size:20px; }
@@ -858,7 +861,7 @@
             </label>
             <div class="switch-wrap" id="masonryInfoWrap">
               <label class="switch" title="Off: cards align in even rows. On: cards pack into columns by height (masonry).">
-                <input type="checkbox" id="masonryToggle">
+                <input type="checkbox" id="masonryToggle" checked>
                 <svg class="switch-side-icon icon-layout-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
                 <span class="switch-track"><span class="switch-thumb"></span></span>
                 <svg class="switch-side-icon icon-layout-masonry" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="10.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="6.5" rx="1"/><rect x="13.5" y="12.5" width="7.5" height="8.5" rx="1"/><rect x="3" y="16.5" width="7.5" height="4.5" rx="1"/></svg>
@@ -1546,17 +1549,20 @@ function layoutCards(cardEls){
   grid.classList.toggle('masonry', masonry);
   grid.innerHTML = '';
 
+  // Fewer cards than columns would leave empty tracks that push the filled
+  // ones off-center, so the count is capped at the card count in both layouts.
   if(!masonry){
-    const visibleCols = cols === 'auto' ? 'auto' : (window.innerWidth <= 600 ? Math.min(cols, 2) : cols);
-    grid.style.gridTemplateColumns = visibleCols === 'auto' ? '' : `repeat(${visibleCols}, 1fr)`;
+    const requested = cols === 'auto' ? 'auto' : (window.innerWidth <= 600 ? Math.min(cols, 2) : cols);
+    const visibleCols = requested === 'auto' ? 'auto' : Math.max(1, Math.min(requested, cardEls.length));
+    grid.style.gridTemplateColumns = visibleCols === 'auto' ? '' : `repeat(${visibleCols}, minmax(0, 240px))`;
     cardEls.forEach(c => grid.appendChild(c));
     return;
   }
 
   grid.style.gridTemplateColumns = '';
-  const colCount = cols === 'auto'
-    ? Math.max(1, Math.floor((grid.clientWidth + MASONRY_GAP) / (MASONRY_MIN_COL_WIDTH + MASONRY_GAP)))
-    : cols;
+  const colCount = Math.max(1, Math.min(cardEls.length, cols === 'auto'
+    ? Math.floor((grid.clientWidth + MASONRY_GAP) / (MASONRY_MIN_COL_WIDTH + MASONRY_GAP))
+    : cols));
   const columns = Array.from({length: colCount}, () => {
     const col = document.createElement('div');
     col.className = 'masonry-col';
@@ -2363,7 +2369,7 @@ chooserMaxFretValue = (Number.isInteger(savedSettings.chooserMaxFret) && savedSe
   ? savedSettings.chooserMaxFret : maxFretValue;
 document.getElementById('voicingModalMasonry').checked = typeof savedSettings.chooserMasonry === 'boolean'
   ? savedSettings.chooserMasonry
-  : (typeof savedSettings.masonry === 'boolean' ? savedSettings.masonry : false);
+  : document.getElementById('masonryToggle').checked;
 const tuningParam = new URLSearchParams(window.location.search).get('tuning');
 const initialTuningId = (tuningParam && TUNINGS.some(t=>t.id===tuningParam))
   ? tuningParam
