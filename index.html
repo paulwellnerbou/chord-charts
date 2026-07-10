@@ -744,13 +744,17 @@ function getAudioCtx(){
 
 function midiToFreq(midi){ return 440 * Math.pow(2, (midi-69)/12); }
 
+let resumePromise = null;
+
 function playNote(midi, opts){
   const ctx = getAudioCtx();
   // resume() covers both 'suspended' and iOS's 'interrupted' state (after a
   // call/Siri). It's async and the clock is frozen until it completes, so
-  // schedule the note only once the context is actually running.
+  // schedule the note only once the context is actually running. A chord
+  // fires several notes at once — share one in-flight resume() between them.
   if(ctx.state !== 'running'){
-    ctx.resume().then(()=> scheduleNote(ctx, midi, opts)).catch(()=>{});
+    if(!resumePromise) resumePromise = ctx.resume().finally(()=>{ resumePromise = null; });
+    resumePromise.then(()=> scheduleNote(ctx, midi, opts)).catch(()=>{});
     return;
   }
   scheduleNote(ctx, midi, opts);
