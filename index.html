@@ -1452,7 +1452,9 @@ function generate(){
         altIndex = idx;
       } else if(pref.custom && fretsSpellChord(pref.frets, parsed.requiredPCs, parsed.bassPC, tuning)){
         // hand-picked in the chooser under a deeper search than the page's
-        // max fret — keep it available as an extra entry
+        // max fret — keep it available, trading away the last search hit so
+        // the list never exceeds MAX_VOICINGS
+        if(voicings.length >= MAX_VOICINGS) voicings.length = MAX_VOICINGS - 1;
         voicings.push(pref.frets);
         altIndex = voicings.length - 1;
         customFrets = pref.frets;
@@ -1580,6 +1582,12 @@ function renderVoicingTiles(card, result){
       if(idx >= 0){
         result.altIndex = idx;
       } else {
+        // one custom entry at a time, and never beyond MAX_VOICINGS in total
+        if(result.customFrets){
+          const prevIdx = result.voicings.findIndex(v => v.every((f,j)=> f === result.customFrets[j]));
+          if(prevIdx >= 0) result.voicings.splice(prevIdx, 1);
+        }
+        if(result.voicings.length >= MAX_VOICINGS) result.voicings.length = MAX_VOICINGS - 1;
         result.voicings.push(frets);
         result.altIndex = result.voicings.length - 1;
         result.customFrets = frets;
