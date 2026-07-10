@@ -2249,12 +2249,10 @@ document.getElementById('maxFretStepper').addEventListener('keydown', e=>{
 // --- song search (companion backend: chord-charts-song-backend) ---
 // The whole feature is optional: it appears only when the backend's /healthz
 // answers, so the app works unchanged when the API is down or absent.
-const SONG_API_BASE = (()=>{
-  const override = new URLSearchParams(window.location.search).get('songApi');
-  if(override) return override.replace(/\/+$/,'');
-  const isLocal = ['localhost','127.0.0.1',''].includes(window.location.hostname);
-  return isLocal ? 'http://localhost:8787' : 'https://songsearch.chords.wbou.dev';
-})();
+// The deployed API allows localhost origins, so dev checkouts work against it
+// with no local setup; ?songApi=http://localhost:8787 targets a local backend.
+const SONG_API_BASE = (new URLSearchParams(window.location.search).get('songApi')
+  || 'https://songsearch.chords.wbou.dev').replace(/\/+$/,'');
 const SONG_SEARCH_SEEN_KEY = 'chordChartGenerator.songSearchSeen';
 
 const songSearchFieldEl = document.getElementById('songSearchField');
