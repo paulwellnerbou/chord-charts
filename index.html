@@ -221,6 +221,9 @@
   .song-result-meta{ margin-left:auto; flex-shrink:0; font-size:11.5px; color:var(--ink-soft); }
   .song-search-note{ margin:7px 0 0; font-size:12.5px; color:var(--ink-soft); }
   .song-search-note:empty{ display:none; }
+  .song-search-note a{ color:var(--accent); font-weight:650; text-decoration:none; white-space:nowrap; }
+  .song-search-note a:hover{ text-decoration:underline; text-underline-offset:2px; }
+  .song-search-note a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
 
   .site-footer{
     margin-top:44px; padding-top:14px; border-top:1px solid var(--card-border);
@@ -2380,6 +2383,22 @@ function applySong(full){
     notes.push(`In the song but not renderable here: ${full.unmapped.join(', ')}.`);
   }
   setSongNote(notes.join(' '));
+  const links = [];
+  if(full.spotify_song_id){
+    links.push({ label:'Listen on Spotify', href:`https://open.spotify.com/track/${encodeURIComponent(full.spotify_song_id)}` });
+  }
+  // version suffixes ("Wonderwall - Remastered") only hurt the sheet search
+  const sheetQuery = `${full.artist} ${full.title.replace(/\s-\s.*$/,'')}`;
+  links.push({ label:'Chord sheet on Ultimate Guitar', href:`https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(sheetQuery)}` });
+  links.forEach(link=>{
+    songSearchNoteEl.append(' · ');
+    const a = document.createElement('a');
+    a.href = link.href;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = link.label;
+    songSearchNoteEl.appendChild(a);
+  });
 }
 
 songSearchInputEl.addEventListener('input', ()=>{
