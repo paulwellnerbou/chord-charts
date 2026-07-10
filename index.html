@@ -1218,6 +1218,7 @@ async function copyAllChordsAsImage(btnEl){
 
 function copyTextFallback(text){
   const helper = document.createElement('textarea');
+  const previousFocus = document.activeElement;
   helper.value = text;
   helper.setAttribute('readonly', '');
   helper.setAttribute('aria-hidden', 'true');
@@ -1225,13 +1226,20 @@ function copyTextFallback(text){
   helper.style.position = 'fixed';
   helper.style.opacity = '0';
   helper.style.pointerEvents = 'none';
-  document.body.appendChild(helper);
-  helper.select();
-  helper.setSelectionRange(0, helper.value.length);
-  let copied = false;
-  try{ copied = document.execCommand('copy'); }catch(err){}
-  helper.remove();
-  return copied;
+  try{
+    document.body.appendChild(helper);
+    helper.select();
+    helper.setSelectionRange(0, helper.value.length);
+    return document.execCommand('copy');
+  }catch(err){
+    return false;
+  }finally{
+    helper.remove();
+    if(previousFocus instanceof HTMLElement && previousFocus.isConnected){
+      try{ previousFocus.focus({ preventScroll:true }); }
+      catch(err){ try{ previousFocus.focus(); }catch(focusErr){} }
+    }
+  }
 }
 
 async function copyShareLink(btnEl){
