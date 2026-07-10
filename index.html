@@ -378,6 +378,10 @@
   .error{ font-size:13px; font-weight:600; color:#9e2a20; margin:9px 0 0; }
   .error:empty{ display:none; }
   .empty-hint{ font-size:14.5px; font-style:italic; color:var(--ink-soft); margin:6px 0; }
+  .single-chord-tip{ margin:16px 0 0; text-align:center; font-size:13.5px; color:var(--ink-soft); }
+  .single-chord-tip a{ color:var(--accent); font-weight:650; text-decoration:none; }
+  .single-chord-tip a:hover{ text-decoration:underline; text-underline-offset:2px; }
+  .single-chord-tip a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
   .grid {
     display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
     gap:14px; align-items:start;
@@ -513,7 +517,9 @@
   .voicing-modal-grid.masonry{ display:flex; align-items:flex-start; gap:10px; }
   .voicing-modal-grid .masonry-col{ gap:10px; }
   .voicing-modal-grid .empty-hint{ grid-column:1/-1; }
+  .voicing-choice-wrap{ position:relative; }
   .voicing-choice{
+    display:block; width:100%;
     position:relative; padding:10px 2px 2px; border:1px solid var(--card-border); border-radius:10px;
     background:var(--card-bg); color:var(--ink); cursor:pointer;
     transition:background-color .2s ease,color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .16s ease;
@@ -531,6 +537,19 @@
     position:absolute; top:5px; left:8px; font-size:10.5px; font-weight:700; color:var(--ink-soft);
   }
   .voicing-choice.selected .voicing-choice-index{ color:var(--accent); }
+  .voicing-choice-play{
+    position:absolute; top:4px; right:4px; min-height:22px; width:22px; height:22px; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    border:none; border-radius:50%; background:transparent; color:var(--accent);
+    cursor:pointer; transition:background-color .15s ease, transform .15s ease;
+  }
+  .voicing-choice-play:hover{ background:var(--page-bg); transform:scale(1.1); }
+  .voicing-choice-play:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .voicing-choice-play svg{ width:14px; height:14px; }
+  @media (hover: none){
+    .voicing-choice-play{ width:28px; height:28px; }
+    .voicing-choice-play svg{ width:16px; height:16px; }
+  }
   .voicing-modal-footer{
     display:flex; align-items:center; justify-content:space-between; gap:10px 14px; flex-wrap:wrap;
     padding:10px 18px 14px; border-top:1px solid var(--card-border);
@@ -631,7 +650,7 @@
       <div class="syntax-panel" id="syntaxPanel" aria-hidden="true">
         <div class="syntax-panel-inner">
           <p>major, m, 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9) — plus slash/inversion chords like Am/C, D7/F#, G/B.</p>
-          <p>Append <code>*</code> to a chord to lay out every voicing as its own tile — e.g. <code>C*</code>. Or select the <code>1 / 9</code> counter under a tile.</p>
+          <p>Append <code>*</code> to a chord to lay out every voicing as its own tile — e.g. <code>C*</code>.</p>
         </div>
       </div>
     </div>
@@ -766,6 +785,7 @@
   </div>
 
   <div class="grid" id="grid"></div>
+  <p class="single-chord-tip no-print" id="singleChordTip" hidden></p>
 </div>
 
 <div class="voicing-modal-backdrop no-print" id="voicingModal" hidden>
@@ -791,11 +811,7 @@
     </div>
     <div class="voicing-modal-grid" id="voicingModalGrid"></div>
     <div class="voicing-modal-footer">
-      <span class="voicing-modal-hint">Click a voicing to use it on the sheet.</span>
-      <button type="button" class="secondary btn-iconic" id="voicingModalShowAll" title="Lay out every voicing as its own tile (adds * to the chord)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
-        Show all on page
-      </button>
+      <span class="voicing-modal-hint">Hit ▶ to hear a voicing — click the diagram to use it on the sheet.</span>
     </div>
   </div>
 </div>
@@ -1681,6 +1697,24 @@ function generate(){
   if(!cardEls.length && !errors.length){
     document.getElementById('grid').innerHTML = '<p class="empty-hint">Enter chord names above to see charts.</p>';
   }
+  // with a single chord on the sheet, point at the *-expansion of this page
+  const singleTip = document.getElementById('singleChordTip');
+  const only = (results.length === 1 && !results[0].showAll && results[0].voicings.length > 1) ? results[0] : null;
+  singleTip.hidden = !only;
+  singleTip.textContent = '';
+  if(only){
+    const params = new URLSearchParams(window.location.search);
+    params.set('chords', only.label + '*');
+    params.set('tuning', selectedTuningId);
+    const link = document.createElement('a');
+    link.href = window.location.pathname + '?' + params.toString();
+    link.textContent = `Show all ${only.voicings.length} voicings of ${only.label} on this page`;
+    link.addEventListener('click', e=>{
+      e.preventDefault();
+      setChordExpanded(only.label, true);
+    });
+    singleTip.appendChild(link);
+  }
   if(chooserLabel){
     const newCard = cardEls.find(c => c._chordResult.label === chooserLabel && !c._chordResult.expanded);
     if(newCard) openVoicingChooser(newCard, newCard._chordResult, newCard.querySelector('button.voicing-nav-count'));
@@ -1754,6 +1788,10 @@ function renderVoicingTiles(card, result){
   const tiles = voicings.map((frets, i)=>{
     const { fretMax, startFret } = computeFretWindow(frets);
     const isCurrent = frets.every((f,j)=> f === currentFrets[j]);
+    // play button is a sibling of the tile button (nesting would be invalid),
+    // overlaid on its corner via the wrapper
+    const wrap = document.createElement('div');
+    wrap.className = 'voicing-choice-wrap';
     const tile = document.createElement('button');
     tile.type = 'button';
     tile.className = 'voicing-choice' + (isCurrent ? ' selected' : '');
@@ -1781,7 +1819,16 @@ function renderVoicingTiles(card, result){
       playChord(chordAbsNotes(frets, tuning.openAbs));
       closeVoicingChooser();
     });
-    return tile;
+    const playBtn = document.createElement('button');
+    playBtn.type = 'button';
+    playBtn.className = 'voicing-choice-play';
+    playBtn.title = 'Play this voicing';
+    playBtn.setAttribute('aria-label', `Play voicing ${i+1} of ${voicings.length} for ${result.label}`);
+    playBtn.innerHTML = PLAY_ICON;
+    playBtn.addEventListener('click', ()=> playChord(chordAbsNotes(frets, tuning.openAbs)));
+    wrap.appendChild(tile);
+    wrap.appendChild(playBtn);
+    return wrap;
   });
 
   if(!masonry){
@@ -1856,11 +1903,6 @@ voicingModalEl.addEventListener('click', e=>{
   if(e.target === voicingModalEl) closeVoicingChooser();
 });
 document.getElementById('voicingModalClose').addEventListener('click', ()=> closeVoicingChooser());
-document.getElementById('voicingModalShowAll').addEventListener('click', ()=>{
-  const state = voicingChooserState;
-  closeVoicingChooser({ restoreFocus:false });
-  if(state) setChordExpanded(state.result.label, true);
-});
 document.getElementById('voicingModalMasonry').addEventListener('change', ()=>{
   if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
   saveSettings();
