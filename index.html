@@ -295,6 +295,13 @@
     transition:opacity .16s ease, transform .16s ease, visibility .16s;
   }
   .switch-wrap.open .info-popover{ opacity:1; visibility:visible; transform:translateY(0); }
+  .info-popover p{ margin:0; }
+  .threshold-example{ display:flex; align-items:flex-start; gap:14px; margin-top:9px; }
+  .threshold-example figure{ margin:0; text-align:center; }
+  .threshold-example figcaption{ font-size:11px; font-weight:600; margin-bottom:3px; }
+  .threshold-example svg{ width:88px; height:auto; display:block; margin:0 auto; }
+  /* the tiny example scale would render the 10-unit numbers unreadable */
+  .threshold-example .fret-num{ font-size:20px; opacity:.85; transform:translateY(3px); }
 
   .tip-card{
     display:inline-flex; align-items:flex-start; gap:9px; max-width:100%;
@@ -473,20 +480,23 @@
               <label class="switch" title="Chords like 7add9, 6add9 and maj7add9 have 5 notes, but these instruments only have 4 strings — the 5th is dropped. When on, affected chords show a note naming the dropped tone.">
                 <input type="checkbox" id="omitToggle" checked>
                 <span class="switch-track"><span class="switch-thumb"></span></span>
-                <span>Show omitted note</span>
+                <span>Show note under diagram if notes of 5-note-chords are omitted</span>
               </label>
               <button type="button" class="info-btn" id="omitInfoBtn" aria-label="About the omitted-note note" aria-expanded="false">i</button>
               <div class="info-popover" id="omitInfoPopover" role="tooltip">Chords like 7add9, 6add9 and maj7add9 have 5 notes, but these instruments only have 4 strings — the 5th is dropped. When on, affected chords show a note naming the dropped tone.</div>
             </span>
             <span class="switch-wrap" id="thresholdInfoWrap">
-              <div class="stepper" id="thresholdStepper" title="Chords are normally drawn from the nut. If a chord's lowest fretted note lands above this fret, the diagram is cropped to start just below it instead of drawing a wall of empty frets. Raise it to allow taller diagrams before cropping kicks in; lower it to crop sooner.">
-                <span class="stepper-label">Shorten past fret</span>
-                <button type="button" class="stepper-btn" id="thresholdMinus" aria-label="Lower shorten-past-fret threshold">−</button>
+              <div class="stepper" id="thresholdStepper" title="Diagrams normally start at the nut. If a chord's lowest fretted note is above this fret, the diagram is cropped to a short window at the chord's position instead.">
+                <span class="stepper-label">Crop above fret</span>
+                <button type="button" class="stepper-btn" id="thresholdMinus" aria-label="Lower crop threshold">−</button>
                 <span class="stepper-value" id="thresholdValue" aria-live="polite">5</span>
-                <button type="button" class="stepper-btn" id="thresholdPlus" aria-label="Raise shorten-past-fret threshold">+</button>
+                <button type="button" class="stepper-btn" id="thresholdPlus" aria-label="Raise crop threshold">+</button>
               </div>
-              <button type="button" class="info-btn" id="thresholdInfoBtn" aria-label="About the shorten-past-fret control" aria-expanded="false">i</button>
-              <div class="info-popover" id="thresholdInfoPopover" role="tooltip">Chords are normally drawn from the nut. If a chord's lowest fretted note lands above this fret, the diagram is cropped to start just below it instead of drawing a wall of empty frets. Raise it to allow taller diagrams before cropping kicks in; lower it to crop sooner.</div>
+              <button type="button" class="info-btn" id="thresholdInfoBtn" aria-label="About the crop-above-fret control" aria-expanded="false">i</button>
+              <div class="info-popover" id="thresholdInfoPopover" role="tooltip">
+                <p>Diagrams normally start at the nut. If a chord's lowest fretted note is above this fret, the diagram is cropped to a short window at the chord's position instead. Example — a chord played entirely at fret 5:</p>
+                <div class="threshold-example" id="thresholdExample" aria-hidden="true"></div>
+              </div>
             </span>
           </div>
         </div>
@@ -520,13 +530,17 @@
               <span class="switch-track"><span class="switch-thumb"></span></span>
               <span>Black &amp; white</span>
             </label>
-            <label class="switch" title="Off: cards align in even rows. On: cards pack into columns by height (masonry).">
-              <input type="checkbox" id="masonryToggle">
-              <svg class="switch-side-icon icon-layout-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-              <svg class="switch-side-icon icon-layout-masonry" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="10.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="6.5" rx="1"/><rect x="13.5" y="12.5" width="7.5" height="8.5" rx="1"/><rect x="3" y="16.5" width="7.5" height="4.5" rx="1"/></svg>
-              <span>Masonry layout</span>
-            </label>
+            <span class="switch-wrap" id="masonryInfoWrap">
+              <label class="switch" title="Off: cards align in even rows. On: cards pack into columns by height (masonry).">
+                <input type="checkbox" id="masonryToggle">
+                <svg class="switch-side-icon icon-layout-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <svg class="switch-side-icon icon-layout-masonry" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="10.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="6.5" rx="1"/><rect x="13.5" y="12.5" width="7.5" height="8.5" rx="1"/><rect x="3" y="16.5" width="7.5" height="4.5" rx="1"/></svg>
+                <span>Masonry layout</span>
+              </label>
+              <button type="button" class="info-btn" id="masonryInfoBtn" aria-label="About the masonry layout" aria-expanded="false">i</button>
+              <div class="info-popover" id="masonryInfoPopover" role="tooltip">Packs tiles into columns by height instead of aligning them in even rows. This only makes a visible difference when tiles have different heights — with equal-height tiles both layouts look the same.</div>
+            </span>
             <div class="stepper" id="columnsStepper">
               <span class="stepper-label">Columns</span>
               <button type="button" class="stepper-btn" id="columnsMinus" aria-label="Fewer columns">−</button>
@@ -756,7 +770,7 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
   for(let i=1;i<=numRows;i++){
     const y = NUT_Y + i*FRET_H;
     s += `<line x1="20" y1="${y}" x2="160" y2="${y}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
-    s += `<text x="167" y="${rowCenter(i)+4}" font-size="10" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="'Alegreya Sans',Arial,sans-serif">${startFret+i}</text>`;
+    s += `<text class="fret-num" x="167" y="${rowCenter(i)+4}" font-size="12" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="'Alegreya Sans',Arial,sans-serif">${startFret+i}</text>`;
   }
   XS.forEach(x=>{
     s += `<line x1="${x}" y1="${NUT_Y}" x2="${x}" y2="${bottomY}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
@@ -1239,6 +1253,16 @@ function generate(){
   const highlightRoot = document.getElementById('rootToggle').checked;
   const showOmitted = document.getElementById('omitToggle').checked;
 
+  // live example in the crop-above-fret popover, re-rendered here so it always
+  // matches the current tuning and color scheme
+  const exampleEl = document.getElementById('thresholdExample');
+  if(exampleEl){
+    const exFrets = [5,5,5,5];
+    exampleEl.innerHTML =
+      `<figure><figcaption>set to 5</figcaption>${chordSVG('Example: not cropped', exFrets, 5, tuning.labels, colors, tuning.openPCs, null, false, undefined, 0)}</figure>` +
+      `<figure><figcaption>set to 4</figcaption>${chordSVG('Example: cropped', exFrets, 5, tuning.labels, colors, tuning.openPCs, null, false, undefined, 3)}</figure>`;
+  }
+
   results.forEach(result=>{
     const { fretMax, startFret } = computeFretWindow(result.voicings[result.altIndex]);
 
@@ -1387,62 +1411,28 @@ tuningBtn.addEventListener('keydown', e=>{
   }
 });
 
-const omitInfoWrap = document.getElementById('omitInfoWrap');
-const omitInfoBtn = document.getElementById('omitInfoBtn');
-function setOmitInfoOpen(open){
-  omitInfoWrap.classList.toggle('open', open);
-  omitInfoBtn.setAttribute('aria-expanded', String(open));
-  if(open) document.addEventListener('click', onOmitInfoDocClick);
-  else document.removeEventListener('click', onOmitInfoDocClick);
+function setupInfoPopover(wrapId, btnId){
+  const wrap = document.getElementById(wrapId);
+  const btn = document.getElementById(btnId);
+  const onDocClick = e=>{ if(!wrap.contains(e.target)) setOpen(false); };
+  function setOpen(open){
+    wrap.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', String(open));
+    if(open) document.addEventListener('click', onDocClick);
+    else document.removeEventListener('click', onDocClick);
+  }
+  btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    setOpen(!wrap.classList.contains('open'));
+  });
+  btn.addEventListener('keydown', e=>{
+    if(e.key==='Escape') setOpen(false);
+  });
 }
-function onOmitInfoDocClick(e){
-  if(!omitInfoWrap.contains(e.target)) setOmitInfoOpen(false);
-}
-omitInfoBtn.addEventListener('click', e=>{
-  e.stopPropagation();
-  setOmitInfoOpen(!omitInfoWrap.classList.contains('open'));
-});
-omitInfoBtn.addEventListener('keydown', e=>{
-  if(e.key==='Escape') setOmitInfoOpen(false);
-});
-
-const thresholdInfoWrap = document.getElementById('thresholdInfoWrap');
-const thresholdInfoBtn = document.getElementById('thresholdInfoBtn');
-function setThresholdInfoOpen(open){
-  thresholdInfoWrap.classList.toggle('open', open);
-  thresholdInfoBtn.setAttribute('aria-expanded', String(open));
-  if(open) document.addEventListener('click', onThresholdInfoDocClick);
-  else document.removeEventListener('click', onThresholdInfoDocClick);
-}
-function onThresholdInfoDocClick(e){
-  if(!thresholdInfoWrap.contains(e.target)) setThresholdInfoOpen(false);
-}
-thresholdInfoBtn.addEventListener('click', e=>{
-  e.stopPropagation();
-  setThresholdInfoOpen(!thresholdInfoWrap.classList.contains('open'));
-});
-thresholdInfoBtn.addEventListener('keydown', e=>{
-  if(e.key==='Escape') setThresholdInfoOpen(false);
-});
-
-const maxFretInfoWrap = document.getElementById('maxFretInfoWrap');
-const maxFretInfoBtn = document.getElementById('maxFretInfoBtn');
-function setMaxFretInfoOpen(open){
-  maxFretInfoWrap.classList.toggle('open', open);
-  maxFretInfoBtn.setAttribute('aria-expanded', String(open));
-  if(open) document.addEventListener('click', onMaxFretInfoDocClick);
-  else document.removeEventListener('click', onMaxFretInfoDocClick);
-}
-function onMaxFretInfoDocClick(e){
-  if(!maxFretInfoWrap.contains(e.target)) setMaxFretInfoOpen(false);
-}
-maxFretInfoBtn.addEventListener('click', e=>{
-  e.stopPropagation();
-  setMaxFretInfoOpen(!maxFretInfoWrap.classList.contains('open'));
-});
-maxFretInfoBtn.addEventListener('keydown', e=>{
-  if(e.key==='Escape') setMaxFretInfoOpen(false);
-});
+setupInfoPopover('omitInfoWrap', 'omitInfoBtn');
+setupInfoPopover('thresholdInfoWrap', 'thresholdInfoBtn');
+setupInfoPopover('maxFretInfoWrap', 'maxFretInfoBtn');
+setupInfoPopover('masonryInfoWrap', 'masonryInfoBtn');
 
 const savedSettings = loadSettings();
 
