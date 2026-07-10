@@ -1764,10 +1764,15 @@ function announceTranspose(text){
 
 function setTransposeOffset(offset){
   const input = document.getElementById('chordInput');
+  if(input.value.trim() === '') return;
   if(!transposeState || transposeState.lastValue !== input.value){
     transposeState = { baseText: input.value, offset: 0, lastValue: input.value };
   }
-  transposeState.offset = Math.min(TRANSPOSE_MAX, Math.max(TRANSPOSE_MIN, offset));
+  const clamped = Math.min(TRANSPOSE_MAX, Math.max(TRANSPOSE_MIN, offset));
+  // arrow keys on the stepper bypass the disabled ± buttons at the ±11 bound;
+  // a no-op must not re-announce or rebuild
+  if(clamped === transposeState.offset) return;
+  transposeState.offset = clamped;
   const next = transposeState.offset === 0
     ? transposeState.baseText
     : transposeChordText(transposeState.baseText, transposeState.offset);
