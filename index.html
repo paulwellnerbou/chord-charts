@@ -778,17 +778,27 @@
         </div>
         <div class="options-group" role="group" aria-label="Alternative voicing options">
           <h3 class="settings-section-title">Alternative voicings</h3>
-          <p class="options-group-desc">How far up the neck voicings are searched</p>
+          <p class="options-group-desc">How far up the neck voicings are searched and how wide a stretch they may need</p>
           <div class="controls">
             <div class="switch-wrap" id="maxFretInfoWrap">
               <div class="stepper" id="maxFretStepper" title="Highest fret considered when searching for a chord voicing. Raise it to unlock higher positions and more alternative voicings; lower it to keep chords near the nut.">
-                <span class="stepper-label">Max fret</span>
-                <button type="button" class="stepper-btn" id="maxFretMinus" aria-label="Lower max fret">−</button>
+                <span class="stepper-label">Search up to fret</span>
+                <button type="button" class="stepper-btn" id="maxFretMinus" aria-label="Lower the fret search limit">−</button>
                 <span class="stepper-value" id="maxFretValue" aria-live="polite">15</span>
-                <button type="button" class="stepper-btn" id="maxFretPlus" aria-label="Higher max fret">+</button>
+                <button type="button" class="stepper-btn" id="maxFretPlus" aria-label="Raise the fret search limit">+</button>
               </div>
-              <button type="button" class="info-btn" id="maxFretInfoBtn" aria-label="About the max fret control" aria-expanded="false">i</button>
+              <button type="button" class="info-btn" id="maxFretInfoBtn" aria-label="About the fret search limit" aria-expanded="false">i</button>
               <div class="info-popover" id="maxFretInfoPopover" role="tooltip">Highest fret considered when searching for a chord voicing. Raise it to unlock higher positions and more alternative voicings; lower it to keep chords near the nut.</div>
+            </div>
+            <div class="switch-wrap" id="maxSpanInfoWrap">
+              <div class="stepper" id="maxSpanStepper" title="Widest stretch a fingering may cover, in frets. Voicings needing a wider reach are discarded.">
+                <span class="stepper-label">Max stretch</span>
+                <button type="button" class="stepper-btn" id="maxSpanMinus" aria-label="Allow a narrower stretch">−</button>
+                <span class="stepper-value" id="maxSpanValue" aria-live="polite">7</span>
+                <button type="button" class="stepper-btn" id="maxSpanPlus" aria-label="Allow a wider stretch">+</button>
+              </div>
+              <button type="button" class="info-btn" id="maxSpanInfoBtn" aria-label="About the max stretch control" aria-expanded="false">i</button>
+              <div class="info-popover" id="maxSpanInfoPopover" role="tooltip">The widest stretch a fingering may cover, counted in frets from its lowest to its highest fretted note — open strings don't count. Voicings needing a wider reach are discarded: at 7, a voicing using frets 2 and 8 (seven frets) is kept, one using frets 2 and 9 is dropped.</div>
             </div>
           </div>
         </div>
@@ -866,11 +876,11 @@
         <svg class="switch-side-icon icon-layout-masonry" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="10.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="6.5" rx="1"/><rect x="13.5" y="12.5" width="7.5" height="8.5" rx="1"/><rect x="3" y="16.5" width="7.5" height="4.5" rx="1"/></svg>
         <span>Masonry layout</span>
       </label>
-      <div class="stepper" id="voicingModalMaxFretStepper" title="Highest fret searched for voicings in this chooser — raise it to reveal more alternatives. Doesn't change the main page's max fret.">
-        <span class="stepper-label">Max fret</span>
-        <button type="button" class="stepper-btn" id="voicingModalMaxFretMinus" aria-label="Lower max fret">−</button>
+      <div class="stepper" id="voicingModalMaxFretStepper" title="Highest fret searched for voicings in this chooser — raise it to reveal more alternatives. Doesn't change the main page's search limit.">
+        <span class="stepper-label">Search up to fret</span>
+        <button type="button" class="stepper-btn" id="voicingModalMaxFretMinus" aria-label="Lower the fret search limit">−</button>
         <span class="stepper-value" id="voicingModalMaxFretValue" aria-live="polite"></span>
-        <button type="button" class="stepper-btn" id="voicingModalMaxFretPlus" aria-label="Higher max fret">+</button>
+        <button type="button" class="stepper-btn" id="voicingModalMaxFretPlus" aria-label="Raise the fret search limit">+</button>
       </div>
     </div>
     <div class="voicing-modal-grid" id="voicingModalGrid"></div>
@@ -884,6 +894,8 @@
 const NOTE_PC = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 const MAX_FRET_MIN = 5, MAX_FRET_MAX = 24, MAX_FRET_DEFAULT = 15;
 let maxFretValue = MAX_FRET_DEFAULT;
+const MAX_SPAN_MIN = 2, MAX_SPAN_MAX = 12, MAX_SPAN_DEFAULT = 7;
+let maxSpanValue = MAX_SPAN_DEFAULT;
 const MAX_VOICINGS = 15;
 
 const CHORD_TONES = {
@@ -1019,7 +1031,7 @@ function parseChord(input){
   return { label: core, showAll, requiredPCs, bassPC, rootPC, omitted };
 }
 
-function findVoicings(requiredPCs, bassPC, tuning, maxFret, maxCount){
+function findVoicings(requiredPCs, bassPC, tuning, maxFret, maxSpan, maxCount){
   const perString = tuning.openPCs.map((openPC,i)=>{
     const opts = [];
     for(let f=0; f<=maxFret; f++){
@@ -1048,6 +1060,8 @@ function findVoicings(requiredPCs, bassPC, tuning, maxFret, maxCount){
     const maxFretUsed = frettedNZ.length ? Math.max(...frettedNZ) : 0;
     const minFret = frettedNZ.length ? Math.min(...frettedNZ) : 0;
     const span = frettedNZ.length>1 ? (maxFretUsed-minFret) : 0;
+    // span is a difference; the fingering covers span+1 frets inclusive
+    if(span + 1 > maxSpan) continue;
     const openCount = active.filter(o=>o.fret===0).length;
     const sumFrets = frettedNZ.reduce((a,b)=>a+b,0);
     const cost = mutedCount*1000 + extraCount*300 + span*15 + maxFretUsed*5 - openCount*5 + sumFrets*1;
@@ -1476,6 +1490,7 @@ function saveSettings(){
     shortenThreshold: shortenThreshold,
     showOmitted: document.getElementById('omitToggle').checked,
     maxFret: maxFretValue,
+    maxSpan: maxSpanValue,
     chooserMasonry: document.getElementById('voicingModalMasonry').checked,
     chooserMaxFret: chooserMaxFretValue,
   };
@@ -1612,6 +1627,22 @@ function stepMaxFret(delta){
   scheduleGenerate();
 }
 
+function updateMaxSpanUI(){
+  document.getElementById('maxSpanValue').textContent = String(maxSpanValue);
+  document.getElementById('maxSpanMinus').disabled = maxSpanValue === MAX_SPAN_MIN;
+  document.getElementById('maxSpanPlus').disabled = maxSpanValue === MAX_SPAN_MAX;
+}
+
+function stepMaxSpan(delta){
+  maxSpanValue = Math.min(MAX_SPAN_MAX, Math.max(MAX_SPAN_MIN, maxSpanValue + delta));
+  updateMaxSpanUI();
+  const valueEl = document.getElementById('maxSpanValue');
+  valueEl.classList.remove('bump');
+  void valueEl.offsetWidth;
+  valueEl.classList.add('bump');
+  generate();
+}
+
 function updateChordInputClearUI(){
   const hasValue = document.getElementById('chordInput').value.trim() !== '';
   document.getElementById('chordInputWrap').classList.toggle('has-value', hasValue);
@@ -1726,7 +1757,7 @@ function generate(){
   tokens.forEach(tok=>{
     const parsed = parseChord(tok);
     if(parsed.error){ errors.push(parsed.error); return; }
-    const voicings = findVoicings(parsed.requiredPCs, parsed.bassPC, tuning, maxFretValue, MAX_VOICINGS);
+    const voicings = findVoicings(parsed.requiredPCs, parsed.bassPC, tuning, maxFretValue, maxSpanValue, MAX_VOICINGS);
     if(!voicings.length){ errors.push(`No practical voicing found for "${tok}"`); return; }
     // re-select the same frets if they still exist in the new voicing list;
     // fall back to the best voicing when they don't (new tuning, lower max fret)
@@ -1865,7 +1896,7 @@ function renderVoicingTiles(card, result){
   const colors = currentColors();
   const highlightRoot = document.getElementById('rootToggle').checked;
   const masonry = document.getElementById('voicingModalMasonry').checked;
-  const voicings = findVoicings(result.requiredPCs, result.bassPC, tuning, chooserMaxFretValue, MAX_VOICINGS);
+  const voicings = findVoicings(result.requiredPCs, result.bassPC, tuning, chooserMaxFretValue, maxSpanValue, MAX_VOICINGS);
   voicingModalTitleEl.textContent = `${result.label} — ${voicings.length} voicing${voicings.length === 1 ? '' : 's'}`;
   const currentFrets = result.voicings[result.altIndex];
   const scrollTop = voicingModalGridEl.scrollTop;
@@ -1873,7 +1904,7 @@ function renderVoicingTiles(card, result){
   voicingModalGridEl.classList.toggle('masonry', masonry);
 
   if(!voicings.length){
-    voicingModalGridEl.innerHTML = `<p class="empty-hint">No voicings found up to fret ${chooserMaxFretValue} — raise the max fret.</p>`;
+    voicingModalGridEl.innerHTML = `<p class="empty-hint">No voicings found up to fret ${chooserMaxFretValue} — raise “Search up to fret” here, or “Max stretch” in Options.</p>`;
     return;
   }
 
@@ -2136,6 +2167,7 @@ function setupInfoPopover(wrapId, btnId){
 setupInfoPopover('omitInfoWrap', 'omitInfoBtn');
 setupInfoPopover('thresholdInfoWrap', 'thresholdInfoBtn');
 setupInfoPopover('maxFretInfoWrap', 'maxFretInfoBtn');
+setupInfoPopover('maxSpanInfoWrap', 'maxSpanInfoBtn');
 setupInfoPopover('masonryInfoWrap', 'masonryInfoBtn');
 setupInfoPopover('cardControlsInfoWrap', 'cardControlsInfoBtn');
 
@@ -2184,6 +2216,9 @@ if(Number.isInteger(savedSettings.shortenThreshold) && savedSettings.shortenThre
 }
 if(Number.isInteger(savedSettings.maxFret) && savedSettings.maxFret >= MAX_FRET_MIN && savedSettings.maxFret <= MAX_FRET_MAX){
   maxFretValue = savedSettings.maxFret;
+}
+if(Number.isInteger(savedSettings.maxSpan) && savedSettings.maxSpan >= MAX_SPAN_MIN && savedSettings.maxSpan <= MAX_SPAN_MAX){
+  maxSpanValue = savedSettings.maxSpan;
 }
 // chooser settings are independent; seed them from the page settings on first use
 chooserMaxFretValue = (Number.isInteger(savedSettings.chooserMaxFret) && savedSettings.chooserMaxFret >= MAX_FRET_MIN && savedSettings.chooserMaxFret <= MAX_FRET_MAX)
@@ -2289,6 +2324,12 @@ document.getElementById('maxFretPlus').addEventListener('click', ()=> stepMaxFre
 document.getElementById('maxFretStepper').addEventListener('keydown', e=>{
   if(e.key==='ArrowUp' || e.key==='ArrowRight'){ e.preventDefault(); stepMaxFret(1); }
   else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ e.preventDefault(); stepMaxFret(-1); }
+});
+document.getElementById('maxSpanMinus').addEventListener('click', ()=> stepMaxSpan(-1));
+document.getElementById('maxSpanPlus').addEventListener('click', ()=> stepMaxSpan(1));
+document.getElementById('maxSpanStepper').addEventListener('keydown', e=>{
+  if(e.key==='ArrowUp' || e.key==='ArrowRight'){ e.preventDefault(); stepMaxSpan(1); }
+  else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ e.preventDefault(); stepMaxSpan(-1); }
 });
 
 // --- song search (companion backend: chord-charts-song-backend) ---
@@ -2486,6 +2527,7 @@ if(localStorage.getItem(SONG_SEARCH_SEEN_KEY) === 'true') setSongSearchVisible(t
 updateColumnsUI();
 updateThresholdUI();
 updateMaxFretUI();
+updateMaxSpanUI();
 resizeChordInput();
 let chordInputResizeTimer = null;
 window.addEventListener('resize', ()=>{
