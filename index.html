@@ -1689,6 +1689,8 @@ function midiToFreq(midi){ return 440 * Math.pow(2, (midi-69)/12); }
 
 let resumePromise = null;
 
+// resolves once the note has actually been scheduled — immediately when the
+// context is already running, or after any in-flight resume() completes
 function playNote(midi, opts){
   const ctx = getAudioCtx();
   // resume() covers both 'suspended' and iOS's 'interrupted' state (after a
@@ -1697,10 +1699,10 @@ function playNote(midi, opts){
   // fires several notes at once — share one in-flight resume() between them.
   if(ctx.state !== 'running'){
     if(!resumePromise) resumePromise = ctx.resume().finally(()=>{ resumePromise = null; });
-    resumePromise.then(()=> scheduleNote(ctx, midi, opts)).catch(()=>{});
-    return;
+    return resumePromise.then(()=> scheduleNote(ctx, midi, opts)).catch(()=>{});
   }
   scheduleNote(ctx, midi, opts);
+  return Promise.resolve();
 }
 
 function scheduleNote(ctx, midi, opts){
@@ -1734,8 +1736,9 @@ function chordAbsNotes(frets, openAbs){
   return frets.map((f,i)=> f===null ? null : openAbs[i]+f).filter(n=>n!==null);
 }
 
+// resolves once every note has actually been scheduled (see playNote)
 function playChord(midiNotes){
-  midiNotes.forEach((m,i)=> playNote(m, { delay:i*0.025, gain:0.18 }));
+  return Promise.all(midiNotes.map((m,i)=> playNote(m, { delay:i*0.025, gain:0.18 })));
 }
 
 // matches scheduleNote's envelope: last-triggered note starts at (n-1)*25ms
@@ -1747,15 +1750,22 @@ function chordPlayDuration(midiNotes){
 // swaps a play button's icon to a "now playing" indicator for the strum's
 // duration, then restores it — purely visual, playback itself can't be stopped
 function playChordAndFlash(btn, midiNotes){
-  playChord(midiNotes);
+  const started = playChord(midiNotes);
   if(!btn) return;
   if(!btn._playIconOriginal) btn._playIconOriginal = btn.innerHTML;
   clearTimeout(btn._playIconTimer);
   btn.innerHTML = PLAYING_ICON;
-  btn._playIconTimer = setTimeout(()=>{
-    btn.innerHTML = btn._playIconOriginal;
-    btn._playIconTimer = null;
-  }, chordPlayDuration(midiNotes));
+  // ties the revert to this click specifically, so a rapid re-click (which
+  // resets the icon and starts its own timer) can't be stepped on by a
+  // still-pending resume() from the previous click
+  const token = btn._playIconToken = {};
+  started.then(()=>{
+    if(btn._playIconToken !== token) return;
+    btn._playIconTimer = setTimeout(()=>{
+      btn.innerHTML = btn._playIconOriginal;
+      btn._playIconTimer = null;
+    }, chordPlayDuration(midiNotes));
+  });
 }
 
 function computeFretWindow(frets){
