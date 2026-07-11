@@ -1486,7 +1486,9 @@ function computeFretWindow(frets){
 }
 
 function bindNoteDotHandlers(container){
-  container.querySelectorAll('.note-dot').forEach(dot=>{
+  // dots in an outgoing .diagram-ghost keep their old listeners — rebinding
+  // them would stack duplicates
+  [...container.querySelectorAll('.note-dot')].filter(dot=> !dot.closest('.diagram-ghost')).forEach(dot=>{
     const playThisNote = e=>{ e.stopPropagation(); playNote(parseFloat(dot.dataset.abs)); };
     dot.addEventListener('click', playThisNote);
     dot.addEventListener('keydown', e=>{
@@ -1534,7 +1536,10 @@ function slideVoicingSwap(slot, newHTML, dir){
   const ghost = document.createElement('div');
   ghost.className = 'diagram-ghost no-print';
   ghost.setAttribute('aria-hidden', 'true');
+  ghost.inert = true;
   if(oldSVG) ghost.appendChild(oldSVG);
+  // inert already blocks focus; stripping tabindex covers browsers without it
+  ghost.querySelectorAll('[tabindex]').forEach(el=> el.removeAttribute('tabindex'));
   slot.appendChild(ghost);
   slot.classList.add('voicing-anim');
 
