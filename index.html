@@ -1441,7 +1441,7 @@ async function copyLinkText(link){
     return 'Copied';
   }catch(err){
     if(copyTextFallback(link)) return 'Copied';
-    window.prompt('Copy this chart link:', link);
+    window.prompt('Copy this link:', link);
     return 'Shown';
   }
 }
@@ -2789,7 +2789,7 @@ async function selectSong(song){
   songSearchInputEl.value = `${song.artist} — ${song.title}`;
   setSongNote('Loading song…');
   try{
-    const res = await fetch(`${SONG_API_BASE}/api/songs/${song.id}`);
+    const res = await fetch(`${SONG_API_BASE}/api/songs/${encodeURIComponent(song.id)}`);
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     applySong(await res.json(), song.id);
   }catch(err){
