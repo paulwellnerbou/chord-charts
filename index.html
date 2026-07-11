@@ -2662,9 +2662,11 @@ const SONG_SEARCH_SEEN_KEY = 'chordChartGenerator.songSearchSeen';
 // from the URL (appliedText null = fetch pending) before the first generate()
 // so the param survives loading.
 const songParam = new URLSearchParams(window.location.search).get('song');
-// captured now because applySong's own generate() rewrites the URL (and drops
-// ?transpose=) before the restore gets to apply it
-const songTransposeParam = parseInt(new URLSearchParams(window.location.search).get('transpose'), 10);
+// Captured now because applySong's own generate() rewrites the URL (and drops
+// ?transpose=) before the restore gets to apply it. Parsed strictly — parseInt
+// alone would accept "3.5" or "3abc" from a hand-edited URL.
+const songTransposeRaw = new URLSearchParams(window.location.search).get('transpose') || '';
+const songTransposeParam = /^-?\d{1,2}$/.test(songTransposeRaw) ? parseInt(songTransposeRaw, 10) : NaN;
 let activeSong = songParam ? { id: songParam, appliedText: null } : null;
 
 // A song link owns the chart: drop chords pre-seeded from localStorage or a
@@ -2697,6 +2699,7 @@ let songSearchItems = [];
 let songSearchActive = -1;
 let songSearchDebounce = null;
 let songSearchInflight = null; // AbortController — every keystroke cancels the previous request
+let songLoadInflight = null; // AbortController — a newer selection or a manual edit cancels a pending song load
 
 function setSongSearchVisible(visible){
   songSearchFieldEl.hidden = !visible;
@@ -2785,14 +2788,23 @@ async function selectSong(song){
   // a debounce that hasn't fired yet, or a search still in flight
   clearTimeout(songSearchDebounce);
   if(songSearchInflight){ songSearchInflight.abort(); songSearchInflight = null; }
+  // a slower earlier selection must not overwrite this one
+  if(songLoadInflight) songLoadInflight.abort();
+  const ctrl = new AbortController();
+  songLoadInflight = ctrl;
   closeSongResults();
   songSearchInputEl.value = `${song.artist} — ${song.title}`;
   setSongNote('Loading song…');
   try{
-    const res = await fetch(`${SONG_API_BASE}/api/songs/${encodeURIComponent(song.id)}`);
+    const res = await fetch(`${SONG_API_BASE}/api/songs/${encodeURIComponent(song.id)}`, { signal: ctrl.signal });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    applySong(await res.json(), song.id);
+    const full = await res.json();
+    if(ctrl !== songLoadInflight) return; // superseded while the body streamed
+    songLoadInflight = null;
+    applySong(full, song.id);
   }catch(err){
+    if(err.name === 'AbortError') return; // superseded — the newer action owns the UI
+    if(ctrl === songLoadInflight) songLoadInflight = null;
     setSongNote('Could not load that song — please try again.');
   }
 }
@@ -2861,6 +2873,8 @@ songSearchInputEl.addEventListener('blur', ()=> setTimeout(closeSongResults, 120
 // chart–song association. The URL is refreshed here too because the clear
 // button's own handler regenerates before this listener runs.
 function clearActiveSong(){
+  // a manual edit also abandons a song still loading
+  if(songLoadInflight){ songLoadInflight.abort(); songLoadInflight = null; }
   if(!activeSong && !songSearchNoteEl.textContent) return;
   activeSong = null;
   setSongNote('');
