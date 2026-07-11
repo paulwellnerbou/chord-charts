@@ -155,8 +155,28 @@
   .is-flash .btn-label-default{ opacity:0; transform:translateY(-4px); }
   .is-flash .btn-label-flash{ visibility:visible; opacity:1; transform:translateY(0); }
   #shareBtn .btn-label{ min-width:48px; }
-  .options-toggle .chev{ width:13px; height:13px; margin-left:-2px; transition:transform .25s cubic-bezier(.4,0,.2,1); }
-  .options-toggle[aria-expanded="true"] .chev{ transform:rotate(180deg); }
+  .share-wrap{ position:relative; }
+  .share-menu{
+    position:absolute; top:calc(100% + 8px); right:0; z-index:40; min-width:240px; max-width:300px;
+    display:flex; flex-direction:column; gap:2px; padding:6px;
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
+    box-shadow:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
+    transform-origin:top right;
+    opacity:0; visibility:hidden; transform:translateY(-6px) scale(.96);
+    transition:opacity .16s ease, transform .2s cubic-bezier(.34,1.56,.64,1), visibility .2s;
+  }
+  .share-wrap.open .share-menu{ opacity:1; visibility:visible; transform:translateY(0) scale(1); }
+  .share-menu-item{
+    display:flex; flex-direction:column; align-items:flex-start; gap:1px;
+    min-height:0; width:100%; padding:7px 10px; border:none; border-radius:8px;
+    background:transparent; color:var(--ink); font-size:14px; text-align:left; cursor:pointer;
+  }
+  .share-menu-item:hover{ background:var(--page-bg); border-color:transparent; color:var(--ink); }
+  .share-menu-item:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .share-menu-label{ font-weight:700; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .share-menu-sub{ font-size:12px; color:var(--ink-soft); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .options-toggle .chev, #shareBtn .chev{ width:13px; height:13px; margin-left:-2px; transition:transform .25s cubic-bezier(.4,0,.2,1); }
+  .options-toggle[aria-expanded="true"] .chev, #shareBtn[aria-expanded="true"] .chev{ transform:rotate(180deg); }
 
   .options-panel{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .28s cubic-bezier(.4,0,.2,1); }
   .options-panel.open{ grid-template-rows:1fr; }
@@ -486,27 +506,46 @@
   }
   .play-chord-btn:hover{ background:var(--accent); color:#fff; border-color:transparent; }
   .card svg { display:block; max-width:100%; height:auto; margin:0 auto; }
+  .diagram-slot{ position:relative; }
+  .diagram-slot.voicing-anim{ overflow:hidden; }
+  .diagram-ghost{ position:absolute; inset:0; pointer-events:none; }
   .omit-note{ font-size:10px; font-style:italic; color:var(--ink-soft); margin:4px 0 0; }
   .note-dot { cursor:pointer; }
   .note-dot:hover { opacity:.72; }
-  .copy-btn{
+  .card-menu-btn{
     position:absolute; top:9px; right:9px; min-height:32px; width:32px; height:32px;
     border-radius:50%; padding:0; display:flex; align-items:center; justify-content:center;
     background:var(--accent-soft); border:none; color:var(--accent-strong);
     transition:background-color .18s ease,color .18s ease,opacity .18s ease,transform .18s ease,width .2s ease;
     cursor:pointer; font-size:10px; overflow:hidden;
   }
-  .copy-btn:hover{ background:var(--accent); color:#fff; border-color:transparent; }
-  .copy-btn.is-flash{ width:64px; }
-  .copy-btn-icon, .copy-btn-label{
+  .card-menu-btn:hover, .card-menu-btn[aria-expanded="true"]{ background:var(--accent); color:#fff; border-color:transparent; }
+  .card-menu-btn.is-flash{ width:64px; }
+  .card-menu-btn-icon, .card-menu-btn-label{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     transition:opacity .15s ease, transform .15s ease;
   }
-  .copy-btn-icon{ opacity:1; transform:scale(1); }
-  .copy-btn-label{ opacity:0; transform:scale(.7); font-size:11px; font-weight:600; white-space:nowrap; }
-  .copy-btn.is-flash .copy-btn-icon{ opacity:0; transform:scale(.7); }
-  .copy-btn.is-flash .copy-btn-label{ opacity:1; transform:scale(1); }
-  .copy-btn svg{ width:15px; height:15px; stroke:currentColor; fill:none; }
+  .card-menu-btn-icon{ opacity:1; transform:scale(1); }
+  .card-menu-btn-label{ opacity:0; transform:scale(.7); font-size:11px; font-weight:600; white-space:nowrap; }
+  .card-menu-btn.is-flash .card-menu-btn-icon{ opacity:0; transform:scale(.7); }
+  .card-menu-btn.is-flash .card-menu-btn-label{ opacity:1; transform:scale(1); }
+  .card-menu-btn svg{ width:16px; height:16px; }
+  .card-menu{
+    position:fixed; z-index:70; min-width:212px; max-width:calc(100vw - 16px); padding:5px;
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
+    box-shadow:0 18px 40px -18px rgba(41,38,33,.5), 0 3px 10px rgba(41,38,33,.14);
+    animation:card-menu-in .14s ease;
+  }
+  .card-menu[hidden]{ display:none; }
+  @keyframes card-menu-in{ from{ opacity:0; transform:translateY(4px) scale(.98); } }
+  .card-menu-item{
+    display:flex; align-items:center; gap:10px; width:100%; min-height:34px; padding:7px 10px;
+    border:none; border-radius:8px; background:transparent; color:var(--ink);
+    font-family:inherit; font-size:13.5px; font-weight:500; text-align:left; text-decoration:none; cursor:pointer;
+  }
+  .card-menu-item:hover, .card-menu-item:focus-visible{ background:var(--accent-soft); color:var(--accent-strong); outline:none; }
+  .card-menu-item svg{ width:15px; height:15px; flex:0 0 15px; stroke:currentColor; fill:none; color:var(--accent-strong); }
+  .card-menu-sep{ margin:5px 8px; border:none; border-top:1px solid var(--card-border); }
   .card.has-alt-voicings{ padding-bottom:45px; }
   .voicing-nav{
     position:absolute; left:10px; right:10px; bottom:5px;
@@ -527,7 +566,7 @@
   .voicing-nav-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .voicing-nav-count{ font-size:11.5px; color:var(--ink-soft); min-width:26px; text-align:center; }
   body.card-controls-hidden .play-chord-btn,
-  body.card-controls-hidden .copy-btn,
+  body.card-controls-hidden .card-menu-btn,
   body.card-controls-hidden .voicing-nav{ display:none; }
   body.card-controls-hidden .card.has-alt-voicings{ padding-bottom:13px; }
   body.card-controls-hidden .card:hover{ transform:none; border-color:var(--card-border); box-shadow:0 2px 2px rgba(41,38,33,.02),0 10px 24px -24px rgba(41,38,33,.7); }
@@ -663,9 +702,9 @@
     .card{ padding:11px 5px 10px; border-radius:14px; }
     .card.has-alt-voicings{ padding-bottom:44px; }
     .card h2{ font-size:20px; }
-    .play-chord-btn,.copy-btn{ top:7px; width:30px; height:30px; min-height:30px; }
+    .play-chord-btn,.card-menu-btn{ top:7px; width:30px; height:30px; min-height:30px; }
     .play-chord-btn{ left:6px; }
-    .copy-btn{ right:6px; }
+    .card-menu-btn{ right:6px; }
     .omit-note{ font-size:9px; }
     .voicing-nav{ left:6px; right:6px; }
   }
@@ -763,10 +802,27 @@
         Options
         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <button type="button" id="shareBtn" class="secondary btn-iconic" title="Copy a link to this chart">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
-        <span class="btn-label"><span class="btn-label-default">Share</span><span class="btn-label-flash" aria-hidden="true"></span></span>
-      </button>
+      <div class="share-wrap" id="shareWrap">
+        <button type="button" id="shareBtn" class="secondary btn-iconic" title="Copy a share link" aria-expanded="false" aria-controls="shareMenu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
+          <span class="btn-label"><span class="btn-label-default">Share</span><span class="btn-label-flash" aria-hidden="true"></span></span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="share-menu" id="shareMenu" aria-label="Copy a share link">
+          <button type="button" class="share-menu-item" id="shareSongItem" hidden>
+            <span class="share-menu-label" id="shareSongLabel"></span>
+            <span class="share-menu-sub" id="shareSongSub"></span>
+          </button>
+          <button type="button" class="share-menu-item" id="shareChordsItem">
+            <span class="share-menu-label">Chords</span>
+            <span class="share-menu-sub" id="shareChordsSub"></span>
+          </button>
+          <button type="button" class="share-menu-item" id="shareAppItem">
+            <span class="share-menu-label">App</span>
+            <span class="share-menu-sub" id="shareAppSub"></span>
+          </button>
+        </div>
+      </div>
       <button type="button" id="copyAllBtn" class="secondary btn-iconic" title="Copy one image of all displayed chord diagrams">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         <span class="btn-label"><span class="btn-label-default">Copy chart</span><span class="btn-label-flash" aria-hidden="true"></span></span>
@@ -865,7 +921,7 @@
                 <span>Show chord card controls</span>
               </label>
               <button type="button" class="info-btn" id="cardControlsInfoBtn" aria-label="About chord card controls" aria-expanded="false">i</button>
-              <div class="info-popover" id="cardControlsInfoPopover" role="tooltip">Turn this off to remove the play button, copy button, and alternative-voicing arrows from chord cards for clean screenshots.</div>
+              <div class="info-popover" id="cardControlsInfoPopover" role="tooltip">Turn this off to remove the play button, the actions menu, and alternative-voicing arrows from chord cards for clean screenshots.</div>
             </div>
             <label class="switch">
               <input type="checkbox" id="bwToggle">
@@ -1249,41 +1305,58 @@ const PLAY_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="current
 const CHEVRON_LEFT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>`;
 const CHEVRON_RIGHT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
 const CHECK_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+const DOTS_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>`;
+const DOWNLOAD_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`;
+const LINK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+const EXTERNAL_LINK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+const GRID_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`;
 
-async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
+function chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){
   const colors = currentColors();
   const showBorder = document.getElementById('borderToggle').checked;
   const highlightRoot = document.getElementById('rootToggle').checked;
-  const svgStr = exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted);
+  return exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted);
+}
+
+async function chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){
+  const svgStr = chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
   const scale = 3;
   const vbMatch = svgStr.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+  if(!vbMatch) throw new Error('export SVG is missing its viewBox');
   const w = parseFloat(vbMatch[1]), h = parseFloat(vbMatch[2]);
 
   const img = new Image();
-  const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+  await new Promise((resolve,reject)=>{ img.onload=resolve; img.onerror=reject; img.src='data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr); });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(w*scale); canvas.height = Math.round(h*scale);
+  const ctx = canvas.getContext('2d');
+  if(!ctx) throw new Error('canvas 2d context unavailable');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve,reject)=> canvas.toBlob(blob=> blob ? resolve(blob) : reject(new Error('PNG encoding failed')), 'image/png'));
+}
 
+function chordFileName(label, ext){ return `${label.replace(/[^\w#]/g,'_')}.${ext}`; }
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
   try{
-    await new Promise((resolve,reject)=>{ img.onload=resolve; img.onerror=reject; img.src=dataUrl; });
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(w*scale); canvas.height = Math.round(h*scale);
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-
+    const blob = await chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
     try{
       if(!navigator.clipboard || !window.ClipboardItem) throw new Error('no-clipboard-api');
       await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
       flashButton(btnEl, 'Copied');
     }catch(clipErr){
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${label.replace(/[^\w#]/g,'_')}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      downloadBlob(blob, chordFileName(label, 'png'));
       flashButton(btnEl, 'Saved');
     }
   }catch(err){
@@ -1292,9 +1365,31 @@ async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC,
   }
 }
 
+async function downloadChordPNG(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
+  try{
+    const blob = await chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
+    downloadBlob(blob, chordFileName(label, 'png'));
+    flashButton(btnEl, 'Saved');
+  }catch(err){
+    console.error(err);
+    flashButton(btnEl, 'Failed');
+  }
+}
+
+function downloadChordSVG(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
+  try{
+    const svgStr = chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
+    downloadBlob(new Blob([svgStr], { type:'image/svg+xml' }), chordFileName(label, 'svg'));
+    flashButton(btnEl, 'Saved');
+  }catch(err){
+    console.error(err);
+    flashButton(btnEl, 'Failed');
+  }
+}
+
 function flashButton(btnEl, text){
   if(btnEl._flashTimeout) clearTimeout(btnEl._flashTimeout);
-  btnEl.querySelector('.copy-btn-label').textContent = text;
+  btnEl.querySelector('.card-menu-btn-label').textContent = text;
   btnEl.classList.add('is-flash');
   btnEl.disabled = true;
   btnEl._flashTimeout = setTimeout(()=>{
@@ -1308,10 +1403,16 @@ function flashButtonText(btnEl, text){
   // overlay the feedback over the invisible label so the button keeps its width
   btnEl.querySelector('.btn-label-flash').textContent = text;
   btnEl.classList.add('is-flash');
+  // disabling a focused button drops focus to <body>; hand it back afterwards
+  // (unless the user moved on) so keyboard flows continue from the button
+  const hadFocus = document.activeElement === btnEl;
   btnEl.disabled = true;
   btnEl._flashTimeout = setTimeout(()=>{
     btnEl.classList.remove('is-flash');
     btnEl.disabled = false;
+    if(hadFocus && document.activeElement === document.body){
+      try{ btnEl.focus({ preventScroll:true }); }catch(err){}
+    }
   }, 1300);
 }
 
@@ -1401,22 +1502,163 @@ function copyTextFallback(text){
   }
 }
 
-async function copyShareLink(btnEl){
-  // Share must include edits made during the input debounce window.
-  updateURLParam(document.getElementById('chordInput').value);
-  const link = window.location.href;
+// resolves to the flash verdict for the share button
+async function copyLinkText(link){
   try{
     if(!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('no-clipboard-api');
     await navigator.clipboard.writeText(link);
-    flashButtonText(btnEl, 'Copied');
+    return 'Copied';
+  }catch(err){
+    if(copyTextFallback(link)) return 'Copied';
+    window.prompt('Copy this link:', link);
+    return 'Shown';
+  }
+}
+
+// Non-chart params (e.g. a songApi override) survive into per-chord links.
+function chordPageURL(label, allVoicings){
+  const params = new URLSearchParams(window.location.search);
+  params.set('chords', label + (allVoicings ? '*' : ''));
+  // an explicit chord list is never song mode
+  params.delete('song');
+  params.delete('transpose');
+  params.set('tuning', selectedTuningId);
+  return window.location.pathname + '?' + params.toString();
+}
+
+async function copyChordLink(label, btnEl){
+  const link = new URL(chordPageURL(label, false), window.location.href).href;
+  try{
+    if(!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('no-clipboard-api');
+    await navigator.clipboard.writeText(link);
+    flashButton(btnEl, 'Copied');
   }catch(err){
     if(copyTextFallback(link)){
-      flashButtonText(btnEl, 'Copied');
+      flashButton(btnEl, 'Copied');
     } else {
-      window.prompt('Copy this chart link:', link);
-      flashButtonText(btnEl, 'Shown');
+      window.prompt('Copy this chord link:', link);
+      flashButton(btnEl, 'Shown');
     }
   }
+}
+
+let cardMenuEl = null;
+let cardMenuState = null;
+
+function ensureCardMenu(){
+  if(cardMenuEl) return cardMenuEl;
+  cardMenuEl = document.createElement('div');
+  cardMenuEl.className = 'card-menu no-print';
+  cardMenuEl.setAttribute('role', 'menu');
+  cardMenuEl.hidden = true;
+  document.body.appendChild(cardMenuEl);
+  cardMenuEl.addEventListener('keydown', e=>{
+    const items = [...cardMenuEl.querySelectorAll('.card-menu-item')];
+    if(!items.length) return;
+    const idx = Math.max(0, items.indexOf(document.activeElement));
+    if(e.key === 'ArrowDown'){ e.preventDefault(); items[(idx+1)%items.length].focus(); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); items[(idx-1+items.length)%items.length].focus(); }
+    else if(e.key === 'Home'){ e.preventDefault(); items[0].focus(); }
+    else if(e.key === 'End'){ e.preventDefault(); items[items.length-1].focus(); }
+    else if(e.key === 'Escape'){ e.preventDefault(); closeCardMenu({ restoreFocus:true }); }
+    // per the menu-button pattern Tab leaves the menu from the trigger onwards
+    else if(e.key === 'Tab'){ closeCardMenu({ restoreFocus:true }); }
+    else if(e.key === ' ' && document.activeElement && document.activeElement.tagName === 'A'){ e.preventDefault(); document.activeElement.click(); }
+  });
+  return cardMenuEl;
+}
+
+function cardMenuItem(icon, text, href){
+  const el = document.createElement(href ? 'a' : 'button');
+  el.className = 'card-menu-item';
+  el.setAttribute('role', 'menuitem');
+  if(href){ el.href = href; el.target = '_blank'; el.rel = 'noopener'; }
+  else { el.type = 'button'; }
+  el.innerHTML = icon;
+  el.appendChild(document.createTextNode(text));
+  return el;
+}
+
+function closeCardMenu(opts){
+  if(!cardMenuEl || cardMenuEl.hidden) return;
+  cardMenuEl.hidden = true;
+  const { btn, onPointerDown, onWindowChange } = cardMenuState;
+  document.removeEventListener('pointerdown', onPointerDown, true);
+  window.removeEventListener('scroll', onWindowChange, { capture:true });
+  window.removeEventListener('resize', onWindowChange);
+  btn.setAttribute('aria-expanded', 'false');
+  if(opts && opts.restoreFocus){
+    try{ btn.focus({ preventScroll:true }); }catch(err){ btn.focus(); }
+  }
+  cardMenuState = null;
+}
+
+function openCardMenu(card, btn){
+  const menu = ensureCardMenu();
+  closeCardMenu();
+  const result = card._chordResult;
+  menu.innerHTML = '';
+  menu.setAttribute('aria-label', `Actions for ${result.label}`);
+
+  // settings and the shown voicing are read at click time, so the menu can
+  // stay prebuilt while the flash feedback lands on the card's own button
+  const exportArgs = ()=>{
+    const tuning = currentTuning();
+    const frets = result.voicings[result.altIndex];
+    const win = computeFretWindow(frets);
+    const omitted = document.getElementById('omitToggle').checked ? result.omitted : null;
+    return [result.label, frets, win.fretMax, tuning.labels, tuning.openPCs, result.rootPC, win.startFret, btn, omitted];
+  };
+  const addAction = (icon, text, run)=>{
+    const item = cardMenuItem(icon, text);
+    item.addEventListener('click', ()=>{ closeCardMenu({ restoreFocus:true }); run(); });
+    menu.appendChild(item);
+  };
+
+  addAction(COPY_ICON, 'Copy image', ()=> copyChordAsImage(...exportArgs()));
+  addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadChordPNG(...exportArgs()));
+  addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadChordSVG(...exportArgs()));
+  menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
+  addAction(LINK_ICON, 'Copy link to this chord', ()=> copyChordLink(result.label, btn));
+  const openItem = cardMenuItem(EXTERNAL_LINK_ICON, 'Open in new tab', chordPageURL(result.label, false));
+  openItem.addEventListener('click', ()=> closeCardMenu());
+  menu.appendChild(openItem);
+  if(result.voicings.length > 1){
+    const allItem = cardMenuItem(GRID_ICON, `All ${result.voicings.length} voicings in new tab`, chordPageURL(result.label, true));
+    allItem.addEventListener('click', ()=> closeCardMenu());
+    menu.appendChild(allItem);
+  }
+
+  btn.setAttribute('aria-expanded', 'true');
+  menu.style.visibility = 'hidden';
+  menu.hidden = false;
+  const r = btn.getBoundingClientRect();
+  const left = Math.max(8, Math.min(r.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8));
+  let top = r.bottom + 6;
+  if(top + menu.offsetHeight > window.innerHeight - 8) top = Math.max(8, r.top - menu.offsetHeight - 6);
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  menu.style.visibility = '';
+
+  const onPointerDown = e=>{
+    if(!menu.contains(e.target) && !btn.contains(e.target)) closeCardMenu();
+  };
+  const onWindowChange = ()=> closeCardMenu();
+  document.addEventListener('pointerdown', onPointerDown, true);
+  // the menu is position:fixed, so any scroll would leave it floating detached
+  window.addEventListener('scroll', onWindowChange, { capture:true, passive:true });
+  window.addEventListener('resize', onWindowChange);
+  cardMenuState = { btn, onPointerDown, onWindowChange };
+
+  const first = menu.querySelector('.card-menu-item');
+  if(first){
+    try{ first.focus({ preventScroll:true }); }catch(err){ first.focus(); }
+  }
+}
+
+function toggleCardMenu(card, btn){
+  if(cardMenuState && cardMenuState.btn === btn){ closeCardMenu(); return; }
+  openCardMenu(card, btn);
 }
 
 let audioCtx = null;
@@ -1499,7 +1741,9 @@ function computeFretWindow(frets){
 }
 
 function bindNoteDotHandlers(container){
-  container.querySelectorAll('.note-dot').forEach(dot=>{
+  // dots in an outgoing .diagram-ghost keep their old listeners — rebinding
+  // them would stack duplicates
+  [...container.querySelectorAll('.note-dot')].filter(dot=> !dot.closest('.diagram-ghost')).forEach(dot=>{
     const playThisNote = e=>{ e.stopPropagation(); playNote(parseFloat(dot.dataset.abs)); };
     dot.addEventListener('click', playThisNote);
     dot.addEventListener('keydown', e=>{
@@ -1513,13 +1757,72 @@ function updateNavCount(card, result){
   if(countEl) countEl.textContent = `${result.altIndex+1} / ${result.voicings.length}`;
 }
 
-function updateCardDiagram(card, result, tuning, colors, highlightRoot){
+function updateCardDiagram(card, result, tuning, colors, highlightRoot, slideDir){
   const frets = result.voicings[result.altIndex];
   const { fretMax, startFret } = computeFretWindow(frets);
   const diagramSlot = card.querySelector('.diagram-slot');
-  diagramSlot.innerHTML = chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret);
+  const html = chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret);
+  const curSVG = diagramSlot.querySelector('svg');
+  const animate = slideDir && diagramSlot.animate && curSVG && curSVG.animate
+    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(animate){
+    slideVoicingSwap(diagramSlot, html, slideDir);
+  }else{
+    if(diagramSlot._swapCleanup) diagramSlot._swapCleanup();
+    diagramSlot.innerHTML = html;
+  }
   bindNoteDotHandlers(diagramSlot);
   updateNavCount(card, result);
+}
+
+// Carousel swap: the old diagram (kept in an absolute ghost layer) slides out
+// one side while the new one slides in from the other, and the slot height
+// eases between the two diagrams' sizes. dir: 1 = next, -1 = previous.
+function slideVoicingSwap(slot, newHTML, dir){
+  const oldSVG = slot.querySelector('svg');
+  // mid-flight interrupt (rapid taps): let the ghost take over from the
+  // incoming diagram's current position instead of snapping to center
+  const startTf = oldSVG ? getComputedStyle(oldSVG).transform : 'none';
+  const oldH = slot.offsetHeight;
+  if(slot._swapCleanup) slot._swapCleanup();
+
+  slot.innerHTML = newHTML;
+  const newSVG = slot.querySelector('svg');
+  const newH = slot.offsetHeight;
+
+  const ghost = document.createElement('div');
+  ghost.className = 'diagram-ghost no-print';
+  ghost.setAttribute('aria-hidden', 'true');
+  ghost.inert = true;
+  if(oldSVG) ghost.appendChild(oldSVG);
+  // inert already blocks focus; stripping tabindex covers browsers without it
+  ghost.querySelectorAll('[tabindex]').forEach(el=> el.removeAttribute('tabindex'));
+  slot.appendChild(ghost);
+  slot.classList.add('voicing-anim');
+
+  const dist = slot.clientWidth;
+  const timing = { duration:240, easing:'cubic-bezier(.4,0,.2,1)', fill:'forwards' };
+  const anims = [
+    newSVG.animate([{ transform:`translateX(${dir*dist}px)` }, { transform:'translateX(0)' }], timing),
+  ];
+  if(oldSVG){
+    anims.push(oldSVG.animate([
+      { transform: startTf === 'none' ? 'translateX(0)' : startTf },
+      { transform:`translateX(${-dir*dist}px)` },
+    ], timing));
+  }
+  if(newH !== oldH) anims.push(slot.animate([{ height:`${oldH}px` }, { height:`${newH}px` }], timing));
+
+  const cleanup = ()=>{
+    slot._swapCleanup = null;
+    anims.forEach(a=> a.cancel());
+    ghost.remove();
+    slot.classList.remove('voicing-anim');
+  };
+  slot._swapCleanup = cleanup;
+  Promise.all(anims.map(a=> a.finished)).then(cleanup, ()=>{});
+  // hidden tabs get no rendering frames, so `finished` can stall — sweep eventually
+  setTimeout(()=>{ if(slot._swapCleanup === cleanup) cleanup(); }, 1000);
 }
 
 let selectedTuningId = TUNINGS[0].id;
@@ -1563,9 +1866,12 @@ function saveSettings(){
   };
   // Only persist chordInput once the user has actually edited it — otherwise a
   // fresh visit would freeze in the built-in default forever instead of picking
-  // up future default changes.
+  // up future default changes. While it is still default (or emptied for a
+  // pending ?song= load) any previously stored chords are carried forward.
   if(!chordInputIsDefault){
     settings.chordInput = document.getElementById('chordInput').value;
+  } else if(typeof savedSettings.chordInput === 'string'){
+    settings.chordInput = savedSettings.chordInput;
   }
   try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(err){}
 }
@@ -1887,17 +2193,16 @@ function buildCard(result, ctx){
 
   bindNoteDotHandlers(card.querySelector('.diagram-slot'));
 
-  const copyBtn = document.createElement('button');
-  copyBtn.className = 'copy-btn no-print';
-  copyBtn.title = `Copy ${result.label} as image`;
-  copyBtn.setAttribute('aria-label', `Copy ${result.label} chord as image`);
-  copyBtn.innerHTML = `<span class="copy-btn-icon">${COPY_ICON}</span><span class="copy-btn-label"></span>`;
-  copyBtn.addEventListener('click', ()=>{
-    const frets = result.voicings[result.altIndex];
-    const window_ = computeFretWindow(frets);
-    copyChordAsImage(result.label, frets, window_.fretMax, tuning.labels, tuning.openPCs, result.rootPC, window_.startFret, copyBtn, showOmitted ? result.omitted : null);
-  });
-  card.appendChild(copyBtn);
+  const menuBtn = document.createElement('button');
+  menuBtn.type = 'button';
+  menuBtn.className = 'card-menu-btn no-print';
+  menuBtn.title = `Copy, download or share ${result.label}`;
+  menuBtn.setAttribute('aria-label', `Copy, download or share ${result.label}`);
+  menuBtn.setAttribute('aria-haspopup', 'menu');
+  menuBtn.setAttribute('aria-expanded', 'false');
+  menuBtn.innerHTML = `<span class="card-menu-btn-icon">${DOTS_ICON}</span><span class="card-menu-btn-label"></span>`;
+  menuBtn.addEventListener('click', ()=> toggleCardMenu(card, menuBtn));
+  card.appendChild(menuBtn);
 
   const playChordHere = ()=> playChord(chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs));
   const heading = card.querySelector('h2');
@@ -1927,7 +2232,7 @@ function buildCard(result, ctx){
     const cycleVoicing = delta=>{
       const n = result.voicings.length;
       result.altIndex = (result.altIndex + delta + n) % n;
-      updateCardDiagram(card, result, tuning, colors, highlightRoot);
+      updateCardDiagram(card, result, tuning, colors, highlightRoot, delta);
     };
     nav.querySelector('.voicing-prev').addEventListener('click', ()=> cycleVoicing(-1));
     nav.querySelector('.voicing-next').addEventListener('click', ()=> cycleVoicing(1));
@@ -1945,6 +2250,7 @@ function generate(){
   // the chooser points at cards that are about to be replaced; re-bind it to the
   // rebuilt card afterwards so settings changed from inside it apply live
   const chooserLabel = voicingChooserState ? voicingChooserState.result.label : null;
+  closeCardMenu();
   const tuning = currentTuning();
   document.getElementById('pageTitleMain').textContent = `${tuning.name} chords`;
   document.getElementById('pageTitleSub').textContent = `${tuning.tuningLabel} tuning`;
@@ -2040,11 +2346,8 @@ function generate(){
   singleTip.hidden = !only;
   singleTip.textContent = '';
   if(only){
-    const params = new URLSearchParams(window.location.search);
-    params.set('chords', only.label + '*');
-    params.set('tuning', selectedTuningId);
     const link = document.createElement('a');
-    link.href = window.location.pathname + '?' + params.toString();
+    link.href = chordPageURL(only.label, true);
     link.textContent = `Show all ${only.voicings.length} voicings of ${only.label} on this page`;
     link.addEventListener('click', e=>{
       e.preventDefault();
@@ -2143,6 +2446,7 @@ function renderVoicingTiles(card, result){
     // no openAbs: per-note dots would nest interactive elements inside the button
     tile.innerHTML = `<span class="voicing-choice-index">${i+1}</span>` + chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, undefined, startFret);
     tile.addEventListener('click', ()=>{
+      const prevIndex = result.altIndex;
       // the pick may not exist in the card's list (chooser searched deeper) —
       // append it there so the card can show and cycle to it
       const idx = result.voicings.findIndex(v => v.every((f,j)=> f === frets[j]));
@@ -2159,7 +2463,7 @@ function renderVoicingTiles(card, result){
         result.altIndex = result.voicings.length - 1;
         result.customFrets = frets;
       }
-      updateCardDiagram(card, result, tuning, colors, highlightRoot);
+      updateCardDiagram(card, result, tuning, colors, highlightRoot, Math.sign(result.altIndex - prevIndex));
       playChord(chordAbsNotes(frets, tuning.openAbs));
       closeVoicingChooser();
     });
@@ -2308,8 +2612,25 @@ wireChooserStepper('voicingModalMaxSpan', stepChooserMaxSpan);
 
 function updateURLParam(chordInputValue){
   const params = new URLSearchParams(window.location.search);
-  if(chordInputValue){ params.set('chords', chordInputValue); }
-  else { params.delete('chords'); }
+  // The URL carries either the song identity or the literal chords, never both:
+  // ?song= (plus ?transpose= when shifted as a whole) while the chart is still
+  // the song, ?chords= once it diverged — so a link always reproduces what is
+  // on screen. (activeSong and songChartOffset live in the song-search section
+  // below, which runs before the first generate() call.)
+  const songOffset = songChartOffset(chordInputValue);
+  if(songOffset !== null){
+    params.set('song', activeSong.id);
+    if(songOffset !== 0){ params.set('transpose', String(songOffset)); }
+    // while the song fetch is pending the URL's own ?transpose= must survive
+    // for the restore to apply it
+    else if(activeSong.appliedText !== null){ params.delete('transpose'); }
+    params.delete('chords');
+  } else {
+    params.delete('song');
+    params.delete('transpose');
+    if(chordInputValue){ params.set('chords', chordInputValue); }
+    else { params.delete('chords'); }
+  }
   params.set('tuning', selectedTuningId);
   const query = params.toString();
   const newURL = window.location.pathname + (query ? `?${query}` : '') + window.location.hash;
@@ -2500,8 +2821,78 @@ document.getElementById('tipDismissBtn').addEventListener('click', ()=>{
 });
 
 document.getElementById('copyAllBtn').addEventListener('click', ()=> copyAllChordsAsImage(document.getElementById('copyAllBtn')));
-document.getElementById('shareBtn').addEventListener('click', ()=> copyShareLink(document.getElementById('shareBtn')));
 document.getElementById('printBtn').addEventListener('click', ()=>window.print());
+
+// --- share menu: one link per thing worth sharing (song / chord list / app) ---
+const shareWrap = document.getElementById('shareWrap');
+const shareBtn = document.getElementById('shareBtn');
+document.getElementById('shareAppSub').textContent = window.location.host;
+
+function shareLinkFor(params){
+  const query = params.toString();
+  return window.location.origin + window.location.pathname + (query ? `?${query}` : '');
+}
+
+function buildShareMenu(){
+  const songItem = document.getElementById('shareSongItem');
+  const withSong = !!(activeSong && activeSong.appliedText !== null);
+  songItem.hidden = !withSong;
+  if(withSong){
+    // version suffixes ("Wonderwall - Remastered") only add noise, as in the sheet link
+    document.getElementById('shareSongLabel').textContent = `Chords of song “${activeSong.title.replace(/\s-\s.*$/,'')}”`;
+    document.getElementById('shareSongSub').textContent = activeSong.artist;
+  }
+  const trimmed = document.getElementById('chordInput').value.trim();
+  document.getElementById('shareChordsItem').hidden = trimmed === '';
+  document.getElementById('shareChordsSub').textContent = trimmed.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean).join(', ');
+}
+
+function openShareMenu(){
+  buildShareMenu();
+  shareWrap.classList.add('open');
+  shareBtn.setAttribute('aria-expanded','true');
+  document.addEventListener('click', onShareDocClick);
+}
+function closeShareMenu(){
+  shareWrap.classList.remove('open');
+  shareBtn.setAttribute('aria-expanded','false');
+  document.removeEventListener('click', onShareDocClick);
+}
+function onShareDocClick(e){
+  if(!shareWrap.contains(e.target)) closeShareMenu();
+}
+shareBtn.addEventListener('click', ()=>{
+  shareWrap.classList.contains('open') ? closeShareMenu() : openShareMenu();
+});
+shareWrap.addEventListener('keydown', e=>{
+  if(e.key === 'Escape'){ closeShareMenu(); shareBtn.focus(); }
+});
+
+// links are built at click time so they can't go stale while the menu is open
+async function copyShareOption(buildParams){
+  const params = buildParams();
+  closeShareMenu();
+  // the clicked item is hidden with the menu and must not keep focus
+  shareBtn.focus();
+  if(!params) return;
+  flashButtonText(shareBtn, await copyLinkText(shareLinkFor(params)));
+}
+document.getElementById('shareSongItem').addEventListener('click', ()=> copyShareOption(()=>{
+  if(!activeSong) return null; // edited away while the menu was open
+  const params = new URLSearchParams();
+  params.set('song', activeSong.id);
+  const offset = songChartOffset(document.getElementById('chordInput').value);
+  if(offset) params.set('transpose', String(offset));
+  params.set('tuning', selectedTuningId);
+  return params;
+}));
+document.getElementById('shareChordsItem').addEventListener('click', ()=> copyShareOption(()=>{
+  const params = new URLSearchParams();
+  params.set('chords', document.getElementById('chordInput').value);
+  params.set('tuning', selectedTuningId);
+  return params;
+}));
+document.getElementById('shareAppItem').addEventListener('click', ()=> copyShareOption(()=> new URLSearchParams()));
 
 const syntaxToggleBtn = document.getElementById('syntaxToggleBtn');
 const syntaxPanel = document.getElementById('syntaxPanel');
@@ -2611,6 +3002,41 @@ const SONG_API_BASE = (new URLSearchParams(window.location.search).get('songApi'
   || 'https://songsearch.chords.wbou.dev').replace(/\/+$/,'');
 const SONG_SEARCH_SEEN_KEY = 'chordChartGenerator.songSearchSeen';
 
+// The song the current chart came from, carried in the URL as ?song=<id> so
+// the chart can be linked and re-shared with its attribution. appliedText is
+// the exact chord-input text the song produced — while the input still matches
+// it (allowing whole-chart transposition) the URL stays in song mode. Seeded
+// from the URL (appliedText null = fetch pending) before the first generate()
+// so the param survives loading.
+const songParam = new URLSearchParams(window.location.search).get('song');
+// Captured now because applySong's own generate() rewrites the URL (and drops
+// ?transpose=) before the restore gets to apply it. Parsed strictly — parseInt
+// alone would accept "3.5" or "3abc" from a hand-edited URL.
+const songTransposeRaw = new URLSearchParams(window.location.search).get('transpose') || '';
+const songTransposeParam = /^-?\d{1,2}$/.test(songTransposeRaw) ? parseInt(songTransposeRaw, 10) : NaN;
+let activeSong = songParam ? { id: songParam, appliedText: null } : null;
+
+// A song link owns the chart: drop chords pre-seeded from localStorage or a
+// hand-crafted ?chords= so an unrelated chart never renders in song mode —
+// the empty state shows until the song lands (or fails, beside the note).
+// Flagged default so the transient empty input is not persisted over the
+// visitor's stored chords.
+if(songParam){
+  chordInputEl.value = '';
+  chordInputIsDefault = true;
+}
+
+// The transpose offset at which the chart is still exactly the active song
+// (0 = as loaded), or null when there is no active song or the chart diverged
+// beyond a whole-chart transposition.
+function songChartOffset(chordInputValue){
+  if(!activeSong) return null;
+  if(activeSong.appliedText === null) return 0; // fetch pending — trust the param
+  const offset = currentTransposeOffset();
+  const baseText = (offset !== 0 && transposeState) ? transposeState.baseText : chordInputValue;
+  return baseText === activeSong.appliedText ? offset : null;
+}
+
 const songSearchFieldEl = document.getElementById('songSearchField');
 const songDataFooterEl = document.getElementById('songDataFooter');
 const songSearchInputEl = document.getElementById('songSearchInput');
@@ -2620,6 +3046,7 @@ let songSearchItems = [];
 let songSearchActive = -1;
 let songSearchDebounce = null;
 let songSearchInflight = null; // AbortController — every keystroke cancels the previous request
+let songLoadInflight = null; // AbortController — a newer selection or a manual edit cancels a pending song load
 
 function setSongSearchVisible(visible){
   songSearchFieldEl.hidden = !visible;
@@ -2708,26 +3135,38 @@ async function selectSong(song){
   // a debounce that hasn't fired yet, or a search still in flight
   clearTimeout(songSearchDebounce);
   if(songSearchInflight){ songSearchInflight.abort(); songSearchInflight = null; }
+  // a slower earlier selection must not overwrite this one
+  if(songLoadInflight) songLoadInflight.abort();
+  const ctrl = new AbortController();
+  songLoadInflight = ctrl;
   closeSongResults();
   songSearchInputEl.value = `${song.artist} — ${song.title}`;
   setSongNote('Loading song…');
   try{
-    const res = await fetch(`${SONG_API_BASE}/api/songs/${song.id}`);
+    const res = await fetch(`${SONG_API_BASE}/api/songs/${encodeURIComponent(song.id)}`, { signal: ctrl.signal });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    applySong(await res.json());
+    const full = await res.json();
+    if(ctrl !== songLoadInflight) return; // superseded while the body streamed
+    songLoadInflight = null;
+    applySong(full, song.id);
   }catch(err){
+    if(err.name === 'AbortError') return; // superseded — the newer action owns the UI
+    if(ctrl === songLoadInflight) songLoadInflight = null;
     setSongNote('Could not load that song — please try again.');
   }
 }
 
-function applySong(full){
+function applySong(full, songId){
   // "unmapped" symbols never reach the chord input — the parser would reject them
   if(!Array.isArray(full.chords) || !full.chords.length){
     setSongNote(`No playable chords found for ${full.artist} — ${full.title}.`);
     return;
   }
+  const text = full.chords.join(', ');
+  // before generate(), so updateURLParam writes the ?song= param
+  activeSong = { id: songId, appliedText: text, artist: full.artist, title: full.title };
   clearTimeout(chordInputDebounce); // a half-typed manual edit must not overwrite the song
-  chordInputEl.value = full.chords.join(', ');
+  chordInputEl.value = text;
   chordInputIsDefault = false;
   resizeChordInput();
   generate();
@@ -2777,9 +3216,19 @@ songSearchInputEl.addEventListener('keydown', e=>{
 // the delay lets a pointerdown on a result land before the list disappears
 songSearchInputEl.addEventListener('blur', ()=> setTimeout(closeSongResults, 120));
 
-// a manual chord edit or clear makes the "Loaded …" note stale
-chordInputEl.addEventListener('input', ()=> setSongNote(''));
-document.getElementById('chordInputClear').addEventListener('click', ()=> setSongNote(''));
+// A manual chord edit or clear makes the "Loaded …" note stale and breaks the
+// chart–song association. The URL is refreshed here too because the clear
+// button's own handler regenerates before this listener runs.
+function clearActiveSong(){
+  // a manual edit also abandons a song still loading
+  if(songLoadInflight){ songLoadInflight.abort(); songLoadInflight = null; }
+  if(!activeSong && !songSearchNoteEl.textContent) return;
+  activeSong = null;
+  setSongNote('');
+  updateURLParam(chordInputEl.value);
+}
+chordInputEl.addEventListener('input', clearActiveSong);
+document.getElementById('chordInputClear').addEventListener('click', clearActiveSong);
 
 // Reveal only when the backend answers. A previous sighting (localStorage)
 // pre-reveals so repeat visitors don't see the builder jump on every load.
@@ -2791,6 +3240,37 @@ if(localStorage.getItem(SONG_SEARCH_SEEN_KEY) === 'true') setSongSearchVisible(t
     setSongSearchVisible(!!(body && body.ok));
   }catch(err){
     setSongSearchVisible(false);
+  }
+})();
+
+// ?song=<id> restores a shared song link by loading the song itself. The load
+// registers as songLoadInflight like a search selection, so a newer selection
+// or a manual edit aborts it instead of being overwritten by it. On failure
+// the param is kept so a reload retries.
+if(songParam) (async ()=>{
+  const ctrl = new AbortController();
+  songLoadInflight = ctrl;
+  try{
+    const res = await fetch(`${SONG_API_BASE}/api/songs/${encodeURIComponent(songParam)}`, { signal: ctrl.signal });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const full = await res.json();
+    if(ctrl !== songLoadInflight) return; // superseded while the body streamed
+    songLoadInflight = null;
+    if(!activeSong || activeSong.id !== songParam) return;
+    setSongSearchVisible(true); // an answering song fetch proves the backend is up
+    if(!songSearchInputEl.value) songSearchInputEl.value = `${full.artist} — ${full.title}`;
+    applySong(full, songParam);
+    // ?transpose= restores the sharer's key — only on top of a successful apply
+    // (appliedText stays null when the song had no playable chords)
+    if(activeSong && activeSong.appliedText !== null && Number.isInteger(songTransposeParam) && songTransposeParam !== 0){
+      setTransposeOffset(songTransposeParam);
+    }
+  }catch(err){
+    if(err.name === 'AbortError') return; // superseded — the newer action owns the UI
+    if(ctrl === songLoadInflight) songLoadInflight = null;
+    if(activeSong && activeSong.id === songParam){
+      setSongNote('Could not load the linked song — please try again.');
+    }
   }
 })();
 
