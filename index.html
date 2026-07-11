@@ -155,8 +155,28 @@
   .is-flash .btn-label-default{ opacity:0; transform:translateY(-4px); }
   .is-flash .btn-label-flash{ visibility:visible; opacity:1; transform:translateY(0); }
   #shareBtn .btn-label{ min-width:48px; }
-  .options-toggle .chev{ width:13px; height:13px; margin-left:-2px; transition:transform .25s cubic-bezier(.4,0,.2,1); }
-  .options-toggle[aria-expanded="true"] .chev{ transform:rotate(180deg); }
+  .share-wrap{ position:relative; }
+  .share-menu{
+    position:absolute; top:calc(100% + 8px); right:0; z-index:40; min-width:240px; max-width:300px;
+    display:flex; flex-direction:column; gap:2px; padding:6px;
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
+    box-shadow:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
+    transform-origin:top right;
+    opacity:0; visibility:hidden; transform:translateY(-6px) scale(.96);
+    transition:opacity .16s ease, transform .2s cubic-bezier(.34,1.56,.64,1), visibility .2s;
+  }
+  .share-wrap.open .share-menu{ opacity:1; visibility:visible; transform:translateY(0) scale(1); }
+  .share-menu-item{
+    display:flex; flex-direction:column; align-items:flex-start; gap:1px;
+    min-height:0; width:100%; padding:7px 10px; border:none; border-radius:8px;
+    background:transparent; color:var(--ink); font-size:14px; text-align:left; cursor:pointer;
+  }
+  .share-menu-item:hover{ background:var(--page-bg); border-color:transparent; color:var(--ink); }
+  .share-menu-item:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .share-menu-label{ font-weight:700; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .share-menu-sub{ font-size:12px; color:var(--ink-soft); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .options-toggle .chev, #shareBtn .chev{ width:13px; height:13px; margin-left:-2px; transition:transform .25s cubic-bezier(.4,0,.2,1); }
+  .options-toggle[aria-expanded="true"] .chev, #shareBtn[aria-expanded="true"] .chev{ transform:rotate(180deg); }
 
   .options-panel{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .28s cubic-bezier(.4,0,.2,1); }
   .options-panel.open{ grid-template-rows:1fr; }
@@ -782,10 +802,27 @@
         Options
         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <button type="button" id="shareBtn" class="secondary btn-iconic" title="Copy a link to this chart">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
-        <span class="btn-label"><span class="btn-label-default">Share</span><span class="btn-label-flash" aria-hidden="true"></span></span>
-      </button>
+      <div class="share-wrap" id="shareWrap">
+        <button type="button" id="shareBtn" class="secondary btn-iconic" title="Copy a share link" aria-expanded="false" aria-controls="shareMenu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
+          <span class="btn-label"><span class="btn-label-default">Share</span><span class="btn-label-flash" aria-hidden="true"></span></span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="share-menu" id="shareMenu" aria-label="Copy a share link">
+          <button type="button" class="share-menu-item" id="shareSongItem" hidden>
+            <span class="share-menu-label" id="shareSongLabel"></span>
+            <span class="share-menu-sub" id="shareSongSub"></span>
+          </button>
+          <button type="button" class="share-menu-item" id="shareChordsItem">
+            <span class="share-menu-label">Chords</span>
+            <span class="share-menu-sub" id="shareChordsSub"></span>
+          </button>
+          <button type="button" class="share-menu-item" id="shareAppItem">
+            <span class="share-menu-label">App</span>
+            <span class="share-menu-sub" id="shareAppSub"></span>
+          </button>
+        </div>
+      </div>
       <button type="button" id="copyAllBtn" class="secondary btn-iconic" title="Copy one image of all displayed chord diagrams">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         <span class="btn-label"><span class="btn-label-default">Copy chart</span><span class="btn-label-flash" aria-hidden="true"></span></span>
@@ -1366,10 +1403,16 @@ function flashButtonText(btnEl, text){
   // overlay the feedback over the invisible label so the button keeps its width
   btnEl.querySelector('.btn-label-flash').textContent = text;
   btnEl.classList.add('is-flash');
+  // disabling a focused button drops focus to <body>; hand it back afterwards
+  // (unless the user moved on) so keyboard flows continue from the button
+  const hadFocus = document.activeElement === btnEl;
   btnEl.disabled = true;
   btnEl._flashTimeout = setTimeout(()=>{
     btnEl.classList.remove('is-flash');
     btnEl.disabled = false;
+    if(hadFocus && document.activeElement === document.body){
+      try{ btnEl.focus({ preventScroll:true }); }catch(err){}
+    }
   }, 1300);
 }
 
@@ -1459,21 +1502,16 @@ function copyTextFallback(text){
   }
 }
 
-async function copyShareLink(btnEl){
-  // Share must include edits made during the input debounce window.
-  updateURLParam(document.getElementById('chordInput').value);
-  const link = window.location.href;
+// resolves to the flash verdict for the share button
+async function copyLinkText(link){
   try{
     if(!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('no-clipboard-api');
     await navigator.clipboard.writeText(link);
-    flashButtonText(btnEl, 'Copied');
+    return 'Copied';
   }catch(err){
-    if(copyTextFallback(link)){
-      flashButtonText(btnEl, 'Copied');
-    } else {
-      window.prompt('Copy this chart link:', link);
-      flashButtonText(btnEl, 'Shown');
-    }
+    if(copyTextFallback(link)) return 'Copied';
+    window.prompt('Copy this link:', link);
+    return 'Shown';
   }
 }
 
@@ -1481,6 +1519,9 @@ async function copyShareLink(btnEl){
 function chordPageURL(label, allVoicings){
   const params = new URLSearchParams(window.location.search);
   params.set('chords', label + (allVoicings ? '*' : ''));
+  // an explicit chord list is never song mode
+  params.delete('song');
+  params.delete('transpose');
   params.set('tuning', selectedTuningId);
   return window.location.pathname + '?' + params.toString();
 }
@@ -1825,9 +1866,12 @@ function saveSettings(){
   };
   // Only persist chordInput once the user has actually edited it — otherwise a
   // fresh visit would freeze in the built-in default forever instead of picking
-  // up future default changes.
+  // up future default changes. While it is still default (or emptied for a
+  // pending ?song= load) any previously stored chords are carried forward.
   if(!chordInputIsDefault){
     settings.chordInput = document.getElementById('chordInput').value;
+  } else if(typeof savedSettings.chordInput === 'string'){
+    settings.chordInput = savedSettings.chordInput;
   }
   try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(err){}
 }
@@ -2531,8 +2575,25 @@ wireChooserStepper('voicingModalMaxSpan', stepChooserMaxSpan);
 
 function updateURLParam(chordInputValue){
   const params = new URLSearchParams(window.location.search);
-  if(chordInputValue){ params.set('chords', chordInputValue); }
-  else { params.delete('chords'); }
+  // The URL carries either the song identity or the literal chords, never both:
+  // ?song= (plus ?transpose= when shifted as a whole) while the chart is still
+  // the song, ?chords= once it diverged — so a link always reproduces what is
+  // on screen. (activeSong and songChartOffset live in the song-search section
+  // below, which runs before the first generate() call.)
+  const songOffset = songChartOffset(chordInputValue);
+  if(songOffset !== null){
+    params.set('song', activeSong.id);
+    if(songOffset !== 0){ params.set('transpose', String(songOffset)); }
+    // while the song fetch is pending the URL's own ?transpose= must survive
+    // for the restore to apply it
+    else if(activeSong.appliedText !== null){ params.delete('transpose'); }
+    params.delete('chords');
+  } else {
+    params.delete('song');
+    params.delete('transpose');
+    if(chordInputValue){ params.set('chords', chordInputValue); }
+    else { params.delete('chords'); }
+  }
   params.set('tuning', selectedTuningId);
   const query = params.toString();
   const newURL = window.location.pathname + (query ? `?${query}` : '') + window.location.hash;
@@ -2723,8 +2784,78 @@ document.getElementById('tipDismissBtn').addEventListener('click', ()=>{
 });
 
 document.getElementById('copyAllBtn').addEventListener('click', ()=> copyAllChordsAsImage(document.getElementById('copyAllBtn')));
-document.getElementById('shareBtn').addEventListener('click', ()=> copyShareLink(document.getElementById('shareBtn')));
 document.getElementById('printBtn').addEventListener('click', ()=>window.print());
+
+// --- share menu: one link per thing worth sharing (song / chord list / app) ---
+const shareWrap = document.getElementById('shareWrap');
+const shareBtn = document.getElementById('shareBtn');
+document.getElementById('shareAppSub').textContent = window.location.host;
+
+function shareLinkFor(params){
+  const query = params.toString();
+  return window.location.origin + window.location.pathname + (query ? `?${query}` : '');
+}
+
+function buildShareMenu(){
+  const songItem = document.getElementById('shareSongItem');
+  const withSong = !!(activeSong && activeSong.appliedText !== null);
+  songItem.hidden = !withSong;
+  if(withSong){
+    // version suffixes ("Wonderwall - Remastered") only add noise, as in the sheet link
+    document.getElementById('shareSongLabel').textContent = `Chords of song “${activeSong.title.replace(/\s-\s.*$/,'')}”`;
+    document.getElementById('shareSongSub').textContent = activeSong.artist;
+  }
+  const trimmed = document.getElementById('chordInput').value.trim();
+  document.getElementById('shareChordsItem').hidden = trimmed === '';
+  document.getElementById('shareChordsSub').textContent = trimmed.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean).join(', ');
+}
+
+function openShareMenu(){
+  buildShareMenu();
+  shareWrap.classList.add('open');
+  shareBtn.setAttribute('aria-expanded','true');
+  document.addEventListener('click', onShareDocClick);
+}
+function closeShareMenu(){
+  shareWrap.classList.remove('open');
+  shareBtn.setAttribute('aria-expanded','false');
+  document.removeEventListener('click', onShareDocClick);
+}
+function onShareDocClick(e){
+  if(!shareWrap.contains(e.target)) closeShareMenu();
+}
+shareBtn.addEventListener('click', ()=>{
+  shareWrap.classList.contains('open') ? closeShareMenu() : openShareMenu();
+});
+shareWrap.addEventListener('keydown', e=>{
+  if(e.key === 'Escape'){ closeShareMenu(); shareBtn.focus(); }
+});
+
+// links are built at click time so they can't go stale while the menu is open
+async function copyShareOption(buildParams){
+  const params = buildParams();
+  closeShareMenu();
+  // the clicked item is hidden with the menu and must not keep focus
+  shareBtn.focus();
+  if(!params) return;
+  flashButtonText(shareBtn, await copyLinkText(shareLinkFor(params)));
+}
+document.getElementById('shareSongItem').addEventListener('click', ()=> copyShareOption(()=>{
+  if(!activeSong) return null; // edited away while the menu was open
+  const params = new URLSearchParams();
+  params.set('song', activeSong.id);
+  const offset = songChartOffset(document.getElementById('chordInput').value);
+  if(offset) params.set('transpose', String(offset));
+  params.set('tuning', selectedTuningId);
+  return params;
+}));
+document.getElementById('shareChordsItem').addEventListener('click', ()=> copyShareOption(()=>{
+  const params = new URLSearchParams();
+  params.set('chords', document.getElementById('chordInput').value);
+  params.set('tuning', selectedTuningId);
+  return params;
+}));
+document.getElementById('shareAppItem').addEventListener('click', ()=> copyShareOption(()=> new URLSearchParams()));
 
 const syntaxToggleBtn = document.getElementById('syntaxToggleBtn');
 const syntaxPanel = document.getElementById('syntaxPanel');
@@ -2834,6 +2965,41 @@ const SONG_API_BASE = (new URLSearchParams(window.location.search).get('songApi'
   || 'https://songsearch.chords.wbou.dev').replace(/\/+$/,'');
 const SONG_SEARCH_SEEN_KEY = 'chordChartGenerator.songSearchSeen';
 
+// The song the current chart came from, carried in the URL as ?song=<id> so
+// the chart can be linked and re-shared with its attribution. appliedText is
+// the exact chord-input text the song produced — while the input still matches
+// it (allowing whole-chart transposition) the URL stays in song mode. Seeded
+// from the URL (appliedText null = fetch pending) before the first generate()
+// so the param survives loading.
+const songParam = new URLSearchParams(window.location.search).get('song');
+// Captured now because applySong's own generate() rewrites the URL (and drops
+// ?transpose=) before the restore gets to apply it. Parsed strictly — parseInt
+// alone would accept "3.5" or "3abc" from a hand-edited URL.
+const songTransposeRaw = new URLSearchParams(window.location.search).get('transpose') || '';
+const songTransposeParam = /^-?\d{1,2}$/.test(songTransposeRaw) ? parseInt(songTransposeRaw, 10) : NaN;
+let activeSong = songParam ? { id: songParam, appliedText: null } : null;
+
+// A song link owns the chart: drop chords pre-seeded from localStorage or a
+// hand-crafted ?chords= so an unrelated chart never renders in song mode —
+// the empty state shows until the song lands (or fails, beside the note).
+// Flagged default so the transient empty input is not persisted over the
+// visitor's stored chords.
+if(songParam){
+  chordInputEl.value = '';
+  chordInputIsDefault = true;
+}
+
+// The transpose offset at which the chart is still exactly the active song
+// (0 = as loaded), or null when there is no active song or the chart diverged
+// beyond a whole-chart transposition.
+function songChartOffset(chordInputValue){
+  if(!activeSong) return null;
+  if(activeSong.appliedText === null) return 0; // fetch pending — trust the param
+  const offset = currentTransposeOffset();
+  const baseText = (offset !== 0 && transposeState) ? transposeState.baseText : chordInputValue;
+  return baseText === activeSong.appliedText ? offset : null;
+}
+
 const songSearchFieldEl = document.getElementById('songSearchField');
 const songDataFooterEl = document.getElementById('songDataFooter');
 const songSearchInputEl = document.getElementById('songSearchInput');
@@ -2843,6 +3009,7 @@ let songSearchItems = [];
 let songSearchActive = -1;
 let songSearchDebounce = null;
 let songSearchInflight = null; // AbortController — every keystroke cancels the previous request
+let songLoadInflight = null; // AbortController — a newer selection or a manual edit cancels a pending song load
 
 function setSongSearchVisible(visible){
   songSearchFieldEl.hidden = !visible;
@@ -2931,26 +3098,38 @@ async function selectSong(song){
   // a debounce that hasn't fired yet, or a search still in flight
   clearTimeout(songSearchDebounce);
   if(songSearchInflight){ songSearchInflight.abort(); songSearchInflight = null; }
+  // a slower earlier selection must not overwrite this one
+  if(songLoadInflight) songLoadInflight.abort();
+  const ctrl = new AbortController();
+  songLoadInflight = ctrl;
   closeSongResults();
   songSearchInputEl.value = `${song.artist} — ${song.title}`;
   setSongNote('Loading song…');
   try{
-    const res = await fetch(`${SONG_API_BASE}/api/songs/${song.id}`);
+    const res = await fetch(`${SONG_API_BASE}/api/songs/${encodeURIComponent(song.id)}`, { signal: ctrl.signal });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    applySong(await res.json());
+    const full = await res.json();
+    if(ctrl !== songLoadInflight) return; // superseded while the body streamed
+    songLoadInflight = null;
+    applySong(full, song.id);
   }catch(err){
+    if(err.name === 'AbortError') return; // superseded — the newer action owns the UI
+    if(ctrl === songLoadInflight) songLoadInflight = null;
     setSongNote('Could not load that song — please try again.');
   }
 }
 
-function applySong(full){
+function applySong(full, songId){
   // "unmapped" symbols never reach the chord input — the parser would reject them
   if(!Array.isArray(full.chords) || !full.chords.length){
     setSongNote(`No playable chords found for ${full.artist} — ${full.title}.`);
     return;
   }
+  const text = full.chords.join(', ');
+  // before generate(), so updateURLParam writes the ?song= param
+  activeSong = { id: songId, appliedText: text, artist: full.artist, title: full.title };
   clearTimeout(chordInputDebounce); // a half-typed manual edit must not overwrite the song
-  chordInputEl.value = full.chords.join(', ');
+  chordInputEl.value = text;
   chordInputIsDefault = false;
   resizeChordInput();
   generate();
@@ -3000,9 +3179,19 @@ songSearchInputEl.addEventListener('keydown', e=>{
 // the delay lets a pointerdown on a result land before the list disappears
 songSearchInputEl.addEventListener('blur', ()=> setTimeout(closeSongResults, 120));
 
-// a manual chord edit or clear makes the "Loaded …" note stale
-chordInputEl.addEventListener('input', ()=> setSongNote(''));
-document.getElementById('chordInputClear').addEventListener('click', ()=> setSongNote(''));
+// A manual chord edit or clear makes the "Loaded …" note stale and breaks the
+// chart–song association. The URL is refreshed here too because the clear
+// button's own handler regenerates before this listener runs.
+function clearActiveSong(){
+  // a manual edit also abandons a song still loading
+  if(songLoadInflight){ songLoadInflight.abort(); songLoadInflight = null; }
+  if(!activeSong && !songSearchNoteEl.textContent) return;
+  activeSong = null;
+  setSongNote('');
+  updateURLParam(chordInputEl.value);
+}
+chordInputEl.addEventListener('input', clearActiveSong);
+document.getElementById('chordInputClear').addEventListener('click', clearActiveSong);
 
 // Reveal only when the backend answers. A previous sighting (localStorage)
 // pre-reveals so repeat visitors don't see the builder jump on every load.
@@ -3014,6 +3203,37 @@ if(localStorage.getItem(SONG_SEARCH_SEEN_KEY) === 'true') setSongSearchVisible(t
     setSongSearchVisible(!!(body && body.ok));
   }catch(err){
     setSongSearchVisible(false);
+  }
+})();
+
+// ?song=<id> restores a shared song link by loading the song itself. The load
+// registers as songLoadInflight like a search selection, so a newer selection
+// or a manual edit aborts it instead of being overwritten by it. On failure
+// the param is kept so a reload retries.
+if(songParam) (async ()=>{
+  const ctrl = new AbortController();
+  songLoadInflight = ctrl;
+  try{
+    const res = await fetch(`${SONG_API_BASE}/api/songs/${encodeURIComponent(songParam)}`, { signal: ctrl.signal });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const full = await res.json();
+    if(ctrl !== songLoadInflight) return; // superseded while the body streamed
+    songLoadInflight = null;
+    if(!activeSong || activeSong.id !== songParam) return;
+    setSongSearchVisible(true); // an answering song fetch proves the backend is up
+    if(!songSearchInputEl.value) songSearchInputEl.value = `${full.artist} — ${full.title}`;
+    applySong(full, songParam);
+    // ?transpose= restores the sharer's key — only on top of a successful apply
+    // (appliedText stays null when the song had no playable chords)
+    if(activeSong && activeSong.appliedText !== null && Number.isInteger(songTransposeParam) && songTransposeParam !== 0){
+      setTransposeOffset(songTransposeParam);
+    }
+  }catch(err){
+    if(err.name === 'AbortError') return; // superseded — the newer action owns the UI
+    if(ctrl === songLoadInflight) songLoadInflight = null;
+    if(activeSong && activeSong.id === songParam){
+      setSongNote('Could not load the linked song — please try again.');
+    }
   }
 })();
 
