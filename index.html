@@ -951,13 +951,13 @@
               <div class="info-popover" id="aquilaInfoPopover" role="tooltip">Draws every string in the colours of the <a href="https://aquilacorde.com/en/negozio/modern-instrument-string-sets/ukulele-banjouke-en/kids/?v=4b8cc16d888f" target="_blank" rel="noopener">Aquila Kids</a> educational ukulele set — green (G), red (C), yellow (E) and blue (A). On other instruments and tunings the colours follow the string positions.</div>
             </div>
             <div class="switch-wrap" id="omitInfoWrap">
-              <label class="switch" title="Chords like 7add9, 6add9 and maj7add9 have 5 notes, but these instruments only have 4 strings — the 5th is dropped. When on, affected chords show a note naming the dropped tone.">
+              <label class="switch" title="Chords like 7add9, 6add9 and maj7add9, or a 7th chord with a slash bass outside the chord (like E7/A), have 5 notes — but these instruments only have 4 strings, so the 5th is dropped. When on, affected chords show a note naming the dropped tone.">
                 <input type="checkbox" id="omitToggle" checked>
                 <span class="switch-track"><span class="switch-thumb"></span></span>
                 <span>Show omitted-note labels</span>
               </label>
               <button type="button" class="info-btn" id="omitInfoBtn" aria-label="About the omitted-note note" aria-expanded="false">i</button>
-              <div class="info-popover" id="omitInfoPopover" role="tooltip">Chords like 7add9, 6add9 and maj7add9 have 5 notes, but these instruments only have 4 strings — the 5th is dropped. When on, affected chords show a note naming the dropped tone.</div>
+              <div class="info-popover" id="omitInfoPopover" role="tooltip">Chords like 7add9, 6add9 and maj7add9, or a 7th chord with a slash bass outside the chord (like E7/A), have 5 notes — but these instruments only have 4 strings, so the 5th is dropped. When on, affected chords show a note naming the dropped tone.</div>
             </div>
             <div class="switch-wrap" id="thresholdInfoWrap">
               <div class="stepper" id="thresholdStepper" title="Diagrams normally start at the nut. If a chord's lowest fretted note is above this fret, the diagram is cropped to a short window at the chord's position instead.">
@@ -1265,10 +1265,21 @@ function parseChord(input){
   const rootPC = noteToPC(m[1], m[2]||'');
   const qualityKey = resolveQuality(m[3]||'');
   if(qualityKey===null) return { error:`Unknown chord quality in "${raw}"` };
-  const requiredPCs = [...new Set(CHORD_TONES[qualityKey].map(iv => (rootPC+iv)%12))];
+  let requiredPCs = [...new Set(CHORD_TONES[qualityKey].map(iv => (rootPC+iv)%12))];
   let bassPC = null;
   if(m[4]) bassPC = noteToPC(m[4], m[5]||'');
-  const omitInfo = OMITTED_TONE[qualityKey];
+  let omitInfo = OMITTED_TONE[qualityKey];
+  // A slash bass outside the chord (e.g. E7/A) needs a 5th simultaneous note that no
+  // 4-string instrument has a string for; drop the 5th to fit, same shell-voicing
+  // trick already used for 7add9/6add9/maj7add9 above.
+  if(bassPC!==null && !requiredPCs.includes(bassPC) && requiredPCs.length>3 && !omitInfo){
+    const fifthIv = CHORD_TONES[qualityKey].find(iv => iv===6||iv===7||iv===8);
+    if(fifthIv!==undefined){
+      const fifthPC = (rootPC+fifthIv)%12;
+      requiredPCs = requiredPCs.filter(pc => pc!==fifthPC);
+      omitInfo = { interval:fifthIv, label: fifthIv===6 ? 'b5' : fifthIv===8 ? '#5' : '5th' };
+    }
+  }
   const omitted = omitInfo
     ? { label:omitInfo.label, note:pcName((rootPC+omitInfo.interval)%12, m[2]==='b') }
     : null;
