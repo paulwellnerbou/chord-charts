@@ -1294,7 +1294,9 @@ function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openP
   const tileW = diagW + PAD*2;
   const tileH = PAD + headerH + diagH + footerH + PAD;
   const strokeAttr = showBorder ? `stroke="${colors.cardBorder}" stroke-width="2"` : `stroke="none"`;
+  const sourceURL = new URL(chordPageURL(label, false), window.location.href).href;
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${tileW} ${tileH}" width="${tileW}" height="${tileH}">`;
+  s += `<metadata>Chord diagram from ${escapeXML(sourceURL)}</metadata>`;
   s += `<rect x="1" y="1" width="${tileW-2}" height="${tileH-2}" rx="12" fill="${colors.cardBg}" ${strokeAttr}/>`;
   s += `<text x="${tileW/2}" y="${PAD+headerH*0.7}" text-anchor="middle" font-size="21" font-weight="700" fill="${colors.heading}" font-family="${colors.exportHeadingFont}">${escapeXML(label)}</text>`;
   s += `<g transform="translate(${PAD},${PAD+headerH})">${diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret)}</g>`;
