@@ -1008,14 +1008,11 @@ const EXPORT_HEADING_FONT = "Georgia, 'Times New Roman', serif";
 const NICE_COLORS = {
   ink:'#292621', dotFill:'#554f49', dotStroke:'#37332f',
   cardBg:'#fffcf7', cardBorder:'#ddd3c5', heading:'#a44737', rootColor:'#a44737',
-  rootFill:'#f1cfc5',
   lineOpacity:0.55, markerOpacity:0.3, exportHeadingFont:EXPORT_HEADING_FONT
 };
 const BW_COLORS = {
   ink:'#000000', dotFill:'#000000', dotStroke:'#000000',
   cardBg:'#ffffff', cardBorder:'#000000', heading:'#000000', rootColor:'#000000',
-  // solid black root would vanish among normal dots in print — keep the hollow ring
-  rootFill:'#ffffff',
   lineOpacity:1, markerOpacity:0.25, exportHeadingFont:EXPORT_HEADING_FONT
 };
 // Aquila Kids educational set: green/red/yellow/blue from 4th to 1st string
@@ -1140,7 +1137,7 @@ function fretsSpellChord(frets, requiredPCs, bassPC, tuning){
 }
 
 const XS = [30,70,110,150];
-const NUT_Y = 34, FRET_H = 34;
+const NUT_Y = 37, FRET_H = 34;
 const FRET_MARKERS = [3,5,7,10,12];
 function rowCenter(fret){ return NUT_Y + (fret-0.5)*FRET_H; }
 
@@ -1183,20 +1180,18 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
     const abs = (fret!==null && openAbs) ? openAbs[i]+fret : null;
     const noteAttrs = abs!==null ? ` class="note-dot" data-abs="${abs}" tabindex="0" role="button" aria-label="Play ${escapeXML(labels[i])} string, ${escapeXML(String(fret))}${fret===0?' open':''}"` : '';
     if(fret===null){
-      s += `<line x1="${x-6}" y1="16" x2="${x+6}" y2="28" stroke="${colors.ink}" stroke-width="1.5"/>`;
-      s += `<line x1="${x-6}" y1="28" x2="${x+6}" y2="16" stroke="${colors.ink}" stroke-width="1.5"/>`;
+      s += `<line x1="${x-6}" y1="18" x2="${x+6}" y2="30" stroke="${colors.ink}" stroke-width="1.5"/>`;
+      s += `<line x1="${x-6}" y1="30" x2="${x+6}" y2="18" stroke="${colors.ink}" stroke-width="1.5"/>`;
     } else if(fret===0){
+      s += `<circle cx="${x}" cy="24" r="6" fill="${colors.cardBg}" stroke="${colors.ink}" stroke-width="1.5"${noteAttrs}/>`;
       if(isRoot){
-        s += `<circle cx="${x}" cy="22" r="6" fill="${colors.cardBg}" stroke="${colors.rootColor}" stroke-width="3"${noteAttrs}/>`;
-      } else {
-        s += `<circle cx="${x}" cy="22" r="6" fill="${colors.cardBg}" stroke="${colors.ink}" stroke-width="1.5"${noteAttrs}/>`;
+        s += `<circle cx="${x}" cy="24" r="9" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
       }
     } else {
       const y = rowCenter(fret-startFret);
+      s += `<circle cx="${x}" cy="${y}" r="9" fill="${colors.dotFill}" stroke="${colors.dotStroke}" stroke-width="1"${noteAttrs}/>`;
       if(isRoot){
-        s += `<circle cx="${x}" cy="${y}" r="9" fill="${colors.rootFill}" stroke="${colors.rootColor}" stroke-width="4"${noteAttrs}/>`;
-      } else {
-        s += `<circle cx="${x}" cy="${y}" r="9" fill="${colors.dotFill}" stroke="${colors.dotStroke}" stroke-width="1"${noteAttrs}/>`;
+        s += `<circle cx="${x}" cy="${y}" r="12" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
       }
     }
   });
