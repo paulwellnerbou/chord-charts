@@ -3284,14 +3284,23 @@ window.addEventListener('resize', ()=>{
   clearTimeout(chordInputResizeTimer);
   chordInputResizeTimer = setTimeout(resizeChordInput, 120);
 });
-// grid width can change without a window resize (scrollbar appearing, etc.)
+// grid width can change without a window resize (scrollbar appearing, etc.).
+// Height alone isn't a signal to re-fit — it changes on every render (cards
+// added/removed) and on every fit pass itself (row height nudged by the new
+// font-size) — so the observer callback ignores height-only notifications.
 let titleFitTimer = null;
+let lastGridWidth = null;
 const scheduleTitleFit = ()=>{
   clearTimeout(titleFitTimer);
   titleFitTimer = setTimeout(fitCardTitles, 120);
 };
 if(typeof ResizeObserver === 'function'){
-  new ResizeObserver(scheduleTitleFit).observe(document.getElementById('grid'));
+  new ResizeObserver(entries=>{
+    const width = entries[0].contentRect.width;
+    if(width === lastGridWidth) return;
+    lastGridWidth = width;
+    scheduleTitleFit();
+  }).observe(document.getElementById('grid'));
 } else {
   window.addEventListener('resize', scheduleTitleFit);
 }
