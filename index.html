@@ -2896,14 +2896,19 @@ if(localStorage.getItem(SONG_SEARCH_SEEN_KEY) === 'true') setSongSearchVisible(t
   }
 })();
 
-// ?song=<id> restores a shared song link by loading the song itself. On
-// failure the param is kept so a reload retries. Either fate is skipped when
-// the user has already edited away or picked another song mid-fetch.
+// ?song=<id> restores a shared song link by loading the song itself. The load
+// registers as songLoadInflight like a search selection, so a newer selection
+// or a manual edit aborts it instead of being overwritten by it. On failure
+// the param is kept so a reload retries.
 if(songParam) (async ()=>{
+  const ctrl = new AbortController();
+  songLoadInflight = ctrl;
   try{
-    const res = await fetch(`${SONG_API_BASE}/api/songs/${encodeURIComponent(songParam)}`);
+    const res = await fetch(`${SONG_API_BASE}/api/songs/${encodeURIComponent(songParam)}`, { signal: ctrl.signal });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const full = await res.json();
+    if(ctrl !== songLoadInflight) return; // superseded while the body streamed
+    songLoadInflight = null;
     if(!activeSong || activeSong.id !== songParam) return;
     setSongSearchVisible(true); // an answering song fetch proves the backend is up
     if(!songSearchInputEl.value) songSearchInputEl.value = `${full.artist} — ${full.title}`;
@@ -2914,6 +2919,8 @@ if(songParam) (async ()=>{
       setTransposeOffset(songTransposeParam);
     }
   }catch(err){
+    if(err.name === 'AbortError') return; // superseded — the newer action owns the UI
+    if(ctrl === songLoadInflight) songLoadInflight = null;
     if(activeSong && activeSong.id === songParam){
       setSongNote('Could not load the linked song — please try again.');
     }
