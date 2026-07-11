@@ -1334,10 +1334,16 @@ function flashButtonText(btnEl, text){
   // overlay the feedback over the invisible label so the button keeps its width
   btnEl.querySelector('.btn-label-flash').textContent = text;
   btnEl.classList.add('is-flash');
+  // disabling a focused button drops focus to <body>; hand it back afterwards
+  // (unless the user moved on) so keyboard flows continue from the button
+  const hadFocus = document.activeElement === btnEl;
   btnEl.disabled = true;
   btnEl._flashTimeout = setTimeout(()=>{
     btnEl.classList.remove('is-flash');
     btnEl.disabled = false;
+    if(hadFocus && document.activeElement === document.body){
+      try{ btnEl.focus({ preventScroll:true }); }catch(err){}
+    }
   }, 1300);
 }
 
@@ -1583,9 +1589,12 @@ function saveSettings(){
   };
   // Only persist chordInput once the user has actually edited it — otherwise a
   // fresh visit would freeze in the built-in default forever instead of picking
-  // up future default changes.
+  // up future default changes. While it is still default (or emptied for a
+  // pending ?song= load) any previously stored chords are carried forward.
   if(!chordInputIsDefault){
     settings.chordInput = document.getElementById('chordInput').value;
+  } else if(typeof savedSettings.chordInput === 'string'){
+    settings.chordInput = savedSettings.chordInput;
   }
   try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(err){}
 }
@@ -2516,6 +2525,8 @@ shareWrap.addEventListener('keydown', e=>{
 async function copyShareOption(buildParams){
   const params = buildParams();
   closeShareMenu();
+  // the clicked item is hidden with the menu and must not keep focus
+  shareBtn.focus();
   if(!params) return;
   flashButtonText(shareBtn, await copyLinkText(shareLinkFor(params)));
 }
@@ -2655,6 +2666,16 @@ const songParam = new URLSearchParams(window.location.search).get('song');
 // ?transpose=) before the restore gets to apply it
 const songTransposeParam = parseInt(new URLSearchParams(window.location.search).get('transpose'), 10);
 let activeSong = songParam ? { id: songParam, appliedText: null } : null;
+
+// A song link owns the chart: drop chords pre-seeded from localStorage or a
+// hand-crafted ?chords= so an unrelated chart never renders in song mode —
+// the empty state shows until the song lands (or fails, beside the note).
+// Flagged default so the transient empty input is not persisted over the
+// visitor's stored chords.
+if(songParam){
+  chordInputEl.value = '';
+  chordInputIsDefault = true;
+}
 
 // The transpose offset at which the chart is still exactly the active song
 // (0 = as loaded), or null when there is no active song or the chart diverged
