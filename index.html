@@ -587,7 +587,6 @@
   button.voicing-nav-count:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   /* expanded cards keep their voicing index visible (and printable) */
   .voicing-nav-static{ opacity:1; }
-  .voicing-collapse{ color:var(--accent); }
 
   .voicing-modal-backdrop{
     position:fixed; inset:0; z-index:60; padding:24px;
@@ -1311,7 +1310,6 @@ const PLAY_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="current
 const PLAYING_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" class="play-icon-bars"><rect x="4" y="4" width="3" height="16" rx="1"/><rect x="10.5" y="4" width="3" height="16" rx="1"/><rect x="17" y="4" width="3" height="16" rx="1"/></svg>`;
 const CHEVRON_LEFT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>`;
 const CHEVRON_RIGHT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
-const CHECK_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 const DOTS_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>`;
 const DOWNLOAD_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`;
 const LINK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
@@ -2214,10 +2212,6 @@ function setTransposeOffset(offset){
 
 function stepTranspose(delta){ setTransposeOffset(currentTransposeOffset() + delta); }
 
-// one-shot voicing preference consumed by the next generate(), so collapsing an
-// expanded chord keeps the voicing whose card the user clicked
-let pendingVoicingPref = null;
-
 function buildCard(result, ctx){
   const { tuning, colors, highlightRoot, showOmitted } = ctx;
   const { fretMax, startFret } = computeFretWindow(result.voicings[result.altIndex]);
@@ -2254,12 +2248,7 @@ function buildCard(result, ctx){
     card.classList.add('has-alt-voicings');
     const nav = document.createElement('div');
     nav.className = 'voicing-nav voicing-nav-static';
-    nav.innerHTML = `<span class="voicing-nav-count" title="Voicing ${result.altIndex+1} of ${result.voicings.length} for ${escapeXML(result.label)}">${result.altIndex+1} / ${result.voicings.length}</span><button type="button" class="voicing-nav-btn voicing-collapse no-print" title="Keep only this voicing" aria-label="Keep only this voicing of ${escapeXML(result.label)}">${CHECK_ICON}</button>`;
-    nav.querySelector('.voicing-collapse').addEventListener('click', ()=>{
-      const frets = result.voicings[result.altIndex];
-      pendingVoicingPref = { label: result.label, frets, custom: !!(result.customFrets && frets.every((f,i)=> f === result.customFrets[i])) };
-      setChordExpanded(result.label, false);
-    });
+    nav.innerHTML = `<span class="voicing-nav-count" title="Voicing ${result.altIndex+1} of ${result.voicings.length} for ${escapeXML(result.label)}">${result.altIndex+1} / ${result.voicings.length}</span>`;
     card.appendChild(nav);
   } else if(result.voicings.length > 1){
     card.classList.add('has-alt-voicings');
@@ -2318,9 +2307,7 @@ function generate(){
     if(!voicings.length){ errors.push(`No practical voicing found for "${tok}"`); return; }
     // re-select the same frets if they still exist in the new voicing list;
     // fall back to the best voicing when they don't (new tuning, lower max fret)
-    const pref = (pendingVoicingPref && pendingVoicingPref.label === parsed.label)
-      ? pendingVoicingPref
-      : prevShown.get(parsed.label);
+    const pref = prevShown.get(parsed.label);
     let altIndex = 0, customFrets = null;
     if(pref){
       const idx = voicings.findIndex(v => v.every((f,i)=> f === pref.frets[i]));
@@ -2338,7 +2325,6 @@ function generate(){
     }
     results.push({ label: parsed.label, showAll: parsed.showAll, requiredPCs: parsed.requiredPCs, bassPC: parsed.bassPC, voicings, altIndex, customFrets, rootPC: parsed.rootPC, omitted: parsed.omitted });
   });
-  pendingVoicingPref = null;
 
   errorBox.textContent = errors.join('  ·  ');
   const countLabel = `${results.length} ${results.length === 1 ? 'chord' : 'chords'}`;
