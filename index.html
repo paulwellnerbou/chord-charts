@@ -495,7 +495,7 @@
   .grid.no-border .card:hover{ border-color:transparent; box-shadow:none; }
   /* side padding must clear the corner buttons — it is also the budget fitCardTitles() shrinks long names into */
   .chord-title-row{ display:flex; align-items:center; justify-content:center; gap:8px; min-height:30px; margin-bottom:4px; padding:0 33px; }
-  .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--accent); cursor:pointer; min-width:0; max-width:100%; white-space:nowrap; }
+  .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--accent); cursor:pointer; min-width:0; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .card h2:hover { opacity:.72; }
   .play-chord-btn{
     position:absolute; top:9px; left:9px; min-height:32px; flex:0 0 32px; width:32px; height:32px; padding:0; border:none; border-radius:50%; background:var(--accent-soft);
@@ -3286,10 +3286,15 @@ window.addEventListener('resize', ()=>{
 });
 // grid width can change without a window resize (scrollbar appearing, etc.)
 let titleFitTimer = null;
-new ResizeObserver(()=>{
+const scheduleTitleFit = ()=>{
   clearTimeout(titleFitTimer);
   titleFitTimer = setTimeout(fitCardTitles, 120);
-}).observe(document.getElementById('grid'));
+};
+if(typeof ResizeObserver === 'function'){
+  new ResizeObserver(scheduleTitleFit).observe(document.getElementById('grid'));
+} else {
+  window.addEventListener('resize', scheduleTitleFit);
+}
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=> fitCardTitles());
 generate();
 </script>
