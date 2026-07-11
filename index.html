@@ -3062,7 +3062,11 @@ function closeTipToast(){
 function onTipDocClick(e){
   // a click inside the "all tips" modal (spawned from the toast) isn't "outside" the toast
   if(!tipToast.contains(e.target) && !tipFabBtn.contains(e.target) && !tipsModalEl.contains(e.target)){
+    // clicking a focusable outside element (e.g. the chord input) already moved focus there —
+    // only steal it back to the fab if closing would otherwise drop it onto hidden content
+    const focusWasInToast = tipToast.contains(document.activeElement);
     closeTipToast();
+    if(focusWasInToast) tipFabBtn.focus();
   }
 }
 tipFabBtn.addEventListener('click', ()=>{
