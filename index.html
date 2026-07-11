@@ -493,8 +493,9 @@
   .card:hover{ transform:translateY(-2px); border-color:color-mix(in srgb,var(--accent) 34%,var(--card-border)); box-shadow:0 12px 28px -22px rgba(41,38,33,.75); }
   .grid.no-border .card,
   .grid.no-border .card:hover{ border-color:transparent; box-shadow:none; }
-  .chord-title-row{ display:flex; align-items:center; justify-content:center; gap:8px; min-height:30px; margin-bottom:4px; padding:0 30px; }
-  .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--accent); cursor:pointer; }
+  /* side padding must clear the corner buttons — it is also the budget fitCardTitles() shrinks long names into */
+  .chord-title-row{ display:flex; align-items:center; justify-content:center; gap:8px; min-height:30px; margin-bottom:4px; padding:0 33px; }
+  .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--accent); cursor:pointer; min-width:0; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .card h2:hover { opacity:.72; }
   .play-chord-btn{
     position:absolute; top:9px; left:9px; min-height:32px; flex:0 0 32px; width:32px; height:32px; padding:0; border:none; border-radius:50%; background:var(--accent-soft);
@@ -701,7 +702,6 @@
     .card{ padding:11px 5px 10px; border-radius:14px; }
     .card.has-alt-voicings{ padding-bottom:44px; }
     .card h2{ font-size:20px; }
-    .chord-title-row{ padding:0 29px; }
     .play-chord-btn,.card-menu-btn{ top:7px; width:30px; height:30px; min-height:30px; }
     .play-chord-btn{ left:6px; }
     .card-menu-btn{ right:6px; }
@@ -1922,6 +1922,42 @@ function layoutCards(cardEls){
   });
 }
 
+// Long names ("Cmaj7add9") overflow the space between the corner buttons on
+// narrow cards; shrink each title just enough to fit. Runs after every render,
+// on resize (card widths are fluid) and once webfonts land (metrics change).
+const TITLE_FONT_MIN = 13;
+function fitCardTitles(){
+  const heads = Array.from(document.querySelectorAll('#grid .card h2'));
+  if(!heads.length) return;
+  heads.forEach(h2=>{ if(h2.style.fontSize) h2.style.fontSize = ''; });
+  const range = document.createRange();
+  const measure = h2=>{
+    range.selectNodeContents(h2);
+    return range.getBoundingClientRect().width;
+  };
+  // batch reads apart from writes so each pass costs one reflow
+  let pending = heads.map(h2=>{
+    const avail = h2.clientWidth;
+    const needed = measure(h2);
+    return (avail && needed - avail > 0.5)
+      ? { h2, avail, needed, size: parseFloat(getComputedStyle(h2).fontSize) }
+      : null;
+  }).filter(Boolean);
+  // Fraunces' optical sizing makes text width slightly nonlinear in font-size,
+  // so one proportional step can leave a sliver of overflow — iterate.
+  for(let i=0; i<4 && pending.length; i++){
+    pending.forEach(job=>{
+      job.size = Math.max(TITLE_FONT_MIN, job.size * job.avail / job.needed);
+      job.h2.style.fontSize = job.size.toFixed(2) + 'px';
+    });
+    pending = pending.filter(job=>{
+      if(job.size <= TITLE_FONT_MIN) return false;
+      job.needed = measure(job.h2);
+      return job.needed - job.avail > 0.5;
+    });
+  }
+}
+
 // generate() blocks the main thread long enough (voicing search × chords) that
 // running it inside a click handler delays the control's own visual feedback.
 // rAF + setTimeout runs it right after the next paint; the timeout fallback
@@ -2300,6 +2336,7 @@ function generate(){
   });
 
   layoutCards(cardEls);
+  fitCardTitles();
   if(!cardEls.length && !errors.length){
     document.getElementById('grid').innerHTML = '<p class="empty-hint">Enter chord names above to see charts.</p>';
   }
@@ -3247,6 +3284,27 @@ window.addEventListener('resize', ()=>{
   clearTimeout(chordInputResizeTimer);
   chordInputResizeTimer = setTimeout(resizeChordInput, 120);
 });
+// grid width can change without a window resize (scrollbar appearing, etc.).
+// Height alone isn't a signal to re-fit — it changes on every render (cards
+// added/removed) and on every fit pass itself (row height nudged by the new
+// font-size) — so the observer callback ignores height-only notifications.
+let titleFitTimer = null;
+let lastGridWidth = null;
+const scheduleTitleFit = ()=>{
+  clearTimeout(titleFitTimer);
+  titleFitTimer = setTimeout(fitCardTitles, 120);
+};
+if(typeof ResizeObserver === 'function'){
+  new ResizeObserver(entries=>{
+    const width = entries[0].contentRect.width;
+    if(width === lastGridWidth) return;
+    lastGridWidth = width;
+    scheduleTitleFit();
+  }).observe(document.getElementById('grid'));
+} else {
+  window.addEventListener('resize', scheduleTitleFit);
+}
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=> fitCardTitles());
 generate();
 </script>
 </body>
