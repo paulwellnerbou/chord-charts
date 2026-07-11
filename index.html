@@ -1266,14 +1266,17 @@ async function chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, sta
   const svgStr = chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
   const scale = 3;
   const vbMatch = svgStr.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+  if(!vbMatch) throw new Error('export SVG is missing its viewBox');
   const w = parseFloat(vbMatch[1]), h = parseFloat(vbMatch[2]);
 
   const img = new Image();
   await new Promise((resolve,reject)=>{ img.onload=resolve; img.onerror=reject; img.src='data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr); });
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(w*scale); canvas.height = Math.round(h*scale);
-  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const ctx = canvas.getContext('2d');
+  if(!ctx) throw new Error('canvas 2d context unavailable');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve,reject)=> canvas.toBlob(blob=> blob ? resolve(blob) : reject(new Error('PNG encoding failed')), 'image/png'));
 }
 
 function chordFileName(label, ext){ return `${label.replace(/[^\w#]/g,'_')}.${ext}`; }
@@ -1555,7 +1558,7 @@ function openCardMenu(card, btn){
   addAction(COPY_ICON, 'Copy image', ()=> copyChordAsImage(...exportArgs()));
   addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadChordPNG(...exportArgs()));
   addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadChordSVG(...exportArgs()));
-  menu.appendChild(Object.assign(document.createElement('div'), { className:'card-menu-sep' }));
+  menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
   addAction(LINK_ICON, 'Copy link to this chord', ()=> copyChordLink(result.label, btn));
   const openItem = cardMenuItem(EXTERNAL_LINK_ICON, 'Open in new tab', chordPageURL(result.label, false));
   openItem.addEventListener('click', ()=> closeCardMenu());
