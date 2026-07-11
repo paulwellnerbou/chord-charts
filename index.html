@@ -504,6 +504,12 @@
     cursor:pointer;
   }
   .play-chord-btn:hover{ background:var(--accent); color:#fff; border-color:transparent; }
+  .play-icon-bars rect{ transform-origin:center; animation:play-bar-pulse .9s ease-in-out infinite; }
+  .play-icon-bars rect:nth-child(1){ animation-delay:0s; }
+  .play-icon-bars rect:nth-child(2){ animation-delay:.15s; }
+  .play-icon-bars rect:nth-child(3){ animation-delay:.3s; }
+  @keyframes play-bar-pulse{ 0%,100%{ transform:scaleY(.4); } 50%{ transform:scaleY(1); } }
+  @media (prefers-reduced-motion: reduce){ .play-icon-bars rect{ animation:none; } }
   .card svg { display:block; max-width:100%; height:auto; margin:0 auto; }
   .diagram-slot{ position:relative; }
   .diagram-slot.voicing-anim{ overflow:hidden; }
@@ -1302,6 +1308,7 @@ function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openP
 
 const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
 const PLAY_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+const PLAYING_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" class="play-icon-bars"><rect x="4" y="4" width="3" height="16" rx="1"/><rect x="10.5" y="4" width="3" height="16" rx="1"/><rect x="17" y="4" width="3" height="16" rx="1"/></svg>`;
 const CHEVRON_LEFT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>`;
 const CHEVRON_RIGHT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
 const CHECK_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
@@ -1729,6 +1736,26 @@ function chordAbsNotes(frets, openAbs){
 
 function playChord(midiNotes){
   midiNotes.forEach((m,i)=> playNote(m, { delay:i*0.025, gain:0.18 }));
+}
+
+// matches scheduleNote's envelope: last-triggered note starts at (n-1)*25ms
+// and rings for 1.5s before its oscillator stops
+function chordPlayDuration(midiNotes){
+  return midiNotes.length ? (midiNotes.length-1)*25 + 1500 : 0;
+}
+
+// swaps a play button's icon to a "now playing" indicator for the strum's
+// duration, then restores it — purely visual, playback itself can't be stopped
+function playChordAndFlash(btn, midiNotes){
+  playChord(midiNotes);
+  if(!btn) return;
+  if(!btn._playIconOriginal) btn._playIconOriginal = btn.innerHTML;
+  clearTimeout(btn._playIconTimer);
+  btn.innerHTML = PLAYING_ICON;
+  btn._playIconTimer = setTimeout(()=>{
+    btn.innerHTML = btn._playIconOriginal;
+    btn._playIconTimer = null;
+  }, chordPlayDuration(midiNotes));
 }
 
 function computeFretWindow(frets){
@@ -2168,13 +2195,14 @@ function buildCard(result, ctx){
   menuBtn.addEventListener('click', ()=> toggleCardMenu(card, menuBtn));
   card.appendChild(menuBtn);
 
-  const playChordHere = ()=> playChord(chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs));
+  const playBtnEl = card.querySelector('.play-chord-btn');
+  const playChordHere = ()=> playChordAndFlash(playBtnEl, chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs));
   const heading = card.querySelector('h2');
   heading.addEventListener('click', playChordHere);
   heading.addEventListener('keydown', e=>{
     if(e.key==='Enter' || e.key===' '){ e.preventDefault(); playChordHere(); }
   });
-  card.querySelector('.play-chord-btn').addEventListener('click', e=>{ e.stopPropagation(); playChordHere(); });
+  playBtnEl.addEventListener('click', e=>{ e.stopPropagation(); playChordHere(); });
 
   if(result.expanded){
     card.classList.add('has-alt-voicings');
@@ -2436,7 +2464,7 @@ function renderVoicingTiles(card, result){
     playBtn.title = 'Play this voicing';
     playBtn.setAttribute('aria-label', `Play voicing ${i+1} of ${voicings.length} for ${result.label}`);
     playBtn.innerHTML = PLAY_ICON;
-    playBtn.addEventListener('click', ()=> playChord(chordAbsNotes(frets, tuning.openAbs)));
+    playBtn.addEventListener('click', ()=> playChordAndFlash(playBtn, chordAbsNotes(frets, tuning.openAbs)));
     wrap.appendChild(tile);
     wrap.appendChild(playBtn);
     return wrap;
