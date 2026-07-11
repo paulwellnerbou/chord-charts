@@ -442,26 +442,115 @@
   /* the tiny example scale would render the 10-unit numbers unreadable */
   .threshold-example .fret-num{ font-size:20px; opacity:.85; transform:translateY(3px); }
 
-  .tip-card{
-    display:inline-flex; align-items:center; gap:8px; max-width:100%;
-    background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-    padding:9px 13px; margin:0 0 16px; font-size:12.5px; color:var(--ink-soft); line-height:1.4;
-    box-shadow:0 2px 2px rgba(41,38,33,.02),0 10px 24px -24px rgba(41,38,33,.7);
-  }
   .tip-emoji{ font-size:15px; flex-shrink:0; margin-top:1px; }
-  .tip-line{ display:inline; }
-  .tip-line + .tip-line::before{ content:' '; }
-  .tip-dismiss{
-    flex-shrink:0; min-height:20px; width:20px; height:20px; padding:0; margin-left:2px; border:none; background:transparent;
-    color:var(--ink-soft); font-size:15px; line-height:1; border-radius:50%; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; transition:color .15s ease, background-color .15s ease;
-  }
-  .tip-dismiss:hover, .tip-dismiss:focus-visible{ color:var(--accent); background:var(--page-bg); }
   .tip-pointer-text{ display:block; }
   .tip-touch-text{ display:none; }
   @media (hover: none){
     .tip-pointer-text{ display:none; }
     .tip-touch-text{ display:inline; }
+  }
+  .tip-fab{
+    position:fixed; right:20px; bottom:20px; z-index:50;
+    min-height:46px; width:46px; height:46px; padding:0; border:none; border-radius:50%;
+    background:var(--accent-soft); color:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 10px 24px -10px rgba(41,38,33,.4), 0 2px 8px rgba(41,38,33,.16);
+    cursor:pointer; transition:background-color .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease;
+  }
+  .tip-fab svg{ width:21px; height:21px; }
+  .tip-fab:hover{ background:var(--accent); color:#fff; transform:translateY(-2px); box-shadow:0 14px 28px -10px rgba(41,38,33,.48), 0 3px 10px rgba(41,38,33,.2); }
+  .tip-fab:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .tip-fab[aria-expanded="true"]{ background:var(--accent); color:#fff; }
+  .tip-toast{
+    position:fixed; right:20px; bottom:78px; z-index:50; width:300px; max-width:calc(100vw - 32px);
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px;
+    padding:13px 14px 12px; box-shadow:0 18px 40px -18px rgba(41,38,33,.5), 0 3px 10px rgba(41,38,33,.14);
+    transform-origin:bottom right;
+    animation:tip-toast-in .22s cubic-bezier(.34,1.56,.64,1);
+  }
+  .tip-toast[hidden]{ display:none; }
+  @keyframes tip-toast-in{ from{ opacity:0; transform:translateY(8px) scale(.94); } }
+  .tip-toast-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+  .tip-toast-kicker{ font-size:11px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; color:var(--accent); }
+  .tip-toast-close{
+    flex-shrink:0; min-height:22px; width:22px; height:22px; padding:0; margin:-2px -2px 0 0; border:none; background:transparent;
+    color:var(--ink-soft); font-size:16px; line-height:1; border-radius:50%; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:color .15s ease, background-color .15s ease;
+  }
+  .tip-toast-close:hover, .tip-toast-close:focus-visible{ color:var(--accent); background:var(--page-bg); }
+  .tip-toast-body{
+    display:flex; align-items:flex-start; gap:8px; min-height:36px;
+    font-size:13.5px; color:var(--ink); line-height:1.45;
+    transition:opacity .16s ease, transform .16s ease;
+  }
+  .tip-toast-body.tip-anim-out{ opacity:0; transform:translateX(-6px); }
+  .tip-toast-body.tip-anim-in-start{ transition:none; opacity:0; transform:translateX(6px); }
+  .tip-toast-foot{ display:flex; flex-direction:column; gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid var(--card-border); }
+  .tip-toast-actions{ display:flex; align-items:center; gap:14px; }
+  .tip-toast-next{
+    display:inline-flex; align-items:center; gap:5px; min-height:0; padding:2px 0; border:none; background:transparent;
+    color:var(--accent-strong); font-size:12.5px; font-weight:700; cursor:pointer; transition:opacity .15s ease;
+  }
+  .tip-toast-next svg{ width:13px; height:13px; }
+  .tip-toast-next:hover{ background:transparent; border-color:transparent; opacity:.72; }
+  .tip-toast-next:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  .tip-toast-showall{
+    min-height:0; padding:2px 0; border:none; background:transparent;
+    color:var(--accent-strong); font-size:12.5px; font-weight:700; cursor:pointer; transition:opacity .15s ease;
+  }
+  .tip-toast-showall:hover{ background:transparent; border-color:transparent; opacity:.72; }
+  .tip-toast-showall:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  .tip-toast-optout{
+    align-self:flex-end;
+    min-height:0; padding:2px 0; border:none; background:transparent; color:var(--ink-soft); font-size:11.5px;
+    text-decoration:underline; text-underline-offset:2px; cursor:pointer; transition:color .15s ease;
+  }
+  .tip-toast-optout:hover, .tip-toast-optout:focus-visible{ background:transparent; border-color:transparent; color:var(--accent); }
+  .tip-toast-optout:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  @media (prefers-reduced-motion: reduce){
+    .tip-toast{ animation:none; }
+    .tip-toast-body{ transition:none; }
+  }
+  .tips-modal-backdrop{
+    position:fixed; inset:0; z-index:60; padding:24px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(41,38,33,.45);
+    animation:voicing-backdrop-in .15s ease;
+  }
+  .tips-modal-backdrop[hidden]{ display:none; }
+  .tips-modal{
+    display:flex; flex-direction:column; width:100%; max-width:440px;
+    max-height:min(calc(100vh - 48px), 640px);
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px;
+    box-shadow:0 24px 60px -18px rgba(41,38,33,.5), 0 4px 14px rgba(41,38,33,.18);
+    animation:voicing-modal-in .2s cubic-bezier(.34,1.56,.64,1);
+  }
+  .tips-modal-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:14px 18px 10px;
+  }
+  .tips-modal-head h2{
+    margin:0; font-family:var(--heading-font); font-weight:600; font-size:20px; color:var(--accent);
+  }
+  .tips-modal-close{
+    min-height:28px; width:28px; height:28px; padding:0; border:none; border-radius:50%; flex-shrink:0;
+    background:transparent; color:var(--ink-soft); font-size:20px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:color .15s ease, background-color .15s ease;
+  }
+  .tips-modal-close:hover, .tips-modal-close:focus-visible{ color:var(--accent); background:var(--page-bg); }
+  .tips-modal-list{
+    margin:0; list-style:none; overflow-y:auto; padding:4px 18px 18px;
+  }
+  .tips-modal-item{
+    display:flex; align-items:flex-start; gap:10px; padding:11px 0;
+    font-size:14px; color:var(--ink); line-height:1.45;
+    border-top:1px solid var(--page-bg);
+  }
+  .tips-modal-item:first-child{ border-top:none; }
+  .tips-modal-item .tip-emoji{ font-size:16px; }
+  @media (prefers-reduced-motion: reduce){
+    .tips-modal-backdrop, .tips-modal{ animation:none; }
   }
   .error{ font-size:13px; font-weight:600; color:#9e2a20; margin:9px 0 0; }
   .error:empty{ display:none; }
@@ -696,7 +785,8 @@
     .results-summary{ width:100%; }
     .results-actions{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; gap:8px; }
     .results-actions button{ justify-content:center; padding-inline:10px; }
-    .tip-card{ margin-bottom:12px; }
+    .tip-fab{ right:14px; bottom:14px; }
+    .tip-toast{ right:14px; bottom:70px; width:272px; max-width:calc(100vw - 28px); }
     .options-card{ padding:13px 14px 15px; gap:16px 24px; }
     .stepper{ height:40px; }
     .stepper-btn{ width:38px; }
@@ -957,18 +1047,47 @@
     </div>
   </div>
 
-  <div class="tip-card no-print" id="tipsCard">
-    <span class="tip-emoji" aria-hidden="true">💡</span>
-    <span class="tip-text"><span class="tip-pointer-text"><span class="tip-line">Select a chord name or dot to hear it.</span><span class="tip-line">Use the arrows to explore voicings, or select the count to see them all.</span></span><span class="tip-touch-text">Tap a chord name or dot to hear it; tap the count to see all voicings.</span></span>
-    <button type="button" class="tip-dismiss" id="tipDismissBtn" aria-label="Dismiss tip">&times;</button>
-  </div>
-
   <div class="grid" id="grid"></div>
   <p class="single-chord-tip no-print" id="singleChordTip" hidden></p>
 
   <footer class="site-footer no-print" id="songDataFooter" hidden>
     <p>Song search: chords from <a href="https://huggingface.co/datasets/ailsntua/Chordonomicon" target="_blank" rel="noopener">Chordonomicon</a>, titles &amp; popularity from <a href="https://huggingface.co/datasets/GildasLeDrogoff/spotify-huge-track-analysis-dataset" target="_blank" rel="noopener">a Spotify track dataset</a> — both CC&nbsp;BY-NC&nbsp;4.0.</p>
   </footer>
+</div>
+
+<button type="button" class="tip-fab no-print" id="tipFabBtn" aria-label="Show a tip" aria-expanded="false" aria-controls="tipToast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2.3h6c0-1.1.4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>
+</button>
+
+<div class="tip-toast no-print" id="tipToast" aria-label="Tip" hidden>
+  <div class="tip-toast-head">
+    <span class="tip-toast-kicker">Tip</span>
+    <button type="button" class="tip-toast-close" id="tipToastClose" aria-label="Close tip">&times;</button>
+  </div>
+  <div class="tip-toast-body" id="tipToastBody" role="status" aria-live="polite">
+    <span class="tip-emoji" id="tipToastEmoji" aria-hidden="true">💡</span>
+    <span class="tip-toast-text" id="tipToastText"></span>
+  </div>
+  <div class="tip-toast-foot">
+    <div class="tip-toast-actions">
+      <button type="button" class="tip-toast-next" id="tipToastNext">
+        Next tip
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+      </button>
+      <button type="button" class="tip-toast-showall" id="tipToastShowAll">Show all tips</button>
+    </div>
+    <button type="button" class="tip-toast-optout" id="tipToastOptOut">Don't show tips again</button>
+  </div>
+</div>
+
+<div class="tips-modal-backdrop no-print" id="tipsModal" hidden>
+  <div class="tips-modal" role="dialog" aria-modal="true" aria-labelledby="tipsModalTitle">
+    <div class="tips-modal-head">
+      <h2 id="tipsModalTitle">All tips</h2>
+      <button type="button" class="tips-modal-close" id="tipsModalClose" aria-label="Close all tips">&times;</button>
+    </div>
+    <ul class="tips-modal-list" id="tipsModalList"></ul>
+  </div>
 </div>
 
 <div class="voicing-modal-backdrop no-print" id="voicingModal" hidden>
@@ -1874,7 +1993,6 @@ const THRESHOLD_MIN = 1, THRESHOLD_MAX = 11;
 let shortenThreshold = 5;
 
 const SETTINGS_KEY = 'chordChartGenerator.settings';
-const PLAY_TIP_DISMISSED_KEY = 'chordChartGenerator.playTipDismissed';
 
 function loadSettings(){
   try{
@@ -2850,13 +2968,177 @@ const initialTuningId = (tuningParam && TUNINGS.some(t=>t.id===tuningParam))
 buildTuningMenu();
 selectTuning(initialTuningId, { silent:true });
 
-if(localStorage.getItem(PLAY_TIP_DISMISSED_KEY) === 'true'){
-  document.getElementById('tipsCard').style.display = 'none';
+// --- tips toast: a rotating collection shown bottom-right, reachable via the bulb fab forever ---
+const TIPS_OPT_OUT_KEY = 'chordChartGenerator.tipsOptOut';
+const TIPS_REDUCED_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const TIPS = [
+  { emoji:'🎧', pointerText:"Select a chord's name or a dot on its diagram to hear how it sounds.", touchText:"Tap a chord's name or a dot on its diagram to hear how it sounds." },
+  { emoji:'🎸', text:'Use the arrows on a chord card to browse alternate voicings, or tap the count to see every voicing at once.' },
+  { emoji:'📷', text:'Switch on “Black & white” in Options for crisp, high-contrast diagrams that print or screenshot cleanly.' },
+  { emoji:'🎨', text:"Turn on “Use Aquila Kid's string colours” in Options to draw each string in its own colour — handy for teaching beginners." },
+  { emoji:'🔗', text:'Open the Share menu for separate links — one for the song, one for just these chords, one for the app itself.' },
+  { emoji:'🎼', text:'Use the Transpose stepper next to the chord input to shift every chord up or down in semitones — no retyping.' },
+  { emoji:'📥', text:'Each chord card has a ⋯ menu to copy, download as PNG/SVG, or grab a link straight to that chord.' },
+  { emoji:'📸', text:'Turn off “Show chord card controls” in Options to hide play buttons and arrows before you screenshot.' },
+  { emoji:'🖼️', text:'“Copy chart” grabs every diagram on the page as one image, ready to paste anywhere.' },
+  { emoji:'🧩', text:'Switch on “Masonry layout” in Options to pack chord cards tightly when they come out different heights.' },
+  { emoji:'🔍', text:'Raise “Search up to fret” in Options to unlock alternate voicings further up the neck.' },
+  { emoji:'📏', text:'Loosen “Max stretch” in Options if a chord seems short on alternate voicings — it limits how wide a fingering may reach.' },
+];
+
+// a shuffled bag (not plain Math.random each time) so every tip is seen before any repeat
+let tipQueue = [];
+let tipLastIndex = -1;
+function nextTipIndex(){
+  if(!tipQueue.length){
+    tipQueue = TIPS.map((_, i)=>i);
+    for(let i = tipQueue.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [tipQueue[i], tipQueue[j]] = [tipQueue[j], tipQueue[i]];
+    }
+    if(tipQueue.length > 1 && tipQueue[0] === tipLastIndex){
+      [tipQueue[0], tipQueue[1]] = [tipQueue[1], tipQueue[0]];
+    }
+  }
+  tipLastIndex = tipQueue.shift();
+  return tipLastIndex;
 }
-document.getElementById('tipDismissBtn').addEventListener('click', ()=>{
-  document.getElementById('tipsCard').style.display = 'none';
-  try{ localStorage.setItem(PLAY_TIP_DISMISSED_KEY, 'true'); }catch(err){}
+
+const tipToast = document.getElementById('tipToast');
+const tipToastBody = document.getElementById('tipToastBody');
+const tipToastEmoji = document.getElementById('tipToastEmoji');
+const tipToastText = document.getElementById('tipToastText');
+const tipFabBtn = document.getElementById('tipFabBtn');
+
+// shared by the toast's single slot and the "all tips" modal's list items
+function fillTipText(container, tip){
+  container.replaceChildren();
+  if(tip.text){
+    container.textContent = tip.text;
+    return;
+  }
+  const pointer = document.createElement('span');
+  pointer.className = 'tip-pointer-text';
+  pointer.textContent = tip.pointerText;
+  const touch = document.createElement('span');
+  touch.className = 'tip-touch-text';
+  touch.textContent = tip.touchText;
+  container.append(pointer, touch);
+}
+
+function renderTip(index){
+  const tip = TIPS[index];
+  tipToastEmoji.textContent = tip.emoji;
+  fillTipText(tipToastText, tip);
+}
+
+function cycleTip(){
+  if(TIPS_REDUCED_MOTION){ renderTip(nextTipIndex()); return; }
+  if(tipToastBody.classList.contains('tip-anim-out')) return;
+  tipToastBody.classList.add('tip-anim-out');
+  setTimeout(()=>{
+    renderTip(nextTipIndex());
+    tipToastBody.classList.remove('tip-anim-out');
+    tipToastBody.classList.add('tip-anim-in-start');
+    void tipToastBody.offsetWidth; // force reflow so removing this class below animates back in
+    tipToastBody.classList.remove('tip-anim-in-start');
+  }, 160);
+}
+
+function openTipToast(){
+  renderTip(nextTipIndex());
+  tipToast.hidden = false;
+  tipFabBtn.setAttribute('aria-expanded', 'true');
+  document.addEventListener('click', onTipDocClick);
+}
+function closeTipToast(){
+  tipToast.hidden = true;
+  tipFabBtn.setAttribute('aria-expanded', 'false');
+  document.removeEventListener('click', onTipDocClick);
+}
+function onTipDocClick(e){
+  // a click inside the "all tips" modal (spawned from the toast) isn't "outside" the toast
+  if(!tipToast.contains(e.target) && !tipFabBtn.contains(e.target) && !tipsModalEl.contains(e.target)){
+    closeTipToast();
+  }
+}
+tipFabBtn.addEventListener('click', ()=>{
+  tipToast.hidden ? openTipToast() : closeTipToast();
 });
+function onTipEscape(e){
+  if(e.key === 'Escape'){ closeTipToast(); tipFabBtn.focus(); }
+}
+// focus can sit on the fab (just clicked) or inside the toast (tabbed in) — listen on both
+tipFabBtn.addEventListener('keydown', onTipEscape);
+tipToast.addEventListener('keydown', onTipEscape);
+document.getElementById('tipToastClose').addEventListener('click', ()=>{
+  closeTipToast();
+  tipFabBtn.focus();
+});
+document.getElementById('tipToastNext').addEventListener('click', cycleTip);
+document.getElementById('tipToastOptOut').addEventListener('click', ()=>{
+  try{ localStorage.setItem(TIPS_OPT_OUT_KEY, 'true'); }catch(err){}
+  closeTipToast();
+  tipFabBtn.focus();
+});
+
+// --- "all tips" modal: a static reference list, built once since TIPS never changes at runtime ---
+const tipsModalEl = document.getElementById('tipsModal');
+const tipsModalListEl = document.getElementById('tipsModalList');
+let tipsModalOpener = null;
+
+TIPS.forEach(tip=>{
+  const li = document.createElement('li');
+  li.className = 'tips-modal-item';
+  const emoji = document.createElement('span');
+  emoji.className = 'tip-emoji';
+  emoji.setAttribute('aria-hidden', 'true');
+  emoji.textContent = tip.emoji;
+  const text = document.createElement('span');
+  text.className = 'tip-toast-text';
+  fillTipText(text, tip);
+  li.append(emoji, text);
+  tipsModalListEl.appendChild(li);
+});
+
+function openTipsModal(opener){
+  tipsModalOpener = opener || null;
+  tipsModalEl.hidden = false;
+  document.addEventListener('keydown', onTipsModalKeydown);
+  document.getElementById('tipsModalClose').focus();
+}
+function closeTipsModal(){
+  if(tipsModalEl.hidden) return;
+  tipsModalEl.hidden = true;
+  document.removeEventListener('keydown', onTipsModalKeydown);
+  if(tipsModalOpener && tipsModalOpener.isConnected) tipsModalOpener.focus();
+  tipsModalOpener = null;
+}
+function onTipsModalKeydown(e){
+  if(e.key === 'Escape'){ closeTipsModal(); return; }
+  // aria-modal promises focus containment — cycle Tab inside the dialog
+  if(e.key === 'Tab'){
+    const list = [...tipsModalEl.querySelectorAll('button:not(:disabled), input, a[href]')];
+    if(!list.length) return;
+    const first = list[0], last = list[list.length - 1];
+    const active = document.activeElement;
+    if(e.shiftKey && (active === first || !tipsModalEl.contains(active))){
+      e.preventDefault(); last.focus();
+    } else if(!e.shiftKey && (active === last || !tipsModalEl.contains(active))){
+      e.preventDefault(); first.focus();
+    }
+  }
+}
+tipsModalEl.addEventListener('click', e=>{
+  if(e.target === tipsModalEl) closeTipsModal();
+});
+document.getElementById('tipsModalClose').addEventListener('click', ()=> closeTipsModal());
+document.getElementById('tipToastShowAll').addEventListener('click', e=> openTipsModal(e.currentTarget));
+
+if(localStorage.getItem(TIPS_OPT_OUT_KEY) !== 'true'){
+  setTimeout(openTipToast, 1500);
+}
 
 document.getElementById('copyAllBtn').addEventListener('click', ()=> copyAllChordsAsImage(document.getElementById('copyAllBtn')));
 document.getElementById('printBtn').addEventListener('click', ()=>window.print());
