@@ -3047,12 +3047,14 @@ function cycleTip(){
 }
 
 function openTipToast(){
+  if(!tipToast.hidden) return; // e.g. the delayed auto-show firing after the user already opened it by hand
   renderTip(nextTipIndex());
   tipToast.hidden = false;
   tipFabBtn.setAttribute('aria-expanded', 'true');
   document.addEventListener('click', onTipDocClick);
 }
 function closeTipToast(){
+  if(tipToast.hidden) return;
   tipToast.hidden = true;
   tipFabBtn.setAttribute('aria-expanded', 'false');
   document.removeEventListener('click', onTipDocClick);
@@ -3136,7 +3138,9 @@ tipsModalEl.addEventListener('click', e=>{
 document.getElementById('tipsModalClose').addEventListener('click', ()=> closeTipsModal());
 document.getElementById('tipToastShowAll').addEventListener('click', e=> openTipsModal(e.currentTarget));
 
-if(localStorage.getItem(TIPS_OPT_OUT_KEY) !== 'true'){
+let tipsOptedOut = false;
+try{ tipsOptedOut = localStorage.getItem(TIPS_OPT_OUT_KEY) === 'true'; }catch(err){}
+if(!tipsOptedOut){
   setTimeout(openTipToast, 1500);
 }
 
