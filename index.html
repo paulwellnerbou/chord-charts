@@ -412,6 +412,9 @@
   }
   .switch-wrap.open .info-popover{ opacity:1; visibility:visible; transform:translateY(0); }
   .info-popover p{ margin:0; }
+  .info-popover a{ color:var(--accent); font-weight:650; text-decoration:none; }
+  .info-popover a:hover{ text-decoration:underline; text-underline-offset:2px; }
+  .info-popover a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
   .threshold-example{ display:flex; align-items:flex-start; gap:14px; margin-top:9px; }
   .threshold-example figure{ margin:0; text-align:center; }
   .threshold-example figcaption{ font-size:11px; font-weight:600; margin-bottom:3px; }
@@ -786,6 +789,15 @@
               <span class="switch-track"><span class="switch-thumb"></span></span>
               <span>Highlight root note</span>
             </label>
+            <div class="switch-wrap" id="aquilaInfoWrap">
+              <label class="switch" title="Colour the strings like the Aquila Kids educational set — green, red, yellow and blue.">
+                <input type="checkbox" id="aquilaToggle">
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <span>Use Aquila Kid's string colours</span>
+              </label>
+              <button type="button" class="info-btn" id="aquilaInfoBtn" aria-label="About Aquila Kids string colours" aria-expanded="false">i</button>
+              <div class="info-popover" id="aquilaInfoPopover" role="tooltip">Draws every string in the colours of the <a href="https://aquilacorde.com/en/negozio/modern-instrument-string-sets/ukulele-banjouke-en/kids/?v=4b8cc16d888f" target="_blank" rel="noopener">Aquila Kids</a> educational ukulele set — green (G), red (C), yellow (E) and blue (A). On other instruments and tunings the colours follow the string positions.</div>
+            </div>
             <div class="switch-wrap" id="omitInfoWrap">
               <label class="switch" title="Chords like 7add9, 6add9 and maj7add9 have 5 notes, but these instruments only have 4 strings — the 5th is dropped. When on, affected chords show a note naming the dropped tone.">
                 <input type="checkbox" id="omitToggle" checked>
@@ -1010,7 +1022,16 @@ const BW_COLORS = {
   rootFill:'#ffffff',
   lineOpacity:1, markerOpacity:0.25, exportHeadingFont:EXPORT_HEADING_FONT
 };
-function currentColors(){ return document.body.classList.contains('bw-mode') ? BW_COLORS : NICE_COLORS; }
+// Aquila Kids educational set: green/red/yellow/blue from 4th to 1st string
+// (G C E A on a GCEA ukulele); applied by string position on every tuning.
+const AQUILA_KIDS_STRING_COLORS = ['#2f9e44','#d0342c','#e6b400','#2b6bd8'];
+function currentColors(){
+  const base = document.body.classList.contains('bw-mode') ? BW_COLORS : NICE_COLORS;
+  // string colours also apply in b&w mode — matching the physical strings is the option's point
+  return document.getElementById('aquilaToggle').checked
+    ? Object.assign({}, base, { stringColors: AQUILA_KIDS_STRING_COLORS })
+    : base;
+}
 
 function noteToPC(letter, acc){
   let pc = NOTE_PC[letter.toUpperCase()];
@@ -1147,8 +1168,11 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
     s += `<line x1="20" y1="${y}" x2="160" y2="${y}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
     s += `<text class="fret-num" x="167" y="${rowCenter(i)+4}" font-size="14" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${startFret+i}</text>`;
   }
-  XS.forEach(x=>{
-    s += `<line x1="${x}" y1="${NUT_Y}" x2="${x}" y2="${bottomY}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
+  XS.forEach((x,i)=>{
+    const stringColor = colors.stringColors && colors.stringColors[i];
+    s += stringColor
+      ? `<line x1="${x}" y1="${NUT_Y}" x2="${x}" y2="${bottomY}" stroke="${stringColor}" stroke-width="3"/>`
+      : `<line x1="${x}" y1="${NUT_Y}" x2="${x}" y2="${bottomY}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
   });
   const markerX = (XS[1]+XS[2])/2;
   FRET_MARKERS.forEach(f=>{
@@ -1519,6 +1543,7 @@ function saveSettings(){
     showCardControls: document.getElementById('cardControlsToggle').checked,
     bwMode: document.getElementById('bwToggle').checked,
     highlightRoot: document.getElementById('rootToggle').checked,
+    aquilaStrings: document.getElementById('aquilaToggle').checked,
     columns: columnsValue,
     masonry: document.getElementById('masonryToggle').checked,
     shortenThreshold: shortenThreshold,
@@ -2308,6 +2333,7 @@ function setupInfoPopover(wrapId, btnId){
     if(e.key==='Escape') setOpen(false);
   });
 }
+setupInfoPopover('aquilaInfoWrap', 'aquilaInfoBtn');
 setupInfoPopover('omitInfoWrap', 'omitInfoBtn');
 setupInfoPopover('thresholdInfoWrap', 'thresholdInfoBtn');
 setupInfoPopover('maxFretInfoWrap', 'maxFretInfoBtn');
@@ -2345,6 +2371,9 @@ if(typeof savedSettings.bwMode === 'boolean'){
 }
 if(typeof savedSettings.highlightRoot === 'boolean'){
   document.getElementById('rootToggle').checked = savedSettings.highlightRoot;
+}
+if(typeof savedSettings.aquilaStrings === 'boolean'){
+  document.getElementById('aquilaToggle').checked = savedSettings.aquilaStrings;
 }
 if(typeof savedSettings.masonry === 'boolean'){
   document.getElementById('masonryToggle').checked = savedSettings.masonry;
@@ -2451,6 +2480,7 @@ document.getElementById('bwToggle').addEventListener('change', e=>{
   generate();
 });
 document.getElementById('rootToggle').addEventListener('change', generate);
+document.getElementById('aquilaToggle').addEventListener('change', generate);
 document.getElementById('columnsMinus').addEventListener('click', ()=> stepColumns(-1));
 document.getElementById('columnsPlus').addEventListener('click', ()=> stepColumns(1));
 document.getElementById('columnsStepper').addEventListener('keydown', e=>{
