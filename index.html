@@ -1507,7 +1507,9 @@ function updateCardDiagram(card, result, tuning, colors, highlightRoot, slideDir
   const { fretMax, startFret } = computeFretWindow(frets);
   const diagramSlot = card.querySelector('.diagram-slot');
   const html = chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret);
-  const animate = slideDir && diagramSlot.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const curSVG = diagramSlot.querySelector('svg');
+  const animate = slideDir && diagramSlot.animate && curSVG && curSVG.animate
+    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(animate){
     slideVoicingSwap(diagramSlot, html, slideDir);
   }else{
