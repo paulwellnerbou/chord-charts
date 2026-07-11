@@ -485,6 +485,9 @@
   }
   .play-chord-btn:hover{ background:var(--accent); color:#fff; border-color:transparent; }
   .card svg { display:block; max-width:100%; height:auto; margin:0 auto; }
+  .diagram-slot{ position:relative; }
+  .diagram-slot.voicing-anim{ overflow:hidden; }
+  .diagram-ghost{ position:absolute; inset:0; pointer-events:none; }
   .omit-note{ font-size:10px; font-style:italic; color:var(--ink-soft); margin:4px 0 0; }
   .note-dot { cursor:pointer; }
   .note-dot:hover { opacity:.72; }
@@ -1497,13 +1500,67 @@ function updateNavCount(card, result){
   if(countEl) countEl.textContent = `${result.altIndex+1} / ${result.voicings.length}`;
 }
 
-function updateCardDiagram(card, result, tuning, colors, highlightRoot){
+function updateCardDiagram(card, result, tuning, colors, highlightRoot, slideDir){
   const frets = result.voicings[result.altIndex];
   const { fretMax, startFret } = computeFretWindow(frets);
   const diagramSlot = card.querySelector('.diagram-slot');
-  diagramSlot.innerHTML = chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret);
+  const html = chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret);
+  const animate = slideDir && diagramSlot.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(animate){
+    slideVoicingSwap(diagramSlot, html, slideDir);
+  }else{
+    if(diagramSlot._swapCleanup) diagramSlot._swapCleanup();
+    diagramSlot.innerHTML = html;
+  }
   bindNoteDotHandlers(diagramSlot);
   updateNavCount(card, result);
+}
+
+// Carousel swap: the old diagram (kept in an absolute ghost layer) slides out
+// one side while the new one slides in from the other, and the slot height
+// eases between the two diagrams' sizes. dir: 1 = next, -1 = previous.
+function slideVoicingSwap(slot, newHTML, dir){
+  const oldSVG = slot.querySelector('svg');
+  // mid-flight interrupt (rapid taps): let the ghost take over from the
+  // incoming diagram's current position instead of snapping to center
+  const startTf = oldSVG ? getComputedStyle(oldSVG).transform : 'none';
+  const oldH = slot.offsetHeight;
+  if(slot._swapCleanup) slot._swapCleanup();
+
+  slot.innerHTML = newHTML;
+  const newSVG = slot.querySelector('svg');
+  const newH = slot.offsetHeight;
+
+  const ghost = document.createElement('div');
+  ghost.className = 'diagram-ghost no-print';
+  ghost.setAttribute('aria-hidden', 'true');
+  if(oldSVG) ghost.appendChild(oldSVG);
+  slot.appendChild(ghost);
+  slot.classList.add('voicing-anim');
+
+  const dist = slot.clientWidth;
+  const timing = { duration:240, easing:'cubic-bezier(.4,0,.2,1)', fill:'forwards' };
+  const anims = [
+    newSVG.animate([{ transform:`translateX(${dir*dist}px)` }, { transform:'translateX(0)' }], timing),
+  ];
+  if(oldSVG){
+    anims.push(oldSVG.animate([
+      { transform: startTf === 'none' ? 'translateX(0)' : startTf },
+      { transform:`translateX(${-dir*dist}px)` },
+    ], timing));
+  }
+  if(newH !== oldH) anims.push(slot.animate([{ height:`${oldH}px` }, { height:`${newH}px` }], timing));
+
+  const cleanup = ()=>{
+    slot._swapCleanup = null;
+    anims.forEach(a=> a.cancel());
+    ghost.remove();
+    slot.classList.remove('voicing-anim');
+  };
+  slot._swapCleanup = cleanup;
+  Promise.all(anims.map(a=> a.finished)).then(cleanup, ()=>{});
+  // hidden tabs get no rendering frames, so `finished` can stall — sweep eventually
+  setTimeout(()=>{ if(slot._swapCleanup === cleanup) cleanup(); }, 1000);
 }
 
 let selectedTuningId = TUNINGS[0].id;
@@ -1874,7 +1931,7 @@ function buildCard(result, ctx){
     const cycleVoicing = delta=>{
       const n = result.voicings.length;
       result.altIndex = (result.altIndex + delta + n) % n;
-      updateCardDiagram(card, result, tuning, colors, highlightRoot);
+      updateCardDiagram(card, result, tuning, colors, highlightRoot, delta);
     };
     nav.querySelector('.voicing-prev').addEventListener('click', ()=> cycleVoicing(-1));
     nav.querySelector('.voicing-next').addEventListener('click', ()=> cycleVoicing(1));
@@ -2082,6 +2139,7 @@ function renderVoicingTiles(card, result){
     // no openAbs: per-note dots would nest interactive elements inside the button
     tile.innerHTML = `<span class="voicing-choice-index">${i+1}</span>` + chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, undefined, startFret);
     tile.addEventListener('click', ()=>{
+      const prevIndex = result.altIndex;
       // the pick may not exist in the card's list (chooser searched deeper) —
       // append it there so the card can show and cycle to it
       const idx = result.voicings.findIndex(v => v.every((f,j)=> f === frets[j]));
@@ -2098,7 +2156,7 @@ function renderVoicingTiles(card, result){
         result.altIndex = result.voicings.length - 1;
         result.customFrets = frets;
       }
-      updateCardDiagram(card, result, tuning, colors, highlightRoot);
+      updateCardDiagram(card, result, tuning, colors, highlightRoot, Math.sign(result.altIndex - prevIndex));
       playChord(chordAbsNotes(frets, tuning.openAbs));
       closeVoicingChooser();
     });
