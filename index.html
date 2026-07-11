@@ -488,24 +488,40 @@
   .omit-note{ font-size:10px; font-style:italic; color:var(--ink-soft); margin:4px 0 0; }
   .note-dot { cursor:pointer; }
   .note-dot:hover { opacity:.72; }
-  .copy-btn{
+  .card-menu-btn{
     position:absolute; top:9px; right:9px; min-height:32px; width:32px; height:32px;
     border-radius:50%; padding:0; display:flex; align-items:center; justify-content:center;
     background:var(--accent-soft); border:none; color:var(--accent-strong);
     transition:background-color .18s ease,color .18s ease,opacity .18s ease,transform .18s ease,width .2s ease;
     cursor:pointer; font-size:10px; overflow:hidden;
   }
-  .copy-btn:hover{ background:var(--accent); color:#fff; border-color:transparent; }
-  .copy-btn.is-flash{ width:64px; }
-  .copy-btn-icon, .copy-btn-label{
+  .card-menu-btn:hover, .card-menu-btn[aria-expanded="true"]{ background:var(--accent); color:#fff; border-color:transparent; }
+  .card-menu-btn.is-flash{ width:64px; }
+  .card-menu-btn-icon, .card-menu-btn-label{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     transition:opacity .15s ease, transform .15s ease;
   }
-  .copy-btn-icon{ opacity:1; transform:scale(1); }
-  .copy-btn-label{ opacity:0; transform:scale(.7); font-size:11px; font-weight:600; white-space:nowrap; }
-  .copy-btn.is-flash .copy-btn-icon{ opacity:0; transform:scale(.7); }
-  .copy-btn.is-flash .copy-btn-label{ opacity:1; transform:scale(1); }
-  .copy-btn svg{ width:15px; height:15px; stroke:currentColor; fill:none; }
+  .card-menu-btn-icon{ opacity:1; transform:scale(1); }
+  .card-menu-btn-label{ opacity:0; transform:scale(.7); font-size:11px; font-weight:600; white-space:nowrap; }
+  .card-menu-btn.is-flash .card-menu-btn-icon{ opacity:0; transform:scale(.7); }
+  .card-menu-btn.is-flash .card-menu-btn-label{ opacity:1; transform:scale(1); }
+  .card-menu-btn svg{ width:16px; height:16px; }
+  .card-menu{
+    position:fixed; z-index:70; min-width:212px; max-width:calc(100vw - 16px); padding:5px;
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
+    box-shadow:0 18px 40px -18px rgba(41,38,33,.5), 0 3px 10px rgba(41,38,33,.14);
+    animation:card-menu-in .14s ease;
+  }
+  .card-menu[hidden]{ display:none; }
+  @keyframes card-menu-in{ from{ opacity:0; transform:translateY(4px) scale(.98); } }
+  .card-menu-item{
+    display:flex; align-items:center; gap:10px; width:100%; min-height:34px; padding:7px 10px;
+    border:none; border-radius:8px; background:transparent; color:var(--ink);
+    font-family:inherit; font-size:13.5px; font-weight:500; text-align:left; text-decoration:none; cursor:pointer;
+  }
+  .card-menu-item:hover, .card-menu-item:focus-visible{ background:var(--accent-soft); color:var(--accent-strong); outline:none; }
+  .card-menu-item svg{ width:15px; height:15px; flex:0 0 15px; stroke:currentColor; fill:none; color:var(--accent-strong); }
+  .card-menu-sep{ margin:5px 8px; border:none; border-top:1px solid var(--card-border); }
   .card.has-alt-voicings{ padding-bottom:45px; }
   .voicing-nav{
     position:absolute; left:10px; right:10px; bottom:5px;
@@ -526,7 +542,7 @@
   .voicing-nav-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .voicing-nav-count{ font-size:11.5px; color:var(--ink-soft); min-width:26px; text-align:center; }
   body.card-controls-hidden .play-chord-btn,
-  body.card-controls-hidden .copy-btn,
+  body.card-controls-hidden .card-menu-btn,
   body.card-controls-hidden .voicing-nav{ display:none; }
   body.card-controls-hidden .card.has-alt-voicings{ padding-bottom:13px; }
   body.card-controls-hidden .card:hover{ transform:none; border-color:var(--card-border); box-shadow:0 2px 2px rgba(41,38,33,.02),0 10px 24px -24px rgba(41,38,33,.7); }
@@ -658,9 +674,9 @@
     .card.has-alt-voicings{ padding-bottom:44px; }
     .card h2{ font-size:20px; }
     .chord-title-row{ padding:0 29px; }
-    .play-chord-btn,.copy-btn{ top:7px; width:30px; height:30px; min-height:30px; }
+    .play-chord-btn,.card-menu-btn{ top:7px; width:30px; height:30px; min-height:30px; }
     .play-chord-btn{ left:6px; }
-    .copy-btn{ right:6px; }
+    .card-menu-btn{ right:6px; }
     .omit-note{ font-size:9px; }
     .voicing-nav{ left:6px; right:6px; }
   }
@@ -860,7 +876,7 @@
                 <span>Show chord card controls</span>
               </label>
               <button type="button" class="info-btn" id="cardControlsInfoBtn" aria-label="About chord card controls" aria-expanded="false">i</button>
-              <div class="info-popover" id="cardControlsInfoPopover" role="tooltip">Turn this off to remove the play button, copy button, and alternative-voicing arrows from chord cards for clean screenshots.</div>
+              <div class="info-popover" id="cardControlsInfoPopover" role="tooltip">Turn this off to remove the play button, the actions menu, and alternative-voicing arrows from chord cards for clean screenshots.</div>
             </div>
             <label class="switch">
               <input type="checkbox" id="bwToggle">
@@ -1233,41 +1249,55 @@ const PLAY_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="current
 const CHEVRON_LEFT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>`;
 const CHEVRON_RIGHT = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
 const CHECK_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+const DOTS_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>`;
+const DOWNLOAD_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`;
+const LINK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+const EXTERNAL_LINK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+const GRID_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`;
 
-async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
+function chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){
   const colors = currentColors();
   const showBorder = document.getElementById('borderToggle').checked;
   const highlightRoot = document.getElementById('rootToggle').checked;
-  const svgStr = exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted);
+  return exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted);
+}
+
+async function chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){
+  const svgStr = chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
   const scale = 3;
   const vbMatch = svgStr.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
   const w = parseFloat(vbMatch[1]), h = parseFloat(vbMatch[2]);
 
   const img = new Image();
-  const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+  await new Promise((resolve,reject)=>{ img.onload=resolve; img.onerror=reject; img.src='data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr); });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(w*scale); canvas.height = Math.round(h*scale);
+  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+}
 
+function chordFileName(label, ext){ return `${label.replace(/[^\w#]/g,'_')}.${ext}`; }
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
   try{
-    await new Promise((resolve,reject)=>{ img.onload=resolve; img.onerror=reject; img.src=dataUrl; });
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(w*scale); canvas.height = Math.round(h*scale);
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-
+    const blob = await chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
     try{
       if(!navigator.clipboard || !window.ClipboardItem) throw new Error('no-clipboard-api');
       await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
       flashButton(btnEl, 'Copied');
     }catch(clipErr){
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${label.replace(/[^\w#]/g,'_')}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      downloadBlob(blob, chordFileName(label, 'png'));
       flashButton(btnEl, 'Saved');
     }
   }catch(err){
@@ -1276,9 +1306,31 @@ async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC,
   }
 }
 
+async function downloadChordPNG(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
+  try{
+    const blob = await chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
+    downloadBlob(blob, chordFileName(label, 'png'));
+    flashButton(btnEl, 'Saved');
+  }catch(err){
+    console.error(err);
+    flashButton(btnEl, 'Failed');
+  }
+}
+
+function downloadChordSVG(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
+  try{
+    const svgStr = chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
+    downloadBlob(new Blob([svgStr], { type:'image/svg+xml' }), chordFileName(label, 'svg'));
+    flashButton(btnEl, 'Saved');
+  }catch(err){
+    console.error(err);
+    flashButton(btnEl, 'Failed');
+  }
+}
+
 function flashButton(btnEl, text){
   if(btnEl._flashTimeout) clearTimeout(btnEl._flashTimeout);
-  btnEl.querySelector('.copy-btn-label').textContent = text;
+  btnEl.querySelector('.card-menu-btn-label').textContent = text;
   btnEl.classList.add('is-flash');
   btnEl.disabled = true;
   btnEl._flashTimeout = setTimeout(()=>{
@@ -1401,6 +1453,149 @@ async function copyShareLink(btnEl){
       flashButtonText(btnEl, 'Shown');
     }
   }
+}
+
+// Non-chart params (e.g. a songApi override) survive into per-chord links.
+function chordPageURL(label, allVoicings){
+  const params = new URLSearchParams(window.location.search);
+  params.set('chords', label + (allVoicings ? '*' : ''));
+  params.set('tuning', selectedTuningId);
+  return window.location.pathname + '?' + params.toString();
+}
+
+async function copyChordLink(label, btnEl){
+  const link = new URL(chordPageURL(label, false), window.location.href).href;
+  try{
+    if(!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('no-clipboard-api');
+    await navigator.clipboard.writeText(link);
+    flashButton(btnEl, 'Copied');
+  }catch(err){
+    if(copyTextFallback(link)){
+      flashButton(btnEl, 'Copied');
+    } else {
+      window.prompt('Copy this chord link:', link);
+      flashButton(btnEl, 'Shown');
+    }
+  }
+}
+
+let cardMenuEl = null;
+let cardMenuState = null;
+
+function ensureCardMenu(){
+  if(cardMenuEl) return cardMenuEl;
+  cardMenuEl = document.createElement('div');
+  cardMenuEl.className = 'card-menu no-print';
+  cardMenuEl.setAttribute('role', 'menu');
+  cardMenuEl.hidden = true;
+  document.body.appendChild(cardMenuEl);
+  cardMenuEl.addEventListener('keydown', e=>{
+    const items = [...cardMenuEl.querySelectorAll('.card-menu-item')];
+    if(!items.length) return;
+    const idx = Math.max(0, items.indexOf(document.activeElement));
+    if(e.key === 'ArrowDown'){ e.preventDefault(); items[(idx+1)%items.length].focus(); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); items[(idx-1+items.length)%items.length].focus(); }
+    else if(e.key === 'Home'){ e.preventDefault(); items[0].focus(); }
+    else if(e.key === 'End'){ e.preventDefault(); items[items.length-1].focus(); }
+    else if(e.key === 'Escape'){ e.preventDefault(); closeCardMenu({ restoreFocus:true }); }
+    // per the menu-button pattern Tab leaves the menu from the trigger onwards
+    else if(e.key === 'Tab'){ closeCardMenu({ restoreFocus:true }); }
+    else if(e.key === ' ' && document.activeElement && document.activeElement.tagName === 'A'){ e.preventDefault(); document.activeElement.click(); }
+  });
+  return cardMenuEl;
+}
+
+function cardMenuItem(icon, text, href){
+  const el = document.createElement(href ? 'a' : 'button');
+  el.className = 'card-menu-item';
+  el.setAttribute('role', 'menuitem');
+  if(href){ el.href = href; el.target = '_blank'; el.rel = 'noopener'; }
+  else { el.type = 'button'; }
+  el.innerHTML = icon;
+  el.appendChild(document.createTextNode(text));
+  return el;
+}
+
+function closeCardMenu(opts){
+  if(!cardMenuEl || cardMenuEl.hidden) return;
+  cardMenuEl.hidden = true;
+  const { btn, onPointerDown, onWindowChange } = cardMenuState;
+  document.removeEventListener('pointerdown', onPointerDown, true);
+  window.removeEventListener('scroll', onWindowChange, { capture:true });
+  window.removeEventListener('resize', onWindowChange);
+  btn.setAttribute('aria-expanded', 'false');
+  if(opts && opts.restoreFocus){
+    try{ btn.focus({ preventScroll:true }); }catch(err){ btn.focus(); }
+  }
+  cardMenuState = null;
+}
+
+function openCardMenu(card, btn){
+  const menu = ensureCardMenu();
+  closeCardMenu();
+  const result = card._chordResult;
+  menu.innerHTML = '';
+  menu.setAttribute('aria-label', `Actions for ${result.label}`);
+
+  // settings and the shown voicing are read at click time, so the menu can
+  // stay prebuilt while the flash feedback lands on the card's own button
+  const exportArgs = ()=>{
+    const tuning = currentTuning();
+    const frets = result.voicings[result.altIndex];
+    const win = computeFretWindow(frets);
+    const omitted = document.getElementById('omitToggle').checked ? result.omitted : null;
+    return [result.label, frets, win.fretMax, tuning.labels, tuning.openPCs, result.rootPC, win.startFret, btn, omitted];
+  };
+  const addAction = (icon, text, run)=>{
+    const item = cardMenuItem(icon, text);
+    item.addEventListener('click', ()=>{ closeCardMenu({ restoreFocus:true }); run(); });
+    menu.appendChild(item);
+  };
+
+  addAction(COPY_ICON, 'Copy image', ()=> copyChordAsImage(...exportArgs()));
+  addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadChordPNG(...exportArgs()));
+  addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadChordSVG(...exportArgs()));
+  menu.appendChild(Object.assign(document.createElement('div'), { className:'card-menu-sep' }));
+  addAction(LINK_ICON, 'Copy link to this chord', ()=> copyChordLink(result.label, btn));
+  const openItem = cardMenuItem(EXTERNAL_LINK_ICON, 'Open in new tab', chordPageURL(result.label, false));
+  openItem.addEventListener('click', ()=> closeCardMenu());
+  menu.appendChild(openItem);
+  if(result.voicings.length > 1){
+    const allItem = cardMenuItem(GRID_ICON, `All ${result.voicings.length} voicings in new tab`, chordPageURL(result.label, true));
+    allItem.addEventListener('click', ()=> closeCardMenu());
+    menu.appendChild(allItem);
+  }
+
+  btn.setAttribute('aria-expanded', 'true');
+  menu.style.visibility = 'hidden';
+  menu.hidden = false;
+  const r = btn.getBoundingClientRect();
+  const left = Math.max(8, Math.min(r.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8));
+  let top = r.bottom + 6;
+  if(top + menu.offsetHeight > window.innerHeight - 8) top = Math.max(8, r.top - menu.offsetHeight - 6);
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  menu.style.visibility = '';
+
+  const onPointerDown = e=>{
+    if(!menu.contains(e.target) && !btn.contains(e.target)) closeCardMenu();
+  };
+  const onWindowChange = ()=> closeCardMenu();
+  document.addEventListener('pointerdown', onPointerDown, true);
+  // the menu is position:fixed, so any scroll would leave it floating detached
+  window.addEventListener('scroll', onWindowChange, { capture:true, passive:true });
+  window.addEventListener('resize', onWindowChange);
+  cardMenuState = { btn, onPointerDown, onWindowChange };
+
+  const first = menu.querySelector('.card-menu-item');
+  if(first){
+    try{ first.focus({ preventScroll:true }); }catch(err){ first.focus(); }
+  }
+}
+
+function toggleCardMenu(card, btn){
+  if(cardMenuState && cardMenuState.btn === btn){ closeCardMenu(); return; }
+  openCardMenu(card, btn);
 }
 
 let audioCtx = null;
@@ -1834,17 +2029,16 @@ function buildCard(result, ctx){
 
   bindNoteDotHandlers(card.querySelector('.diagram-slot'));
 
-  const copyBtn = document.createElement('button');
-  copyBtn.className = 'copy-btn no-print';
-  copyBtn.title = `Copy ${result.label} as image`;
-  copyBtn.setAttribute('aria-label', `Copy ${result.label} chord as image`);
-  copyBtn.innerHTML = `<span class="copy-btn-icon">${COPY_ICON}</span><span class="copy-btn-label"></span>`;
-  copyBtn.addEventListener('click', ()=>{
-    const frets = result.voicings[result.altIndex];
-    const window_ = computeFretWindow(frets);
-    copyChordAsImage(result.label, frets, window_.fretMax, tuning.labels, tuning.openPCs, result.rootPC, window_.startFret, copyBtn, showOmitted ? result.omitted : null);
-  });
-  card.appendChild(copyBtn);
+  const menuBtn = document.createElement('button');
+  menuBtn.type = 'button';
+  menuBtn.className = 'card-menu-btn no-print';
+  menuBtn.title = `Copy, download or share ${result.label}`;
+  menuBtn.setAttribute('aria-label', `Copy, download or share ${result.label}`);
+  menuBtn.setAttribute('aria-haspopup', 'menu');
+  menuBtn.setAttribute('aria-expanded', 'false');
+  menuBtn.innerHTML = `<span class="card-menu-btn-icon">${DOTS_ICON}</span><span class="card-menu-btn-label"></span>`;
+  menuBtn.addEventListener('click', ()=> toggleCardMenu(card, menuBtn));
+  card.appendChild(menuBtn);
 
   const playChordHere = ()=> playChord(chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs));
   const heading = card.querySelector('h2');
@@ -1892,6 +2086,7 @@ function generate(){
   // the chooser points at cards that are about to be replaced; re-bind it to the
   // rebuilt card afterwards so settings changed from inside it apply live
   const chooserLabel = voicingChooserState ? voicingChooserState.result.label : null;
+  closeCardMenu();
   const tuning = currentTuning();
   document.getElementById('pageTitleMain').textContent = `${tuning.name} chords`;
   document.getElementById('pageTitleSub').textContent = `${tuning.tuningLabel} tuning`;
@@ -1986,11 +2181,8 @@ function generate(){
   singleTip.hidden = !only;
   singleTip.textContent = '';
   if(only){
-    const params = new URLSearchParams(window.location.search);
-    params.set('chords', only.label + '*');
-    params.set('tuning', selectedTuningId);
     const link = document.createElement('a');
-    link.href = window.location.pathname + '?' + params.toString();
+    link.href = chordPageURL(only.label, true);
     link.textContent = `Show all ${only.voicings.length} voicings of ${only.label} on this page`;
     link.addEventListener('click', e=>{
       e.preventDefault();
