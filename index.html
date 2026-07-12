@@ -42,6 +42,7 @@
     --body-font:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     --control-h:48px;
     --builder-control-h:66px;
+    --hover-fade:.35s;
   }
   body.bw-mode{
     --page-bg:#ffffff;
@@ -574,13 +575,15 @@
   .grid.no-border .card:hover{ border-color:transparent; box-shadow:none; }
   /* side padding must clear the corner buttons — it is also the budget fitCardTitles() shrinks long names into */
   .chord-title-row{ display:flex; align-items:center; justify-content:center; gap:8px; min-height:30px; margin-bottom:4px; padding:0 33px; }
-  .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--accent); cursor:pointer; min-width:0; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--accent); cursor:pointer; min-width:0; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:opacity var(--hover-fade) ease; }
   .card h2:hover { opacity:.72; }
+  .card h2:focus { outline:none; }
+  .card h2:focus-visible { outline:3px solid color-mix(in srgb,var(--accent) 26%,transparent); outline-offset:2px; border-radius:8px; }
   .play-chord-btn{
     position:absolute; top:9px; left:9px; min-height:32px; flex:0 0 32px; width:32px; height:32px; padding:0; border:none; border-radius:50%; background:var(--accent-soft);
     display:flex; align-items:center; justify-content:center;
     color:var(--accent);
-    transition:background-color .18s ease,color .18s ease,opacity .18s ease,transform .18s ease;
+    transition:background-color var(--hover-fade) ease,color var(--hover-fade) ease,opacity .18s ease,transform .18s ease;
     cursor:pointer;
   }
   .play-chord-btn:hover{ background:var(--accent); color:#fff; border-color:transparent; }
@@ -595,13 +598,16 @@
   .diagram-slot.voicing-anim{ overflow:hidden; }
   .diagram-ghost{ position:absolute; inset:0; pointer-events:none; }
   .omit-note{ font-size:10px; font-style:italic; color:var(--ink-soft); margin:4px 0 0; }
-  .note-dot { cursor:pointer; }
+  .note-dot { cursor:pointer; transition:opacity var(--hover-fade) ease; }
   .note-dot:hover { opacity:.72; }
+  .note-dot:focus { outline:none; }
+  /* keyboard focus: the ring is the circle's own edge — round, accent-colored */
+  .note-dot:focus-visible { stroke:var(--accent); stroke-width:3; }
   .card-menu-btn{
     position:absolute; top:9px; right:9px; min-height:32px; width:32px; height:32px;
     border-radius:50%; padding:0; display:flex; align-items:center; justify-content:center;
     background:var(--accent-soft); border:none; color:var(--accent-strong);
-    transition:background-color .18s ease,color .18s ease,opacity .18s ease,transform .18s ease,width .2s ease;
+    transition:background-color var(--hover-fade) ease,color var(--hover-fade) ease,opacity .18s ease,transform .18s ease,width .2s ease;
     cursor:pointer; font-size:10px; overflow:hidden;
   }
   .card-menu-btn:hover, .card-menu-btn[aria-expanded="true"]{ background:var(--accent); color:#fff; border-color:transparent; }
@@ -641,7 +647,7 @@
   .voicing-nav-btn{
     min-height:28px; width:28px; height:28px; padding:0; border:none; border-radius:50%; background:transparent; color:var(--ink);
     display:flex; align-items:center; justify-content:center; cursor:pointer;
-    transition:background-color .2s ease,color .2s ease,border-color .2s ease,transform .16s ease;
+    transition:background-color var(--hover-fade) ease,color var(--hover-fade) ease,border-color var(--hover-fade) ease,transform .16s ease;
   }
   .voicing-nav-btn:hover{
     background:color-mix(in srgb,var(--accent) 9%,var(--card-bg));
@@ -659,7 +665,7 @@
   button.voicing-nav-count{
     min-height:28px; height:28px; padding:0 10px; border:none; border-radius:999px;
     background:var(--accent-soft); color:var(--accent); font-family:inherit; font-weight:600; cursor:pointer;
-    transition:background-color .2s ease,color .2s ease,transform .16s ease;
+    transition:background-color var(--hover-fade) ease,color var(--hover-fade) ease,transform .16s ease;
   }
   button.voicing-nav-count:hover{ background:var(--accent); color:#fff; }
   button.voicing-nav-count:active{ transform:scale(.97); }
@@ -734,7 +740,7 @@
     position:absolute; top:6px; right:6px; min-height:32px; width:32px; height:32px; padding:0;
     display:flex; align-items:center; justify-content:center;
     border:none; border-radius:50%; background:var(--accent-soft); color:var(--accent);
-    cursor:pointer; transition:background-color .18s ease,color .18s ease,opacity .18s ease,transform .18s ease;
+    cursor:pointer; transition:background-color var(--hover-fade) ease,color var(--hover-fade) ease,opacity .18s ease,transform .18s ease;
   }
   .voicing-choice-play:hover{ background:var(--accent); color:#fff; border-color:transparent; }
   .voicing-choice-play:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
@@ -1861,10 +1867,10 @@ function chordPlayDuration(midiNotes){
   return midiNotes.length ? (midiNotes.length-1)*25 + 1500 : 0;
 }
 
-// swaps a play button's icon to a "now playing" indicator for the strum's
-// duration, then restores it — purely visual, playback itself can't be stopped
-function playChordAndFlash(btn, midiNotes){
-  const started = playChord(midiNotes);
+// swaps a play button's icon to a "now playing" indicator while the sound
+// rings, then restores it — purely visual, playback itself can't be stopped.
+// `started` is the promise returned by playChord/playNote
+function flashPlayButton(btn, started, durationMs){
   if(!btn) return;
   if(!btn._playIconOriginal) btn._playIconOriginal = btn.innerHTML;
   clearTimeout(btn._playIconTimer);
@@ -1878,8 +1884,12 @@ function playChordAndFlash(btn, midiNotes){
     btn._playIconTimer = setTimeout(()=>{
       btn.innerHTML = btn._playIconOriginal;
       btn._playIconTimer = null;
-    }, chordPlayDuration(midiNotes));
+    }, durationMs);
   });
+}
+
+function playChordAndFlash(btn, midiNotes){
+  flashPlayButton(btn, playChord(midiNotes), chordPlayDuration(midiNotes));
 }
 
 function computeFretWindow(frets){
@@ -1892,10 +1902,16 @@ function computeFretWindow(frets){
 }
 
 function bindNoteDotHandlers(container){
+  const card = container.closest('.card');
+  const playBtn = card && card.querySelector('.play-chord-btn');
   // dots in an outgoing .diagram-ghost keep their old listeners — rebinding
   // them would stack duplicates
   [...container.querySelectorAll('.note-dot')].filter(dot=> !dot.closest('.diagram-ghost')).forEach(dot=>{
-    const playThisNote = e=>{ e.stopPropagation(); playNote(parseFloat(dot.dataset.abs)); };
+    const playThisNote = e=>{
+      e.stopPropagation();
+      const abs = parseFloat(dot.dataset.abs);
+      flashPlayButton(playBtn, playNote(abs), chordPlayDuration([abs]));
+    };
     dot.addEventListener('click', playThisNote);
     dot.addEventListener('keydown', e=>{
       if(e.key==='Enter' || e.key===' '){ e.preventDefault(); playThisNote(e); }
