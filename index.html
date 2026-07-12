@@ -590,8 +590,17 @@
     padding:10px 12px; background:var(--page-bg); border-radius:10px;
   }
   .rsearch-options .switch{ font-size:13.5px; }
-  .rsearch-note{ margin:0 18px 10px; font-size:13px; color:var(--ink-soft); }
+  .rsearch-note{ margin:0 18px 10px; display:flex; align-items:center; gap:7px; font-size:13px; color:var(--ink-soft); }
   .rsearch-note:empty{ display:none; }
+  .spinner{
+    width:13px; height:13px; flex-shrink:0; border-radius:50%;
+    border:2px solid color-mix(in srgb,var(--accent) 25%,transparent);
+    border-top-color:var(--accent);
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .rsearch-loading{ display:flex; align-items:center; justify-content:center; padding:36px 8px; }
+  .rsearch-loading .spinner{ width:22px; height:22px; border-width:2.5px; }
   .rsearch-results{
     flex:1 1 auto; min-height:0; overflow-y:auto;
     margin:0; padding:0 12px 12px; list-style:none;
@@ -629,6 +638,7 @@
   }
   @media (prefers-reduced-motion: reduce){
     .rsearch-backdrop, .rsearch-modal{ animation:none; }
+    .spinner{ animation:none; }
   }
   .error{ font-size:13px; font-weight:600; color:#9e2a20; margin:9px 0 0; }
   .error:empty{ display:none; }
@@ -3761,7 +3771,26 @@ function updateReverseSearchUI(){
     : 'Enter some chords first, then find songs that use them';
 }
 
-function setReverseNote(text){ reverseNoteEl.textContent = text || ''; }
+function setReverseNote(text, loading){
+  reverseNoteEl.innerHTML = '';
+  if(loading){
+    const spin = document.createElement('span');
+    spin.className = 'spinner';
+    spin.setAttribute('aria-hidden', 'true');
+    reverseNoteEl.appendChild(spin);
+  }
+  if(text) reverseNoteEl.appendChild(document.createTextNode(text));
+}
+
+function showReverseLoading(){
+  const li = document.createElement('li');
+  li.className = 'rsearch-loading';
+  const spin = document.createElement('span');
+  spin.className = 'spinner';
+  spin.setAttribute('aria-hidden', 'true');
+  li.appendChild(spin);
+  reverseResultsEl.appendChild(li);
+}
 
 function renderReverseResults(songs){
   reverseResultsEl.innerHTML = '';
@@ -3836,7 +3865,8 @@ async function runReverseSearch(){
   const capped = labels.slice(0, REVERSE_MAX_CHORDS);
   const anyKey = reverseAnyKeyEl.checked;
   const allowExtra = reverseAllowExtraEl.checked;
-  setReverseNote('Searching…');
+  setReverseNote('Searching…', true);
+  showReverseLoading();
   try{
     const params = new URLSearchParams({
       // sorted for the 5-minute HTTP cache: same set, same URL
@@ -3862,6 +3892,7 @@ async function runReverseSearch(){
   }catch(err){
     if(err.name === 'AbortError') return;
     if(ctrl === reverseInflight) reverseInflight = null;
+    reverseResultsEl.innerHTML = '';
     setReverseNote('Song search is unavailable right now.');
   }
 }
