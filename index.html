@@ -582,6 +582,7 @@
     font-size:12px; font-weight:650; white-space:nowrap;
   }
   .rsearch-chips .rsearch-chip{ font-size:13px; padding:3px 11px; }
+  .rsearch-chip.is-overflow{ background:transparent; border-style:dashed; color:var(--ink-soft); font-weight:500; }
   .rsearch-chord-extra{ color:var(--accent); font-weight:650; }
   .rsearch-chord-unmapped{ font-style:italic; opacity:.75; }
   .rsearch-options{
@@ -3544,6 +3545,9 @@ function setSongSearchVisible(visible){
   songDataFooterEl.hidden = !visible;
   // reverse search rides the same backend, so it appears and vanishes with it
   document.getElementById('reverseSearchBtn').hidden = !visible;
+  // …including a dialog opened during the localStorage pre-reveal, should the
+  // healthz check later gate the feature off
+  if(!visible) closeReverseModal();
   try{
     if(visible) localStorage.setItem(SONG_SEARCH_SEEN_KEY, 'true');
     else localStorage.removeItem(SONG_SEARCH_SEEN_KEY);
@@ -3866,12 +3870,21 @@ function openReverseModal(){
   reverseOpener = document.activeElement;
   const chipsEl = document.getElementById('reverseChips');
   chipsEl.innerHTML = '';
-  currentChordLabels().forEach(label=>{
+  // mirror the query cap so the chips never claim more than is searched
+  const labels = currentChordLabels();
+  labels.slice(0, REVERSE_MAX_CHORDS).forEach(label=>{
     const chip = document.createElement('span');
     chip.className = 'rsearch-chip';
     chip.textContent = label;
     chipsEl.appendChild(chip);
   });
+  if(labels.length > REVERSE_MAX_CHORDS){
+    const chip = document.createElement('span');
+    chip.className = 'rsearch-chip is-overflow';
+    chip.textContent = `+${labels.length - REVERSE_MAX_CHORDS} not searched`;
+    chip.title = `Only the first ${REVERSE_MAX_CHORDS} chords are searched`;
+    chipsEl.appendChild(chip);
+  }
   reverseModalEl.hidden = false;
   document.addEventListener('keydown', onReverseModalKeydown);
   document.getElementById('reverseModalClose').focus();
