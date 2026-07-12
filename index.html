@@ -974,7 +974,7 @@
         </div>
         <div class="options-group" role="group" aria-label="Alternative voicing options">
           <h3 class="settings-section-title">Alternative voicings</h3>
-          <p class="options-group-desc">How far up the neck voicings are searched and how wide a stretch they may need</p>
+          <p class="options-group-desc">How far up the neck voicings are searched, how wide a stretch they may need, and whether strings may be muted</p>
           <div class="controls">
             <div class="switch-wrap" id="maxFretInfoWrap">
               <div class="stepper" id="maxFretStepper" title="Highest fret considered when searching for a chord voicing. Raise it to unlock higher positions and more alternative voicings; lower it to keep chords near the nut.">
@@ -995,6 +995,15 @@
               </div>
               <button type="button" class="info-btn" id="maxSpanInfoBtn" aria-label="About the max stretch control" aria-expanded="false">i</button>
               <div class="info-popover" id="maxSpanInfoPopover" role="tooltip">The widest stretch a fingering may cover, counted in frets from its lowest to its highest fretted note — open strings don't count. Voicings needing a wider reach are discarded: at 7, a voicing using frets 2 and 8 (seven frets) is kept, one using frets 2 and 9 is dropped.</div>
+            </div>
+            <div class="switch-wrap" id="mutedInfoWrap">
+              <label class="switch" title="Let chords with only two notes (power chords) or three notes use voicings that mute strings (marked ×) instead of doubling notes across all four.">
+                <input type="checkbox" id="mutedToggle">
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <span>Allow muted strings</span>
+              </label>
+              <button type="button" class="info-btn" id="mutedInfoBtn" aria-label="About allowing muted strings" aria-expanded="false">i</button>
+              <div class="info-popover" id="mutedInfoPopover" role="tooltip">Voicings normally sound all four strings, so chords with only two notes (power chords) or three notes double some of them. When on, such chords may also skip strings — a muted string is marked × — like the classic two-string power chord shape. Chords with four different notes always need every string.</div>
             </div>
           </div>
         </div>
@@ -1113,6 +1122,11 @@
         <span class="stepper-value" id="voicingModalMaxSpanValue" aria-live="polite"></span>
         <button type="button" class="stepper-btn" id="voicingModalMaxSpanPlus" aria-label="Allow a wider stretch">+</button>
       </div>
+      <label class="switch" title="Let chords with only two notes (power chords) or three notes use voicings that mute strings (marked ×) in this chooser. Doesn't change the main page's setting.">
+        <input type="checkbox" id="voicingModalMuted">
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <span>Allow muted strings</span>
+      </label>
     </div>
     <div class="voicing-modal-grid" id="voicingModalGrid"></div>
     <div class="voicing-modal-footer">
@@ -1278,7 +1292,7 @@ function parseChord(input){
   return { label: core, showAll, requiredPCs, bassPC, rootPC, omitted };
 }
 
-function findVoicings(requiredPCs, bassPC, tuning, maxFret, maxSpan, maxCount){
+function findVoicings(requiredPCs, bassPC, tuning, maxFret, maxSpan, maxCount, allowMuted){
   const perString = tuning.openPCs.map((openPC,i)=>{
     const opts = [];
     for(let f=0; f<=maxFret; f++){
@@ -1311,7 +1325,9 @@ function findVoicings(requiredPCs, bassPC, tuning, maxFret, maxSpan, maxCount){
     if(span + 1 > maxSpan) continue;
     const openCount = active.filter(o=>o.fret===0).length;
     const sumFrets = frettedNZ.reduce((a,b)=>a+b,0);
-    const cost = mutedCount*1000 + extraCount*300 + span*15 + maxFretUsed*5 - openCount*5 + sumFrets*1;
+    // muted strings are a last-resort fallback unless allowed; even allowed, a
+    // light penalty keeps full voicings ahead of equally easy muted ones
+    const cost = mutedCount*(allowMuted ? 40 : 1000) + extraCount*300 + span*15 + maxFretUsed*5 - openCount*5 + sumFrets*1;
     candidates.push({ frets: combo.map(o=>o.fret), cost });
   }
   candidates.sort((a,b)=>a.cost-b.cost);
@@ -2028,9 +2044,11 @@ function saveSettings(){
     showOmitted: document.getElementById('omitToggle').checked,
     maxFret: maxFretValue,
     maxSpan: maxSpanValue,
+    allowMuted: document.getElementById('mutedToggle').checked,
     chooserMasonry: document.getElementById('voicingModalMasonry').checked,
     chooserMaxFret: chooserMaxFretValue,
     chooserMaxSpan: chooserMaxSpanValue,
+    chooserAllowMuted: document.getElementById('voicingModalMuted').checked,
   };
   // Only persist chordInput once the user has actually edited it — otherwise a
   // fresh visit would freeze in the built-in default forever instead of picking
@@ -2433,10 +2451,11 @@ function generate(){
     }
   });
 
+  const allowMuted = document.getElementById('mutedToggle').checked;
   tokens.forEach(tok=>{
     const parsed = parseChord(tok);
     if(parsed.error){ errors.push(parsed.error); return; }
-    const voicings = findVoicings(parsed.requiredPCs, parsed.bassPC, tuning, maxFretValue, maxSpanValue, MAX_VOICINGS);
+    const voicings = findVoicings(parsed.requiredPCs, parsed.bassPC, tuning, maxFretValue, maxSpanValue, MAX_VOICINGS, allowMuted);
     if(!voicings.length){ errors.push(`No practical voicing found for "${tok}"`); return; }
     // re-select the same frets if they still exist in the new voicing list;
     // fall back to the best voicing when they don't (new tuning, lower max fret)
@@ -2577,7 +2596,8 @@ function renderVoicingTiles(card, result){
   const colors = currentColors();
   const highlightRoot = document.getElementById('rootToggle').checked;
   const masonry = document.getElementById('voicingModalMasonry').checked;
-  const voicings = findVoicings(result.requiredPCs, result.bassPC, tuning, chooserMaxFretValue, chooserMaxSpanValue, MAX_VOICINGS);
+  const allowMuted = document.getElementById('voicingModalMuted').checked;
+  const voicings = findVoicings(result.requiredPCs, result.bassPC, tuning, chooserMaxFretValue, chooserMaxSpanValue, MAX_VOICINGS, allowMuted);
   voicingModalTitleEl.textContent = `${result.label} — ${voicings.length} voicing${voicings.length === 1 ? '' : 's'}`;
   const currentFrets = result.voicings[result.altIndex];
   const scrollTop = voicingModalGridEl.scrollTop;
@@ -2728,6 +2748,10 @@ voicingModalEl.addEventListener('click', e=>{
 });
 document.getElementById('voicingModalClose').addEventListener('click', ()=> closeVoicingChooser());
 document.getElementById('voicingModalMasonry').addEventListener('change', ()=>{
+  if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
+  saveSettings();
+});
+document.getElementById('voicingModalMuted').addEventListener('change', ()=>{
   if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
   saveSettings();
 });
@@ -2897,6 +2921,7 @@ setupInfoPopover('omitInfoWrap', 'omitInfoBtn');
 setupInfoPopover('thresholdInfoWrap', 'thresholdInfoBtn');
 setupInfoPopover('maxFretInfoWrap', 'maxFretInfoBtn');
 setupInfoPopover('maxSpanInfoWrap', 'maxSpanInfoBtn');
+setupInfoPopover('mutedInfoWrap', 'mutedInfoBtn');
 setupInfoPopover('masonryInfoWrap', 'masonryInfoBtn');
 setupInfoPopover('cardControlsInfoWrap', 'cardControlsInfoBtn');
 
@@ -2952,6 +2977,9 @@ if(Number.isInteger(savedSettings.maxFret) && savedSettings.maxFret >= MAX_FRET_
 if(Number.isInteger(savedSettings.maxSpan) && savedSettings.maxSpan >= MAX_SPAN_MIN && savedSettings.maxSpan <= MAX_SPAN_MAX){
   maxSpanValue = savedSettings.maxSpan;
 }
+if(typeof savedSettings.allowMuted === 'boolean'){
+  document.getElementById('mutedToggle').checked = savedSettings.allowMuted;
+}
 // chooser settings are independent; seed them from the page settings on first use
 chooserMaxFretValue = (Number.isInteger(savedSettings.chooserMaxFret) && savedSettings.chooserMaxFret >= MAX_FRET_MIN && savedSettings.chooserMaxFret <= MAX_FRET_MAX)
   ? savedSettings.chooserMaxFret : maxFretValue;
@@ -2960,6 +2988,9 @@ chooserMaxSpanValue = (Number.isInteger(savedSettings.chooserMaxSpan) && savedSe
 document.getElementById('voicingModalMasonry').checked = typeof savedSettings.chooserMasonry === 'boolean'
   ? savedSettings.chooserMasonry
   : document.getElementById('masonryToggle').checked;
+document.getElementById('voicingModalMuted').checked = typeof savedSettings.chooserAllowMuted === 'boolean'
+  ? savedSettings.chooserAllowMuted
+  : document.getElementById('mutedToggle').checked;
 const tuningParam = new URLSearchParams(window.location.search).get('tuning');
 const initialTuningId = (tuningParam && TUNINGS.some(t=>t.id===tuningParam))
   ? tuningParam
@@ -2986,6 +3017,7 @@ const TIPS = [
   { emoji:'🧩', text:"Switch on “Masonry layout” in Options to pack chord cards together tightly instead of leaving gaps when they're different heights." },
   { emoji:'🔍', text:'Raise “Search up to fret” in Options to unlock alternate voicings further up the neck.' },
   { emoji:'📏', text:'Fingers too short? Lower “Max stretch” in Options to skip voicings that need a wide stretch.' },
+  { emoji:'🔇', text:'Power chords sounding thick? Switch on “Allow muted strings” in Options and two- and three-note chords can skip strings instead of doubling notes.' },
 ];
 
 // a shuffled bag (not plain Math.random each time) so every tip is seen before any repeat
@@ -3292,6 +3324,7 @@ document.getElementById('columnsStepper').addEventListener('keydown', e=>{
 });
 document.getElementById('masonryToggle').addEventListener('change', generate);
 document.getElementById('omitToggle').addEventListener('change', generate);
+document.getElementById('mutedToggle').addEventListener('change', generate);
 document.getElementById('thresholdMinus').addEventListener('click', ()=> stepThreshold(-1));
 document.getElementById('thresholdPlus').addEventListener('click', ()=> stepThreshold(1));
 document.getElementById('thresholdStepper').addEventListener('keydown', e=>{
