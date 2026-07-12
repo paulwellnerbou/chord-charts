@@ -552,7 +552,6 @@
   }
   .rsearch-open-btn[hidden]{ display:none; }
   .rsearch-open-btn svg{ width:12px; height:12px; flex-shrink:0; }
-  .rsearch-open-btn:disabled{ color:var(--control-border); border-color:var(--card-border); background:var(--card-bg); cursor:not-allowed; }
   .rsearch-backdrop{
     position:fixed; inset:0; z-index:60; padding:24px;
     display:flex; align-items:center; justify-content:center;
@@ -567,7 +566,7 @@
     box-shadow:0 24px 60px -18px rgba(41,38,33,.5), 0 4px 14px rgba(41,38,33,.18);
     animation:voicing-modal-in .2s cubic-bezier(.34,1.56,.64,1);
   }
-  .rsearch-head, .rsearch-chips, .rsearch-options, .rsearch-note, .rsearch-footer{ flex-shrink:0; }
+  .rsearch-head, .rsearch-field, .rsearch-options, .rsearch-note, .rsearch-footer{ flex-shrink:0; }
   .rsearch-head{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
     padding:14px 18px 8px;
@@ -575,14 +574,10 @@
   .rsearch-head h2{
     margin:0; font-family:var(--heading-font); font-weight:600; font-size:20px; color:var(--accent);
   }
-  .rsearch-chips{ display:flex; flex-wrap:wrap; gap:6px; padding:2px 18px 12px; }
-  .rsearch-chip{
-    display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px;
-    background:var(--page-bg); border:1px solid var(--card-border); color:var(--ink);
-    font-size:12px; font-weight:650; white-space:nowrap;
-  }
-  .rsearch-chips .rsearch-chip{ font-size:13px; padding:3px 11px; }
-  .rsearch-chip.is-overflow{ background:transparent; border-style:dashed; color:var(--ink-soft); font-weight:500; }
+  .rsearch-field{ padding:2px 18px 12px; }
+  .rsearch-field-row{ display:flex; gap:8px; }
+  .rsearch-field-row .custom-chord-notes-input{ flex:1 1 auto; min-width:0; }
+  .rsearch-field-row button{ height:var(--control-h); flex-shrink:0; border-radius:10px; }
   .rsearch-chord-extra{ color:var(--accent); font-weight:650; }
   .rsearch-chord-unmapped{ font-style:italic; opacity:.75; }
   .rsearch-options{
@@ -634,6 +629,7 @@
     font-size:12.5px; color:var(--ink-soft); line-height:1.5; overflow-wrap:anywhere;
   }
   .rsearch-footer{
+    display:flex; align-items:center; justify-content:space-between; gap:6px 14px; flex-wrap:wrap;
     padding:9px 18px 13px; border-top:1px solid var(--card-border);
     font-size:11.5px; color:var(--ink-soft);
   }
@@ -1317,7 +1313,14 @@
       <h2 id="reverseModalTitle">Find songs with these chords</h2>
       <button type="button" class="tips-modal-close" id="reverseModalClose" aria-label="Close song finder">&times;</button>
     </div>
-    <div class="rsearch-chips" id="reverseChips" role="group" aria-label="Searching with these chords"></div>
+    <div class="rsearch-field">
+      <label class="field-label" for="reverseChordsInput">Chords</label>
+      <div class="rsearch-field-row">
+        <input type="text" id="reverseChordsInput" class="custom-chord-notes-input" placeholder="e.g. C, G, Am, F"
+               autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-describedby="reverseNote">
+        <button type="button" id="reverseSubmitBtn" title="Search songs that use these chords">Search</button>
+      </div>
+    </div>
     <div class="rsearch-options">
       <div class="switch-wrap" id="reverseAnyKeyInfoWrap">
         <label class="switch">
@@ -1336,7 +1339,13 @@
     </div>
     <p class="rsearch-note" id="reverseNote" role="status" aria-live="polite"></p>
     <ul class="rsearch-results" id="reverseResults" aria-label="Matching songs"></ul>
-    <div class="rsearch-footer">Closest matches first, then most popular · Song data: Chordonomicon</div>
+    <div class="rsearch-footer">
+      <span>Closest matches first, then most popular · Song data: Chordonomicon</span>
+      <a class="voicing-modal-open-all" id="reverseShareLink" target="_blank" rel="noopener" hidden>
+        Open this search in a new tab
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </a>
+    </div>
   </div>
 </div>
 
@@ -2632,7 +2641,6 @@ function buildCard(result, ctx){
 function generate(){
   updateChordInputClearUI();
   updateTransposeUI();
-  updateReverseSearchUI();
   // the chooser points at cards that are about to be replaced; re-bind it to the
   // rebuilt card afterwards so settings changed from inside it apply live
   const chooserLabel = voicingChooserState ? voicingChooserState.result.label : null;
@@ -4025,6 +4033,7 @@ document.getElementById('chordInputClear').addEventListener('click', clearActive
 // --- Reverse search: find songs that use the chords currently in the input ---
 const REVERSE_MAX_CHORDS = 24; // backend rejects longer queries
 const reverseModalEl = document.getElementById('reverseModal');
+const reverseChordsInputEl = document.getElementById('reverseChordsInput');
 const reverseNoteEl = document.getElementById('reverseNote');
 const reverseResultsEl = document.getElementById('reverseResults');
 const reverseAnyKeyEl = document.getElementById('reverseAnyKey');
@@ -4035,27 +4044,24 @@ let reverseInflight = null; // AbortController — toggles/close cancel a runnin
 if(typeof savedSettings.reverseAnyKey === 'boolean') reverseAnyKeyEl.checked = savedSettings.reverseAnyKey;
 if(typeof savedSettings.reverseAllowExtra === 'boolean') reverseAllowExtraEl.checked = savedSettings.reverseAllowExtra;
 
-// Parseable chords of the input, deduped, in typing order ("*" already
-// stripped by parseChord). Parse errors are skipped silently — the input's
-// own error box reports them.
-function currentChordLabels(){
-  const seen = new Set(); const labels = [];
-  chordInputEl.value.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean).forEach(tok=>{
+// Parseable chords of a comma/newline-separated list, deduped, in typing
+// order ("*" already stripped by parseChord). Unparseable tokens come back
+// separately so callers can report them.
+function chordLabelsFrom(text){
+  const seen = new Set(); const labels = []; const bad = [];
+  text.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean).forEach(tok=>{
     const parsed = parseChord(tok);
-    if(parsed.error || seen.has(parsed.label)) return;
+    if(parsed.error){ bad.push(tok); return; }
+    if(seen.has(parsed.label)) return;
     seen.add(parsed.label);
     labels.push(parsed.label);
   });
-  return labels;
+  return { labels, bad };
 }
 
-function updateReverseSearchUI(){
-  const btn = document.getElementById('reverseSearchBtn');
-  const has = currentChordLabels().length > 0;
-  btn.disabled = !has;
-  btn.title = has ? 'Find songs that use the chords in this input'
-    : 'Enter some chords first, then find songs that use them';
-}
+// Parse errors in the sheet input are skipped silently — its own error box
+// reports them.
+function currentChordLabels(){ return chordLabelsFrom(chordInputEl.value).labels; }
 
 function setReverseNote(text, loading){
   reverseNoteEl.innerHTML = '';
@@ -4140,15 +4146,38 @@ function renderReverseResults(songs){
   });
 }
 
+// Live link to reopen this exact search — mirrors syncCustomChordShareLink,
+// carried on top of whatever chart/tuning params are already in the URL.
+function syncReverseShareLink(labels){
+  const link = document.getElementById('reverseShareLink');
+  if(!labels.length){
+    link.hidden = true;
+    link.removeAttribute('href');
+    link.removeAttribute('title');
+    return;
+  }
+  link.hidden = false;
+  const params = new URLSearchParams(window.location.search);
+  params.set('findsongs', labels.join(','));
+  link.href = window.location.pathname + '?' + params.toString();
+  link.title = `Open a link to this search for ${labels.join(', ')} in a new tab`;
+}
+
 async function runReverseSearch(){
   if(reverseInflight) reverseInflight.abort();
   reverseInflight = null; // non-null must mean a request is actually in flight
   reverseResultsEl.innerHTML = '';
-  const labels = currentChordLabels();
-  if(!labels.length){ setReverseNote('Enter some chords first.'); return; }
+  const { labels, bad } = chordLabelsFrom(reverseChordsInputEl.value);
+  const capped = labels.slice(0, REVERSE_MAX_CHORDS);
+  syncReverseShareLink(capped);
+  const notes = [];
+  if(bad.length) notes.push(`Could not parse ${bad.map(t=>`“${t}”`).join(', ')} — skipped.`);
+  if(!labels.length){
+    setReverseNote(notes.concat('Enter some chords first.').join(' '));
+    return;
+  }
   const ctrl = new AbortController();
   reverseInflight = ctrl;
-  const capped = labels.slice(0, REVERSE_MAX_CHORDS);
   const anyKey = reverseAnyKeyEl.checked;
   const allowExtra = reverseAllowExtraEl.checked;
   setReverseNote('Searching…', true);
@@ -4167,7 +4196,6 @@ async function runReverseSearch(){
     if(ctrl !== reverseInflight) return; // superseded by a toggle change
     reverseInflight = null;
     renderReverseResults(found);
-    const notes = [];
     if(labels.length > capped.length) notes.push(`Searching with the first ${REVERSE_MAX_CHORDS} of ${labels.length} chords.`);
     if(!found.length){
       if(!allowExtra) notes.push('No songs use only these chords — try “Allow extra chords”.');
@@ -4183,25 +4211,14 @@ async function runReverseSearch(){
   }
 }
 
-function openReverseModal(){
+// Opened from the button, the editable query starts as the sheet's chords;
+// a ?findsongs= link passes seedFromSheet=false to keep the linked ones.
+// Either way the open itself is an explicit search request — after that the
+// (expensive) search only re-runs on Search/Enter or an option change, never
+// while typing.
+function openReverseModal(seedFromSheet){
   reverseOpener = document.activeElement;
-  const chipsEl = document.getElementById('reverseChips');
-  chipsEl.innerHTML = '';
-  // mirror the query cap so the chips never claim more than is searched
-  const labels = currentChordLabels();
-  labels.slice(0, REVERSE_MAX_CHORDS).forEach(label=>{
-    const chip = document.createElement('span');
-    chip.className = 'rsearch-chip';
-    chip.textContent = label;
-    chipsEl.appendChild(chip);
-  });
-  if(labels.length > REVERSE_MAX_CHORDS){
-    const chip = document.createElement('span');
-    chip.className = 'rsearch-chip is-overflow';
-    chip.textContent = `+${labels.length - REVERSE_MAX_CHORDS} not searched`;
-    chip.title = `Only the first ${REVERSE_MAX_CHORDS} chords are searched`;
-    chipsEl.appendChild(chip);
-  }
+  if(seedFromSheet !== false) reverseChordsInputEl.value = currentChordLabels().join(', ');
   reverseModalEl.hidden = false;
   document.addEventListener('keydown', onReverseModalKeydown);
   document.getElementById('reverseModalClose').focus();
@@ -4234,7 +4251,7 @@ function onReverseModalKeydown(e){
   }
   // aria-modal promises focus containment — cycle Tab inside the dialog
   if(e.key === 'Tab'){
-    const list = [...reverseModalEl.querySelectorAll('button:not(:disabled), input')];
+    const list = [...reverseModalEl.querySelectorAll('button:not(:disabled), input, a[href]')];
     if(!list.length) return;
     const first = list[0], last = list[list.length - 1];
     const active = document.activeElement;
@@ -4247,7 +4264,11 @@ function onReverseModalKeydown(e){
 }
 
 setupInfoPopover('reverseAnyKeyInfoWrap', 'reverseAnyKeyInfoBtn');
-document.getElementById('reverseSearchBtn').addEventListener('click', openReverseModal);
+document.getElementById('reverseSearchBtn').addEventListener('click', ()=> openReverseModal());
+document.getElementById('reverseSubmitBtn').addEventListener('click', ()=> runReverseSearch());
+reverseChordsInputEl.addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); runReverseSearch(); }
+});
 document.getElementById('reverseModalClose').addEventListener('click', ()=> closeReverseModal());
 reverseModalEl.addEventListener('click', e=>{ if(e.target === reverseModalEl) closeReverseModal(); });
 [reverseAnyKeyEl, reverseAllowExtraEl].forEach(el=> el.addEventListener('change', ()=>{
@@ -4352,6 +4373,16 @@ if(notesParam && notesParam.trim()){
       requestAnimationFrame(()=> openWhenViewportReady(attemptsLeft - 1));
     }
   })(300);
+}
+
+// ?findsongs=<chords> opens the song finder pre-filled and already searched,
+// mirroring ?notes= above. No need to await the healthz gate: the search
+// reports an unavailable backend itself, and a failing check closes the
+// dialog via setSongSearchVisible(false).
+const findSongsParam = new URLSearchParams(window.location.search).get('findsongs');
+if(findSongsParam && findSongsParam.trim()){
+  reverseChordsInputEl.value = findSongsParam.split(',').map(t=>t.trim()).filter(Boolean).join(', ');
+  openReverseModal(false);
 }
 </script>
 </body>
