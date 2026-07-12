@@ -3896,8 +3896,12 @@ function closeReverseModal(){
   reverseModalEl.hidden = true;
   document.removeEventListener('keydown', onReverseModalKeydown);
   if(reverseInflight){ reverseInflight.abort(); reverseInflight = null; }
-  if(reverseOpener && reverseOpener.isConnected) reverseOpener.focus();
+  // the opener may have just been gated off with the feature — fall back to
+  // the chord input so keyboard focus isn't dropped on <body>
+  const opener = reverseOpener;
   reverseOpener = null;
+  if(opener && opener.isConnected && opener.offsetParent !== null) opener.focus();
+  else chordInputEl.focus();
 }
 
 function onReverseModalKeydown(e){
