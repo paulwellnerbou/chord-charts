@@ -846,6 +846,16 @@
   .voicing-modal-open-all:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
   .voicing-modal-open-all svg{ width:13px; height:13px; flex-shrink:0; }
   .voicing-modal-open-all code{ font-family:inherit; font-weight:750; }
+  /* --- custom chord diagram (search fingerings for typed notes, not a chord name) --- */
+  .custom-chord-field{ padding:0 18px; margin:2px 0 8px; }
+  .custom-chord-notes-input{
+    display:block; width:100%; height:var(--control-h); padding:0 12px;
+    font-size:15px; font-family:inherit;
+    border:1px solid var(--control-border); border-radius:10px;
+    background:var(--card-bg); color:var(--ink);
+    transition:border-color .15s ease,box-shadow .15s ease;
+  }
+  .custom-chord-notes-input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent); }
   @media (max-width:600px){
     body{ padding:16px 12px 32px; }
     .masthead{ align-items:flex-start; gap:10px; padding-bottom:14px; margin-bottom:14px; }
@@ -863,6 +873,7 @@
     /* 16px stops iOS Safari from auto-zooming the page on focus */
     #chordInput{ font-size:16px; }
     #songSearchInput{ font-size:16px; }
+    .custom-chord-notes-input{ font-size:16px; }
     /* keep long titles readable on narrow dropdowns */
     .song-result-meta{ display:none; }
     .results-toolbar{ align-items:stretch; }
@@ -939,6 +950,10 @@
         <div class="field-label-row">
           <label class="field-label" for="chordInput">Chords</label>
           <div class="field-label-actions">
+            <button type="button" class="secondary rsearch-open-btn" id="customChordOpenBtn" aria-haspopup="dialog" title="Search fingerings for your own set of notes">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>
+              Custom chord
+            </button>
             <button type="button" class="secondary rsearch-open-btn" id="reverseSearchBtn" hidden aria-haspopup="dialog" title="Find songs that use the chords in this input">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
               Find songs
@@ -1230,6 +1245,54 @@
       <span class="voicing-modal-hint">Hit ▶ to hear a voicing — click the diagram to use it on the sheet.</span>
       <a class="voicing-modal-open-all" id="voicingModalOpenAll" target="_blank" rel="noopener">
         <span id="voicingModalOpenAllLabel"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="voicing-modal-backdrop no-print" id="customChordModal" hidden>
+  <div class="voicing-modal" role="dialog" aria-modal="true" aria-labelledby="customChordModalTitle">
+    <div class="voicing-modal-head">
+      <h2 id="customChordModalTitle">Custom chord diagram</h2>
+      <button type="button" class="voicing-modal-close" id="customChordModalClose" aria-label="Close custom chord diagram">&times;</button>
+    </div>
+    <div class="custom-chord-field">
+      <label class="field-label" for="customChordNotesInput">Notes</label>
+      <input type="text" id="customChordNotesInput" class="custom-chord-notes-input" placeholder="e.g. A, C#, E" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="customChordNotesNote">
+    </div>
+    <p class="rsearch-note" id="customChordNotesNote" role="status" aria-live="polite"></p>
+    <div class="voicing-modal-controls">
+      <label class="switch" title="Pack the tiles in this search into columns by height (masonry).">
+        <input type="checkbox" id="customChordModalMasonry">
+        <svg class="switch-side-icon icon-layout-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <svg class="switch-side-icon icon-layout-masonry" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="10.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="6.5" rx="1"/><rect x="13.5" y="12.5" width="7.5" height="8.5" rx="1"/><rect x="3" y="16.5" width="7.5" height="4.5" rx="1"/></svg>
+        <span>Masonry layout</span>
+      </label>
+      <div class="stepper" id="customChordModalMaxFretStepper" title="Highest fret searched for voicings — raise it to reveal more alternatives.">
+        <span class="stepper-label">Search up to fret</span>
+        <button type="button" class="stepper-btn" id="customChordModalMaxFretMinus" aria-label="Lower the fret search limit">−</button>
+        <span class="stepper-value" id="customChordModalMaxFretValue" aria-live="polite"></span>
+        <button type="button" class="stepper-btn" id="customChordModalMaxFretPlus" aria-label="Raise the fret search limit">+</button>
+      </div>
+      <div class="stepper" id="customChordModalMaxSpanStepper" title="Widest stretch a fingering may cover, in frets — voicings needing a wider reach are discarded.">
+        <span class="stepper-label">Max stretch</span>
+        <button type="button" class="stepper-btn" id="customChordModalMaxSpanMinus" aria-label="Allow a narrower stretch">−</button>
+        <span class="stepper-value" id="customChordModalMaxSpanValue" aria-live="polite"></span>
+        <button type="button" class="stepper-btn" id="customChordModalMaxSpanPlus" aria-label="Allow a wider stretch">+</button>
+      </div>
+      <label class="switch" title="Let voicings mute strings (marked ×) instead of doubling notes.">
+        <input type="checkbox" id="customChordModalMuted">
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <span>Allow muted strings</span>
+      </label>
+    </div>
+    <div class="voicing-modal-grid" id="customChordModalGrid"></div>
+    <div class="voicing-modal-footer">
+      <span class="voicing-modal-hint">Click a diagram or hit ▶ to hear it.</span>
+      <a class="voicing-modal-open-all" id="customChordModalShareLink" target="_blank" rel="noopener">
+        <span id="customChordModalShareLabel"></span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       </a>
     </div>
@@ -2175,6 +2238,10 @@ function saveSettings(){
     chooserMaxFret: chooserMaxFretValue,
     chooserMaxSpan: chooserMaxSpanValue,
     chooserAllowMuted: document.getElementById('voicingModalMuted').checked,
+    customChordMasonry: document.getElementById('customChordModalMasonry').checked,
+    customChordMaxFret: customChordMaxFretValue,
+    customChordMaxSpan: customChordMaxSpanValue,
+    customChordAllowMuted: document.getElementById('customChordModalMuted').checked,
     reverseAnyKey: document.getElementById('reverseAnyKey').checked,
     reverseAllowExtra: document.getElementById('reverseAllowExtra').checked,
   };
@@ -2700,10 +2767,12 @@ let voicingChooserState = null;
 let chooserMaxFretValue = MAX_FRET_DEFAULT;
 let chooserMaxSpanValue = MAX_SPAN_DEFAULT;
 
-function syncVoicingModalControls(){
+// shared by the voicing chooser and the custom-chord modal below, which each
+// keep their own independent max-fret/max-span search settings
+function syncFretSpanControls(prefix, maxFretVal, maxSpanVal){
   [
-    ['voicingModalMaxFret', chooserMaxFretValue, MAX_FRET_MIN, MAX_FRET_MAX],
-    ['voicingModalMaxSpan', chooserMaxSpanValue, MAX_SPAN_MIN, MAX_SPAN_MAX],
+    [prefix + 'MaxFret', maxFretVal, MAX_FRET_MIN, MAX_FRET_MAX],
+    [prefix + 'MaxSpan', maxSpanVal, MAX_SPAN_MIN, MAX_SPAN_MAX],
   ].forEach(([base, value, min, max])=>{
     const valEl = document.getElementById(base + 'Value');
     const newText = String(value);
@@ -2717,6 +2786,32 @@ function syncVoicingModalControls(){
     }
     document.getElementById(base + 'Minus').disabled = value === min;
     document.getElementById(base + 'Plus').disabled = value === max;
+  });
+}
+function syncVoicingModalControls(){
+  syncFretSpanControls('voicingModal', chooserMaxFretValue, chooserMaxSpanValue);
+}
+
+// same bin-packing as layoutCards; equal-width flex columns mean heights can
+// be measured while everything still sits in the first column
+function layoutMasonryTiles(gridEl, tiles){
+  const GAP = 10, MIN_TILE_W = 124;
+  const contentW = gridEl.clientWidth - 36;
+  const colCount = Math.max(1, Math.floor((contentW + GAP) / (MIN_TILE_W + GAP)));
+  const columns = Array.from({length: colCount}, ()=>{
+    const col = document.createElement('div');
+    col.className = 'masonry-col';
+    gridEl.appendChild(col);
+    return col;
+  });
+  tiles.forEach(t=> columns[0].appendChild(t));
+  const heights = tiles.map(t=> t.getBoundingClientRect().height);
+  const colHeights = new Array(colCount).fill(0);
+  tiles.forEach((t, i)=>{
+    let target = 0;
+    for(let j=1; j<colCount; j++){ if(colHeights[j] < colHeights[target]) target = j; }
+    columns[target].appendChild(t);
+    colHeights[target] += heights[i] + GAP;
   });
 }
 
@@ -2788,26 +2883,7 @@ function renderVoicingTiles(card, result){
   if(!masonry){
     tiles.forEach(t=> voicingModalGridEl.appendChild(t));
   } else {
-    // same bin-packing as layoutCards; equal-width flex columns mean heights can
-    // be measured while everything still sits in the first column
-    const GAP = 10, MIN_TILE_W = 124;
-    const contentW = voicingModalGridEl.clientWidth - 36;
-    const colCount = Math.max(1, Math.floor((contentW + GAP) / (MIN_TILE_W + GAP)));
-    const columns = Array.from({length: colCount}, ()=>{
-      const col = document.createElement('div');
-      col.className = 'masonry-col';
-      voicingModalGridEl.appendChild(col);
-      return col;
-    });
-    tiles.forEach(t=> columns[0].appendChild(t));
-    const heights = tiles.map(t=> t.getBoundingClientRect().height);
-    const colHeights = new Array(colCount).fill(0);
-    tiles.forEach((t, i)=>{
-      let target = 0;
-      for(let j=1; j<colCount; j++){ if(colHeights[j] < colHeights[target]) target = j; }
-      columns[target].appendChild(t);
-      colHeights[target] += heights[i] + GAP;
-    });
+    layoutMasonryTiles(voicingModalGridEl, tiles);
   }
   voicingModalGridEl.scrollTop = scrollTop;
 }
@@ -2919,6 +2995,194 @@ function wireChooserStepper(base, step){
 }
 wireChooserStepper('voicingModalMaxFret', stepChooserMaxFret);
 wireChooserStepper('voicingModalMaxSpan', stepChooserMaxSpan);
+
+// --- Custom chord diagram: search fingerings for a free-form set of notes,
+// not a named chord. Mirrors the voicing chooser above (own max-fret/max-span
+// search settings, same tile grid) but there's no sheet card to update, so
+// every tile just plays — nothing to "select".
+const customChordModalEl = document.getElementById('customChordModal');
+const customChordNotesInputEl = document.getElementById('customChordNotesInput');
+const customChordNotesNoteEl = document.getElementById('customChordNotesNote');
+const customChordModalGridEl = document.getElementById('customChordModalGrid');
+const CUSTOM_CHORD_MAX_NOTES = 4;
+let customChordOpener = null;
+let customChordMaxFretValue = MAX_FRET_DEFAULT;
+let customChordMaxSpanValue = MAX_SPAN_DEFAULT;
+let customChordDebounce = null;
+
+function syncCustomChordModalControls(){
+  syncFretSpanControls('customChordModal', customChordMaxFretValue, customChordMaxSpanValue);
+}
+
+// Parses free-text note names ("A, C#, Eb") into pitch classes for findVoicings.
+// Unlike parseChord there's no quality or slash-bass syntax — just note letters.
+function parseNoteList(input){
+  const tokens = input.split(',').map(t=>t.trim()).filter(Boolean);
+  if(!tokens.length) return { error:'Enter at least one note.' };
+  if(tokens.length > CUSTOM_CHORD_MAX_NOTES) return { error:`Enter at most ${CUSTOM_CHORD_MAX_NOTES} notes.` };
+  const pcs = [];
+  for(const tok of tokens){
+    const m = tok.match(/^([A-Ga-g])(#|b)?$/);
+    if(!m) return { error:`Could not parse "${tok}" as a note.` };
+    pcs.push(noteToPC(m[1], m[2]||''));
+  }
+  return { tokens, requiredPCs:[...new Set(pcs)] };
+}
+
+// Live link to reopen this exact search — mirrors syncVoicingModalOpenAll,
+// carried on top of whatever chart/tuning params are already in the URL.
+function syncCustomChordShareLink(tokens){
+  const link = document.getElementById('customChordModalShareLink');
+  const labelEl = document.getElementById('customChordModalShareLabel');
+  if(!tokens || !tokens.length){
+    link.removeAttribute('href');
+    labelEl.textContent = '';
+    return;
+  }
+  const noteList = tokens.join(', ');
+  const params = new URLSearchParams(window.location.search);
+  params.set('notes', tokens.join(','));
+  params.set('tuning', selectedTuningId);
+  link.href = window.location.pathname + '?' + params.toString();
+  link.title = `Open a link to this search for ${noteList} in a new tab`;
+  labelEl.textContent = '';
+  const code = document.createElement('code');
+  code.textContent = noteList;
+  labelEl.append('Open ', code, ' in a new tab');
+}
+
+function renderCustomChordTiles(){
+  const parsed = parseNoteList(customChordNotesInputEl.value);
+  syncCustomChordShareLink(parsed.tokens);
+  const scrollTop = customChordModalGridEl.scrollTop;
+  customChordModalGridEl.innerHTML = '';
+  if(parsed.error){
+    customChordNotesNoteEl.textContent = parsed.error;
+    return;
+  }
+  const label = parsed.tokens.join(', ');
+  const tuning = currentTuning();
+  const colors = currentColors();
+  const highlightRoot = document.getElementById('rootToggle').checked;
+  const masonry = document.getElementById('customChordModalMasonry').checked;
+  const allowMuted = document.getElementById('customChordModalMuted').checked;
+  const voicings = findVoicings(parsed.requiredPCs, null, tuning, customChordMaxFretValue, customChordMaxSpanValue, MAX_VOICINGS, allowMuted);
+  customChordNotesNoteEl.textContent = voicings.length
+    ? `${voicings.length} voicing${voicings.length===1 ? '' : 's'} found for ${label}.`
+    : `No practical voicing found for ${label} up to fret ${customChordMaxFretValue} — raise “Search up to fret” or “Max stretch” below.`;
+  customChordModalGridEl.classList.toggle('masonry', masonry);
+  if(!voicings.length) return;
+
+  const tiles = voicings.map((frets, i)=>{
+    const { fretMax, startFret } = computeFretWindow(frets);
+    // play button is a sibling of the tile button (nesting would be invalid),
+    // overlaid on its corner via the wrapper — see renderVoicingTiles above
+    const wrap = document.createElement('div');
+    wrap.className = 'voicing-choice-wrap';
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'voicing-choice';
+    tile.setAttribute('aria-label', `Play voicing ${i+1} of ${voicings.length} for ${label}`);
+    // no openAbs: per-note dots would nest interactive elements inside the button
+    tile.innerHTML = `<span class="voicing-choice-index">${i+1}</span>` + chordSVG(label, frets, fretMax, tuning.labels, colors, tuning.openPCs, null, highlightRoot, undefined, startFret);
+    const playBtn = document.createElement('button');
+    playBtn.type = 'button';
+    playBtn.className = 'voicing-choice-play';
+    playBtn.title = 'Play this voicing';
+    playBtn.setAttribute('aria-label', `Play voicing ${i+1} of ${voicings.length} for ${label}`);
+    playBtn.innerHTML = PLAY_ICON;
+    // both the tile and its corner button flash the same small icon — never the
+    // tile's own diagram, which would just blank out mid-swap
+    const playThis = ()=> playChordAndFlash(playBtn, chordAbsNotes(frets, tuning.openAbs));
+    tile.addEventListener('click', playThis);
+    playBtn.addEventListener('click', e=>{ e.stopPropagation(); playThis(); });
+    wrap.appendChild(tile);
+    wrap.appendChild(playBtn);
+    return wrap;
+  });
+
+  if(!masonry){
+    tiles.forEach(t=> customChordModalGridEl.appendChild(t));
+  } else {
+    layoutMasonryTiles(customChordModalGridEl, tiles);
+  }
+  customChordModalGridEl.scrollTop = scrollTop;
+}
+
+function scheduleCustomChordRender(){
+  if(!customChordModalEl.hidden) renderCustomChordTiles();
+}
+
+function stepCustomChordMaxFret(delta){
+  customChordMaxFretValue = Math.min(MAX_FRET_MAX, Math.max(MAX_FRET_MIN, customChordMaxFretValue + delta));
+  syncCustomChordModalControls();
+  scheduleCustomChordRender();
+  saveSettings();
+}
+function stepCustomChordMaxSpan(delta){
+  customChordMaxSpanValue = Math.min(MAX_SPAN_MAX, Math.max(MAX_SPAN_MIN, customChordMaxSpanValue + delta));
+  syncCustomChordModalControls();
+  scheduleCustomChordRender();
+  saveSettings();
+}
+wireChooserStepper('customChordModalMaxFret', stepCustomChordMaxFret);
+wireChooserStepper('customChordModalMaxSpan', stepCustomChordMaxSpan);
+
+function openCustomChordModal(opener){
+  customChordOpener = opener || document.activeElement;
+  syncCustomChordModalControls();
+  customChordModalEl.hidden = false;
+  document.addEventListener('keydown', onCustomChordModalKeydown);
+  renderCustomChordTiles();
+  customChordNotesInputEl.focus();
+}
+
+function closeCustomChordModal(){
+  if(customChordModalEl.hidden) return;
+  customChordModalEl.hidden = true;
+  document.removeEventListener('keydown', onCustomChordModalKeydown);
+  const opener = customChordOpener;
+  customChordOpener = null;
+  if(opener && opener.isConnected && opener.offsetParent !== null) opener.focus();
+}
+
+function onCustomChordModalKeydown(e){
+  if(e.key === 'Escape'){ closeCustomChordModal(); return; }
+  // aria-modal promises focus containment — cycle Tab inside the dialog
+  if(e.key === 'Tab'){
+    const list = [...customChordModalEl.querySelectorAll('button:not(:disabled), input, a[href]')];
+    if(!list.length) return;
+    const first = list[0], last = list[list.length - 1];
+    const active = document.activeElement;
+    if(e.shiftKey && (active === first || !customChordModalEl.contains(active))){
+      e.preventDefault(); last.focus();
+    } else if(!e.shiftKey && (active === last || !customChordModalEl.contains(active))){
+      e.preventDefault(); first.focus();
+    }
+  }
+}
+
+customChordModalEl.addEventListener('click', e=>{
+  if(e.target === customChordModalEl) closeCustomChordModal();
+});
+document.getElementById('customChordModalClose').addEventListener('click', ()=> closeCustomChordModal());
+document.getElementById('customChordOpenBtn').addEventListener('click', e=> openCustomChordModal(e.currentTarget));
+document.getElementById('customChordModalMasonry').addEventListener('change', ()=>{
+  scheduleCustomChordRender();
+  saveSettings();
+});
+document.getElementById('customChordModalMuted').addEventListener('change', ()=>{
+  scheduleCustomChordRender();
+  saveSettings();
+});
+customChordNotesInputEl.addEventListener('input', ()=>{
+  clearTimeout(customChordDebounce);
+  // debounce long enough that partial tokens rarely flash a parse error
+  customChordDebounce = setTimeout(renderCustomChordTiles, 450);
+});
+customChordNotesInputEl.addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); clearTimeout(customChordDebounce); renderCustomChordTiles(); }
+});
 
 function updateURLParam(chordInputValue){
   const params = new URLSearchParams(window.location.search);
@@ -3119,6 +3383,17 @@ document.getElementById('voicingModalMasonry').checked = typeof savedSettings.ch
   : document.getElementById('masonryToggle').checked;
 document.getElementById('voicingModalMuted').checked = typeof savedSettings.chooserAllowMuted === 'boolean'
   ? savedSettings.chooserAllowMuted
+  : document.getElementById('mutedToggle').checked;
+// custom-chord modal settings are independent too, seeded the same way
+customChordMaxFretValue = (Number.isInteger(savedSettings.customChordMaxFret) && savedSettings.customChordMaxFret >= MAX_FRET_MIN && savedSettings.customChordMaxFret <= MAX_FRET_MAX)
+  ? savedSettings.customChordMaxFret : maxFretValue;
+customChordMaxSpanValue = (Number.isInteger(savedSettings.customChordMaxSpan) && savedSettings.customChordMaxSpan >= MAX_SPAN_MIN && savedSettings.customChordMaxSpan <= MAX_SPAN_MAX)
+  ? savedSettings.customChordMaxSpan : maxSpanValue;
+document.getElementById('customChordModalMasonry').checked = typeof savedSettings.customChordMasonry === 'boolean'
+  ? savedSettings.customChordMasonry
+  : document.getElementById('masonryToggle').checked;
+document.getElementById('customChordModalMuted').checked = typeof savedSettings.customChordAllowMuted === 'boolean'
+  ? savedSettings.customChordAllowMuted
   : document.getElementById('mutedToggle').checked;
 const tuningParam = new URLSearchParams(window.location.search).get('tuning');
 const initialTuningId = (tuningParam && TUNINGS.some(t=>t.id===tuningParam))
@@ -4014,6 +4289,28 @@ if(typeof ResizeObserver === 'function'){
 }
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=> fitCardTitles());
 generate();
+
+// Opens the custom-chord modal pre-filled and already searched when linked
+// directly, mirroring how ?chords= seeds the main sheet. The modal's grid
+// always lists every match it finds, so this alone reproduces the "list all
+// alternative voicings" view — there's no separate single-result mode to link to.
+const notesParam = new URLSearchParams(window.location.search).get('notes');
+if(notesParam && notesParam.trim()){
+  // a lone trailing "*" (the known-chord "show all voicings" suffix) would
+  // otherwise fail to parse as a note — strip it since every search here
+  // already lists every voicing it finds
+  customChordNotesInputEl.value = notesParam.trim().replace(/\*$/, '');
+  // Opening this early (before the very first layout) can still measure a
+  // 0-width viewport, which wrongly forces the masonry packer into a single,
+  // full-bleed column — wait for a real viewport before laying out the grid.
+  (function openWhenViewportReady(attemptsLeft){
+    if(document.documentElement.clientWidth > 0 || attemptsLeft <= 0){
+      openCustomChordModal(document.getElementById('customChordOpenBtn'));
+    } else {
+      requestAnimationFrame(()=> openWhenViewportReady(attemptsLeft - 1));
+    }
+  })(300);
+}
 </script>
 </body>
 </html>
