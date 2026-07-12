@@ -599,9 +599,10 @@
     animation:spin .7s linear infinite;
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
-  .rsearch-loading{ display:flex; align-items:center; justify-content:center; padding:36px 8px; }
+  .rsearch-loading{ flex:1 1 auto; min-height:160px; display:flex; align-items:center; justify-content:center; padding:36px 8px; }
   .rsearch-loading .spinner{ width:22px; height:22px; border-width:2.5px; }
   .rsearch-results{
+    display:flex; flex-direction:column;
     flex:1 1 auto; min-height:0; overflow-y:auto;
     margin:0; padding:0 12px 12px; list-style:none;
   }
