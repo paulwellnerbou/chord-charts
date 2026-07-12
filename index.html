@@ -940,17 +940,17 @@
         <div class="field-label-row">
           <label class="field-label" for="chordInput">Chords</label>
           <div class="field-label-actions">
-          <button type="button" class="secondary rsearch-open-btn" id="reverseSearchBtn" hidden aria-haspopup="dialog" title="Find songs that use the chords in this input">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
-            Find songs
-          </button>
-          <div class="stepper stepper-sm" id="transposeStepper" role="group" aria-label="Transpose all chords" title="Shift every chord up or down in semitones — the chord text itself is rewritten">
-            <span class="stepper-label">Transpose</span>
-            <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone" title="Down a semitone">−</button>
-            <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
-            <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone" title="Up a semitone">+</button>
-            <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
-          </div>
+            <button type="button" class="secondary rsearch-open-btn" id="reverseSearchBtn" hidden aria-haspopup="dialog" title="Find songs that use the chords in this input">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
+              Find songs
+            </button>
+            <div class="stepper stepper-sm" id="transposeStepper" role="group" aria-label="Transpose all chords" title="Shift every chord up or down in semitones — the chord text itself is rewritten">
+              <span class="stepper-label">Transpose</span>
+              <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone" title="Down a semitone">−</button>
+              <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
+              <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone" title="Up a semitone">+</button>
+              <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+            </div>
           </div>
         </div>
         <div class="input-clear-wrap" id="chordInputWrap">
@@ -1229,7 +1229,7 @@
       <h2 id="reverseModalTitle">Find songs with these chords</h2>
       <button type="button" class="tips-modal-close" id="reverseModalClose" aria-label="Close song finder">&times;</button>
     </div>
-    <div class="rsearch-chips" id="reverseChips" aria-hidden="true"></div>
+    <div class="rsearch-chips" id="reverseChips" role="group" aria-label="Searching with these chords"></div>
     <div class="rsearch-options">
       <div class="switch-wrap" id="reverseAnyKeyInfoWrap">
         <label class="switch">
@@ -3788,11 +3788,12 @@ function renderReverseResults(songs){
 
 async function runReverseSearch(){
   if(reverseInflight) reverseInflight.abort();
-  const ctrl = new AbortController();
-  reverseInflight = ctrl;
+  reverseInflight = null; // non-null must mean a request is actually in flight
   reverseResultsEl.innerHTML = '';
   const labels = currentChordLabels();
   if(!labels.length){ setReverseNote('Enter some chords first.'); return; }
+  const ctrl = new AbortController();
+  reverseInflight = ctrl;
   const capped = labels.slice(0, REVERSE_MAX_CHORDS);
   const anyKey = reverseAnyKeyEl.checked;
   const allowExtra = reverseAllowExtraEl.checked;
@@ -3853,11 +3854,11 @@ function closeReverseModal(){
 
 function onReverseModalKeydown(e){
   if(e.key === 'Escape'){
-    // an open info popover swallows the first Escape
+    // an open info popover swallows the first Escape; closing it through its
+    // own toggle lets setupInfoPopover also detach its document click listener
     const openWrap = reverseModalEl.querySelector('.switch-wrap.open');
     if(openWrap){
-      openWrap.classList.remove('open');
-      openWrap.querySelector('.info-btn').setAttribute('aria-expanded', 'false');
+      openWrap.querySelector('.info-btn').click();
       return;
     }
     closeReverseModal(); return;
