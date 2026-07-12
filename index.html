@@ -3177,8 +3177,9 @@ document.getElementById('customChordModalMuted').addEventListener('change', ()=>
 });
 customChordNotesInputEl.addEventListener('input', ()=>{
   clearTimeout(customChordDebounce);
-  // debounce long enough that partial tokens rarely flash a parse error
-  customChordDebounce = setTimeout(renderCustomChordTiles, 450);
+  // debounce long enough that partial tokens rarely flash a parse error;
+  // scheduled (not direct) so it no-ops if the modal closed in the meantime
+  customChordDebounce = setTimeout(scheduleCustomChordRender, 450);
 });
 customChordNotesInputEl.addEventListener('keydown', e=>{
   if(e.key === 'Enter'){ e.preventDefault(); clearTimeout(customChordDebounce); renderCustomChordTiles(); }
