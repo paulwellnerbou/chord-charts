@@ -3129,12 +3129,17 @@ wireChooserStepper('customChordModalMaxFret', stepCustomChordMaxFret);
 wireChooserStepper('customChordModalMaxSpan', stepCustomChordMaxSpan);
 
 function openCustomChordModal(opener){
-  customChordOpener = opener || document.activeElement;
+  const wasOpen = !customChordModalEl.hidden;
+  if(!wasOpen){
+    // capture the opener only on a real open — a redundant call while already
+    // visible must not clobber it with an element inside the modal
+    customChordOpener = opener || document.activeElement;
+    customChordModalEl.hidden = false;
+    document.addEventListener('keydown', onCustomChordModalKeydown);
+  }
   syncCustomChordModalControls();
-  customChordModalEl.hidden = false;
-  document.addEventListener('keydown', onCustomChordModalKeydown);
   renderCustomChordTiles();
-  customChordNotesInputEl.focus();
+  if(!wasOpen) customChordNotesInputEl.focus();
 }
 
 function closeCustomChordModal(){
