@@ -890,5 +890,13 @@
     .grid.masonry{ gap:12px; }
     .masonry-col{ gap:12px; }
     .card{ break-inside:avoid; box-shadow:none; }
+    /* the corner buttons are gone in print, so give the title the row
+       padding that only exists to clear them */
+    .chord-title-row{ padding:0; }
+    /* the screen fit shrinks titles via a JS-measured font-size, but print
+       reflows the grid to the paper's width on its own schedule, so a size
+       picked for the screen's columns can still overflow here — let long
+       names wrap onto a second line instead of ellipsizing. */
+    .card h2{ white-space:normal; overflow:visible; overflow-wrap:break-word; }
     .no-print{ display:none !important; }
   }
