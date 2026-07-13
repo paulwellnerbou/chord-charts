@@ -140,9 +140,14 @@ function findVoicings(requiredPCs, bassPC, tuning, maxFret, maxSpan, maxCount, a
     if(span + 1 > maxSpan) continue;
     const openCount = active.filter(o=>o.fret===0).length;
     const sumFrets = frettedNZ.reduce((a,b)=>a+b,0);
+    // 3+ strings on one fret force a barre (or stacked fingers) — harder than
+    // one finger per adjacent fret, so such shapes rank behind comparable ones
+    const fretTally = {};
+    frettedNZ.forEach(f=>{ fretTally[f]=(fretTally[f]||0)+1; });
+    const barreCount = Math.max(0, ...Object.values(fretTally), 2) - 2;
     // muted strings are a last-resort fallback unless allowed; even allowed, a
     // light penalty keeps full voicings ahead of equally easy muted ones
-    const cost = mutedCount*(allowMuted ? 40 : 1000) + extraCount*300 + span*15 + maxFretUsed*5 - openCount*5 + sumFrets*1;
+    const cost = mutedCount*(allowMuted ? 40 : 1000) + extraCount*300 + span*15 + maxFretUsed*5 - openCount*5 + sumFrets*1 + barreCount*12;
     candidates.push({ frets: combo.map(o=>o.fret), cost });
   }
   candidates.sort((a,b)=>a.cost-b.cost);

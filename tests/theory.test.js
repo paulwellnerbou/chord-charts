@@ -90,6 +90,16 @@ test('findVoicings ranks the classic C shape first on a high-G ukulele', () => {
   assert.ok(voicings.length <= MAX_VOICINGS);
 });
 
+test('findVoicings ranks an adjacent-fret shape ahead of a barre up the neck', () => {
+  const { requiredPCs } = parseChord('Em');
+  const voicings = findVoicings(requiredPCs, null, UKE, 15, 7, MAX_VOICINGS, false);
+  const key = frets => frets.join(',');
+  const adjacent = voicings.findIndex(v => key(v) === '0,4,3,2');
+  const barre = voicings.findIndex(v => key(v) === '0,7,7,7');
+  assert.ok(adjacent >= 0 && barre >= 0, 'both classic Em shapes are found');
+  assert.ok(adjacent < barre, 'the low adjacent-fret Em beats the fret-7 barre');
+});
+
 test('every voicing spells the chord and respects maxFret and maxSpan', () => {
   const { requiredPCs } = parseChord('Am7');
   const maxFret = 5, maxSpan = 2;
