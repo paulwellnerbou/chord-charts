@@ -164,6 +164,7 @@ async function copyAllChordsAsImage(btnEl){
     canvas.width = Math.round(gridRect.width*scale);
     canvas.height = Math.round(gridRect.height*scale);
     const ctx = canvas.getContext('2d');
+    if(!ctx) throw new Error('canvas 2d context unavailable');
     ctx.fillStyle = getComputedStyle(document.body).backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -174,7 +175,7 @@ async function copyAllChordsAsImage(btnEl){
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(item.svgStr);
     })));
 
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    const blob = await new Promise((resolve, reject)=> canvas.toBlob(b=> b ? resolve(b) : reject(new Error('PNG encoding failed')), 'image/png'));
 
     try{
       if(!navigator.clipboard || !window.ClipboardItem) throw new Error('no-clipboard-api');
@@ -2262,7 +2263,9 @@ document.getElementById('reverseModalClose').addEventListener('click', ()=> clos
 
 // Reveal only when the backend answers. A previous sighting (localStorage)
 // pre-reveals so repeat visitors don't see the builder jump on every load.
-if(localStorage.getItem(SONG_SEARCH_SEEN_KEY) === 'true') setSongSearchVisible(true);
+try{
+  if(localStorage.getItem(SONG_SEARCH_SEEN_KEY) === 'true') setSongSearchVisible(true);
+}catch(err){}
 (async ()=>{
   try{
     // AbortSignal.timeout is missing in pre-2022 browsers — better an untimed
