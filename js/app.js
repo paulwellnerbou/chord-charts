@@ -3,12 +3,22 @@ import {
   MAX_SPAN_MAX, MAX_SPAN_DEFAULT, MAX_VOICINGS, parseChord, parseNoteList,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes, transposeChordText,
 } from './theory.js';
-import { currentColors, escapeXML, chordSVG, exportTileSVG } from './diagram.js';
+import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG } from './diagram.js';
 import { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash } from './audio.js';
 import {
   afterNextPaint, flashButton, flashButtonText,
   createModal, createMenu, initStepper, bumpValue, setupInfoPopover,
 } from './ui.js';
+
+// Which palette the current view state calls for — lives here, not in
+// diagram.js, so the rendering module stays DOM-free.
+function currentColors(){
+  const base = document.body.classList.contains('bw-mode') ? BW_COLORS : NICE_COLORS;
+  // string colours also apply in b&w mode — matching the physical strings is the option's point
+  return document.getElementById('aquilaToggle').checked
+    ? Object.assign({}, base, { stringColors: AQUILA_KIDS_STRING_COLORS })
+    : base;
+}
 
 let maxFretValue = MAX_FRET_DEFAULT;
 
@@ -2255,7 +2265,10 @@ document.getElementById('reverseModalClose').addEventListener('click', ()=> clos
 if(localStorage.getItem(SONG_SEARCH_SEEN_KEY) === 'true') setSongSearchVisible(true);
 (async ()=>{
   try{
-    const res = await fetch(`${SONG_API_BASE}/healthz`, { signal: AbortSignal.timeout(4000) });
+    // AbortSignal.timeout is missing in pre-2022 browsers — better an untimed
+    // check than hiding the feature over a healthy backend
+    const signal = AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined;
+    const res = await fetch(`${SONG_API_BASE}/healthz`, { signal });
     const body = res.ok ? await res.json() : null;
     setSongSearchVisible(!!(body && body.ok));
   }catch(err){

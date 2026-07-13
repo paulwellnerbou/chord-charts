@@ -32,7 +32,7 @@ test('resolveQuality maps aliases to canonical keys', () => {
 
 test('parseChord reads root, quality, slash bass and the * suffix', () => {
   const c = parseChord('C');
-  assert.deepEqual(c.requiredPCs.toSorted((a, b) => a - b), [0, 4, 7]);
+  assert.deepEqual([...c.requiredPCs].sort((a, b) => a - b), [0, 4, 7]);
   assert.equal(c.rootPC, 0);
   assert.equal(c.bassPC, null);
   assert.equal(c.showAll, false);

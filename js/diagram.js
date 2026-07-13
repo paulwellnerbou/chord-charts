@@ -14,13 +14,6 @@ const BW_COLORS = {
 // Aquila Kids educational set: green/red/yellow/blue from 4th to 1st string
 // (G C E A on a GCEA ukulele); applied by string position on every tuning.
 const AQUILA_KIDS_STRING_COLORS = ['#2f9e44','#d0342c','#e6b400','#2b6bd8'];
-function currentColors(){
-  const base = document.body.classList.contains('bw-mode') ? BW_COLORS : NICE_COLORS;
-  // string colours also apply in b&w mode — matching the physical strings is the option's point
-  return document.getElementById('aquilaToggle').checked
-    ? Object.assign({}, base, { stringColors: AQUILA_KIDS_STRING_COLORS })
-    : base;
-}
 
 const XS = [30,70,110,150];
 const NUT_Y = 37, FRET_H = 34;
@@ -116,6 +109,6 @@ function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openP
 }
 
 export {
-  NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, currentColors,
+  NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS,
   escapeXML, chordSVG, exportTileSVG,
 };

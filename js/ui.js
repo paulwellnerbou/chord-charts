@@ -59,7 +59,7 @@ function createModal(el, opts = {}){
       return;
     }
     if(e.key === 'Tab'){
-      const list = [...el.querySelectorAll('button:not(:disabled), input, a[href]')];
+      const list = [...el.querySelectorAll('button:not(:disabled), input:not(:disabled), a[href]')];
       if(!list.length) return;
       const first = list[0], last = list[list.length - 1];
       const active = document.activeElement;
