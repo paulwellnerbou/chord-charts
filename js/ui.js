@@ -94,8 +94,12 @@ function createModal(el, opts = {}){
     opener = null;
     if(opts.onClose) opts.onClose();
     if(o.restoreFocus === false) return;
-    if(restore && restore.isConnected && restore.offsetParent !== null) restore.focus();
-    else if(opts.focusFallback) opts.focusFallback();
+    if(restore && restore.isConnected && restore.offsetParent !== null){
+      try{ restore.focus(); }catch(err){}
+      // silent focus() failures (element not focusable) must not strand focus
+      if(document.activeElement === restore) return;
+    }
+    if(opts.focusFallback) opts.focusFallback();
   }
 
   el.addEventListener('click', e=>{ if(e.target === el) close(); });

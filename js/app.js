@@ -682,7 +682,7 @@ function stepMaxSpan(delta){
   maxSpanValue = Math.min(MAX_SPAN_MAX, Math.max(MAX_SPAN_MIN, maxSpanValue + delta));
   updateMaxSpanUI();
   bumpValue(document.getElementById('maxSpanValue'));
-  generate();
+  scheduleGenerate();
 }
 
 function updateChordInputClearUI(){
