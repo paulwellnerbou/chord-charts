@@ -230,9 +230,6 @@ function parseNoteList(input){
   return { tokens, requiredPCs:[...new Set(pcs)] };
 }
 
-// Live link to reopen this exact search — mirrors syncVoicingModalOpenAll,
-// carried on top of whatever chart/tuning params are already in the URL.
-
 export {
   NOTE_PC, CHORD_TONES, OMITTED_TONE, TUNINGS,
   MAX_FRET_MIN, MAX_FRET_MAX, MAX_FRET_DEFAULT,

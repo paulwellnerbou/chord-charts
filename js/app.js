@@ -1189,6 +1189,8 @@ function syncCustomChordModalControls(){
   syncFretSpanControls('customChordModal', customChordMaxFretValue, customChordMaxSpanValue);
 }
 
+// Live link to reopen this exact search — mirrors syncVoicingModalOpenAll,
+// carried on top of whatever chart/tuning params are already in the URL.
 function syncCustomChordShareLink(tokens){
   const link = document.getElementById('customChordModalShareLink');
   const labelEl = document.getElementById('customChordModalShareLabel');

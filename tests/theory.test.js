@@ -134,7 +134,7 @@ test('fretsSpellChord validates coverage and the bass note', () => {
   assert.ok(!fretsSpellChord([null, null, null, null], cMajor, null, UKE));
 });
 
-test('computeFretWindow crops above the threshold, never below fret 3', () => {
+test('computeFretWindow crops above the threshold and always shows at least three rows', () => {
   assert.deepEqual(computeFretWindow([0, 0, 0, 3], 5), { fretMax: 3, startFret: 0 });
   assert.deepEqual(computeFretWindow([5, 5, 5, 5], 5), { fretMax: 5, startFret: 0 });
   assert.deepEqual(computeFretWindow([5, 5, 5, 5], 4), { fretMax: 5, startFret: 3 });

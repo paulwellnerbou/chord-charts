@@ -160,7 +160,13 @@ function setupInfoPopover(wrapId, btnId){
     setOpen(!wrap.classList.contains('open'));
   });
   btn.addEventListener('keydown', e=>{
-    if(e.key==='Escape') setOpen(false);
+    if(e.key==='Escape' && wrap.classList.contains('open')){
+      // consume it — otherwise the same keypress reaches document-level
+      // handlers (createModal) and closes the containing dialog too
+      e.stopPropagation();
+      e.preventDefault();
+      setOpen(false);
+    }
   });
 }
 
