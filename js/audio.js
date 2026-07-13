@@ -1,6 +1,6 @@
 // Web Audio playback (plucked-string synthesis) and play-button feedback.
 
-const PLAYING_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" class="play-icon-bars"><rect x="4" y="4" width="3" height="16" rx="1"/><rect x="10.5" y="4" width="3" height="16" rx="1"/><rect x="17" y="4" width="3" height="16" rx="1"/></svg>`;
+const PLAYING_ICON = `<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" class="play-icon-bars"><rect x="4" y="4" width="3" height="16" rx="1"/><rect x="10.5" y="4" width="3" height="16" rx="1"/><rect x="17" y="4" width="3" height="16" rx="1"/></svg>`;
 
 let audioCtx = null;
 
