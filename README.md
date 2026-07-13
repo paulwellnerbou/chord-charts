@@ -21,12 +21,31 @@ The integration is optional by design: the search box only appears once that bac
 
 ## Run locally
 
-Single static file, no build step:
+Static files, no build step — but ES modules need a server (`file://` won't work):
 
     python3 -m http.server
 
-then open `http://localhost:8000`, or just open `index.html` directly in a browser.
+then open `http://localhost:8000`.
+
+## Code layout
+
+- `index.html` — markup only
+- `css/app.css` — styles
+- `js/theory.js` — chord parsing, voicing search, transposition (pure, tested)
+- `js/diagram.js` — SVG diagram rendering (pure, tested)
+- `js/audio.js` — Web Audio playback
+- `js/ui.js` — shared modal/menu/stepper primitives
+- `js/app.js` — features, state and DOM wiring
+
+## Tests
+
+Zero dependencies — the suite runs on Node's built-in test runner:
+
+    npm test
+
+`package.json` exists only to mark the repo as ESM and hold that script; there is
+no build step and nothing to install.
 
 ## Deploy
 
-GitHub Pages, serving `index.html` straight from `main`. `CNAME` holds the custom domain.
+GitHub Pages, serving the repo straight from `main`. `CNAME` holds the custom domain.
