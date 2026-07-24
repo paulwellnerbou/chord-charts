@@ -1351,6 +1351,7 @@ let fretboardIdChordLabel = null;
 
 const fretboardIdModalEl = document.getElementById('fretboardIdModal');
 const fretboardIdBoardEl = document.getElementById('fretboardIdBoard');
+const fretboardIdStringsEl = document.getElementById('fretboardIdStrings');
 const fretboardIdNotesEl = document.getElementById('fretboardIdNotes');
 const fretboardIdVerdictEl = document.getElementById('fretboardIdVerdict');
 const fretboardIdCardSlotEl = document.getElementById('fretboardIdCardSlot');
@@ -1559,8 +1560,45 @@ function updateFretboardIdResult(){
   syncFretboardIdShareLink();
 }
 
+// The board is pointer-driven and its SVG is decorative (aria-hidden); these
+// native <select>s are the keyboard/screen-reader equivalent, one per string
+// (× muted, ○ open, else the fret). Visually hidden until focused (see CSS).
+function buildFretboardIdSelects(){
+  const opts = ['<option value="x">×</option>','<option value="o">○</option>']
+    .concat(Array.from({length:FB_FRETS}, (_,i)=>`<option value="${i+1}">${i+1}</option>`)).join('');
+  fretboardIdStringsEl.innerHTML = '';
+  for(let i=0;i<4;i++){
+    const label = document.createElement('label');
+    label.className = 'fb-string-pick';
+    label.innerHTML = `<span class="fb-string-name" id="fbStringName${i}"></span><select class="fb-string-select" data-string="${i}">${opts}</select>`;
+    fretboardIdStringsEl.appendChild(label);
+  }
+  fretboardIdStringsEl.addEventListener('change', e=>{
+    const sel = e.target.closest('select[data-string]');
+    if(!sel) return;
+    const i = +sel.dataset.string, v = sel.value;
+    fretboardIdState[i] = v==='x' ? null : v==='o' ? 0 : parseInt(v,10);
+    renderFretboardIdBoard();
+  });
+}
+
+function syncFretboardIdSelects(){
+  const t = currentTuning();
+  for(let i=0;i<4;i++){
+    const nameEl = document.getElementById('fbStringName'+i);
+    if(nameEl) nameEl.textContent = t.labels[i];
+    const sel = fretboardIdStringsEl.querySelector(`select[data-string="${i}"]`);
+    if(sel){
+      const v = fretboardIdState[i];
+      sel.value = v===null ? 'x' : v===0 ? 'o' : String(v);
+      sel.setAttribute('aria-label', `${formatAccidentals(t.labels[i])} string`);
+    }
+  }
+}
+
 function renderFretboardIdBoard(){
   fretboardIdBoardEl.innerHTML = fretboardIdSVG();
+  if(fretboardIdStringsEl.children.length) syncFretboardIdSelects();
   updateFretboardIdResult();
   saveSettings();
 }
@@ -1619,6 +1657,7 @@ const fretboardIdModal = createModal(fretboardIdModalEl);
 
 function openFretboardIdModal(opener){
   const fresh = fretboardIdModal.open(opener);
+  if(!fretboardIdStringsEl.children.length) buildFretboardIdSelects();
   renderFretboardIdBoard();
   if(fresh){
     const closeBtn = document.getElementById('fretboardIdModalClose');

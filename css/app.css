@@ -875,6 +875,23 @@
   .fb-cell:hover .fb-guide{ opacity:.5; fill:var(--accent); }
   .fb-cell:hover .fb-guide-name{ opacity:1; fill:var(--accent); }
   .fb-names-switch{ font-size:13px; margin-bottom:10px; }
+  /* keyboard / screen-reader alternative to the pointer board: off-screen until
+     one of its selects is focused, then it reveals as a compact per-string row */
+  .fb-strings{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); border:0; }
+  .fb-strings:focus-within{
+    position:static; width:100%; max-width:230px; height:auto; margin:12px 0 0; padding:8px;
+    overflow:visible; clip:auto; clip-path:none;
+    display:flex; gap:8px; justify-content:center;
+    border:1px solid var(--accent); border-radius:10px; background:var(--card-bg);
+  }
+  .fb-string-pick{ flex:1 1 0; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0; }
+  .fb-string-name{ font-size:12px; font-weight:750; color:var(--ink-soft); }
+  .fb-string-select{
+    width:100%; min-width:0; height:34px; padding:0 4px; text-align:center;
+    font-size:14px; font-family:inherit; color:var(--ink);
+    border:1px solid var(--control-border); border-radius:8px; background:var(--card-bg); cursor:pointer;
+  }
+  .fb-string-select:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .fb-top:hover .fb-open, .fb-top:hover .fb-mute{ stroke:var(--accent); }
   /* black & white mode: the selected dot must stay legible without the accent hue */
   body.bw-mode .fb-dot{ fill:var(--ink); stroke:var(--ink); }
