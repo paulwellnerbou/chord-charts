@@ -295,7 +295,7 @@
   .tuning-select-name{ font-weight:700; }
   .tuning-select-tuning{ font-size:12px; font-weight:500; letter-spacing:.07em; color:var(--ink-soft); }
   .tuning-select-chevron{
-    margin-left:2px; color:var(--ink-soft); flex-shrink:0;
+    margin-left:auto; color:var(--ink-soft); flex-shrink:0;
     transition:transform .25s cubic-bezier(.4,0,.2,1), color .2s ease;
   }
   .tuning-select.open .tuning-select-chevron{ transform:rotate(180deg); color:var(--accent); }
@@ -879,7 +879,106 @@
     transition:border-color .15s ease,box-shadow .15s ease;
   }
   .custom-chord-notes-input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent); }
+
+  /* --- name a chord from the fretboard (inverse of the custom-chord search) --- */
+  .fb-hint{ margin:0 18px 10px; font-size:13px; color:var(--ink-soft); }
+  .fb-hint-o, .fb-hint-x{ font-weight:800; color:var(--accent); }
+  /* no top padding so the sticky readout pins flush — board can't bleed above it */
+  .fb-body{
+    display:flex; gap:20px 26px; flex-wrap:wrap; align-items:flex-start;
+    overflow-y:auto; padding:0 18px 4px;
+  }
+  .fb-board-col{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .fb-board{ width:100%; max-width:230px; }
+  .fb-input{ display:block; width:100%; height:auto; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+  .fb-label{ font-size:13px; font-weight:700; fill:var(--ink); font-family:var(--body-font); }
+  .fb-fretnum{ font-size:12px; fill:var(--ink-soft); font-family:var(--body-font); pointer-events:none; }
+  .fb-nut{ stroke:var(--ink); stroke-width:3; }
+  .fb-line, .fb-string{ stroke:var(--ink); stroke-width:1; opacity:.5; }
+  .fb-inlay{ fill:var(--ink); opacity:.28; pointer-events:none; }
+  .fb-open{ fill:none; stroke:var(--ink); stroke-width:1.6; }
+  .fb-mute{ stroke:var(--ink); stroke-width:1.8; fill:none; stroke-linecap:round; }
+  .fb-guide{ fill:var(--ink); opacity:.16; transition:opacity .12s ease,fill .12s ease; }
+  .fb-dot{ fill:var(--accent); stroke:var(--accent-strong); stroke-width:1; }
+  /* per-position note names (Show note names toggle) */
+  .fb-guide-name, .fb-dot-name{
+    font-family:var(--body-font); text-anchor:middle; dominant-baseline:central;
+    pointer-events:none; transition:fill .12s ease,opacity .12s ease;
+  }
+  .fb-guide-name{ font-size:10px; font-weight:600; fill:var(--ink-soft); opacity:.7; }
+  .fb-dot-name{ font-size:10px; font-weight:700; fill:var(--card-bg); }
+  .fb-glow{ pointer-events:none; }
+  .fb-glow-a, .fb-glow-b{ stop-color:var(--card-bg); }
+  .fb-glow-a{ stop-opacity:1; } .fb-glow-b{ stop-opacity:.9; }
+  .fb-glow-c{ stop-color:var(--card-bg); stop-opacity:0; }
+  .fb-cell, .fb-top{ cursor:pointer; }
+  .fb-hit, .fb-tophit{ fill:transparent; }
+  .fb-cell:hover .fb-guide{ opacity:.5; fill:var(--accent); }
+  .fb-cell:hover .fb-guide-name{ opacity:1; fill:var(--accent); }
+  .fb-names-switch{ font-size:13px; margin-bottom:10px; }
+  .fb-top:hover .fb-open, .fb-top:hover .fb-mute{ stroke:var(--accent); }
+  /* black & white mode: the selected dot must stay legible without the accent hue */
+  body.bw-mode .fb-dot{ fill:var(--ink); stroke:var(--ink); }
+  body.bw-mode .fb-cell:hover .fb-guide{ fill:var(--ink); opacity:.5; }
+  body.bw-mode .fb-top:hover .fb-open, body.bw-mode .fb-top:hover .fb-mute{ stroke:var(--ink); }
+
+  /* pinned so the verdict stays visible while the tall board scrolls past it */
+  .fb-readout{
+    flex:1 1 220px; min-width:0; align-self:flex-start;
+    position:sticky; top:0; z-index:1; background:var(--card-bg);
+  }
+  .fb-notes{ margin:0 0 12px; font-size:14px; color:var(--ink-soft); }
+  .fb-verdict-line{ margin:0; font-size:16px; line-height:1.35; color:var(--ink); }
+  .fb-verdict-lead{ color:var(--ink-soft); }
+  .fb-chord-name{ font-family:var(--heading-font); font-weight:650; font-size:30px; color:var(--accent); }
+  .fb-missing{ font-size:14px; color:var(--ink-soft); }
+  .fb-alts{ margin:8px 0 0; font-size:13.5px; color:var(--ink-soft); }
+  .fb-alts span{ font-weight:650; color:var(--ink); white-space:nowrap; }
+  .fb-none{ margin:0; font-size:15px; color:var(--ink-soft); }
+  .fb-card-slot{ margin:14px 0 2px; }
+  .fb-card-slot:empty{ display:none; }
+  .fb-tuning{ margin:0 0 14px; }
+  .fb-tuning .field-label{ margin:0 0 6px; }
+  /* notes + verdict grouped into one result panel, play button leading it */
+  .fb-result{
+    display:flex; align-items:center; gap:14px; padding:13px 15px;
+    background:color-mix(in srgb, var(--accent) 5%, var(--card-bg));
+    border:1px solid color-mix(in srgb, var(--accent) 20%, var(--card-border));
+    border-radius:14px;
+  }
+  .fb-result-text{ flex:1; min-width:0; }
+  .fb-result .fb-notes{ margin:0 0 4px; }
+  .fb-play{
+    min-height:40px; width:40px; height:40px; padding:0; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    border:none; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+    cursor:pointer; transition:background-color var(--hover-fade) ease,color var(--hover-fade) ease;
+  }
+  .fb-play:hover:not(:disabled){ background:var(--accent); color:#fff; }
+  .fb-play:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .fb-play:disabled{ opacity:.45; cursor:default; }
+  /* raised white button reads clearly on the tinted result panel */
+  .fb-result .fb-play{ background:var(--card-bg); box-shadow:0 1px 3px rgba(41,38,33,.12); }
+  .fb-result .fb-play:hover:not(:disabled){ background:var(--accent); color:#fff; }
+  /* both footer actions read as text links (the copy one is a button, so it must
+     shed the global button chrome — fill, border, min-height — on rest and hover) */
+  .fb-footer-copy{
+    display:inline-flex; align-items:center; gap:5px; min-height:0; padding:0;
+    background:none; border:none; cursor:pointer; font-family:inherit;
+    font-size:12.5px; font-weight:650; color:var(--accent); white-space:nowrap;
+  }
+  .fb-footer-copy svg{ width:13px; height:13px; flex-shrink:0; }
+  .fb-footer-copy:hover{ background:none; border-color:transparent; text-decoration:underline; text-underline-offset:2px; }
+  .fb-footer-copy:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  .fb-footer-copy:disabled{ opacity:.45; cursor:default; text-decoration:none; }
+  /* when the two footer actions wrap to two lines, keep them close together */
+  #fretboardIdModal .voicing-modal-footer{ row-gap:4px; }
   @media (max-width:600px){
+    /* stack the readout above the board; hide the extra card (the input board is
+       right below), and no longer needing to pin the readout, drop the sticky */
+    .fb-board-col{ order:1; align-self:stretch; }
+    .fb-readout{ order:0; position:static; width:100%; padding-bottom:10px; margin-bottom:2px; border-bottom:1px solid var(--card-border); }
+    .fb-card-slot{ display:none; }
     body{ padding:16px 12px 32px; }
     .masthead{ align-items:flex-start; gap:10px; padding-bottom:14px; margin-bottom:14px; }
     .brand-mark{ width:38px; height:38px; flex-basis:38px; border-radius:11px; }

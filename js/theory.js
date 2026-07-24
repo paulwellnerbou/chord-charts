@@ -235,6 +235,85 @@ function parseNoteList(input){
   return { tokens, requiredPCs:[...new Set(pcs)] };
 }
 
+// --- Chord identification: the inverse of findVoicings. Given the pitch classes
+// actually sounding (from a fretboard fingering) and the lowest one, name the
+// chord(s). Pure and DOM-free like the rest of this module.
+
+// Suffixes mirror resolveQuality's canonical keys back to written chord names.
+const QUALITY_SUFFIX = {
+  major:'', minor:'m', five:'5',
+  dom7:'7', min7:'m7', maj7:'maj7',
+  dim:'dim', dim7:'dim7', m7b5:'m7b5',
+  aug:'aug', sus2:'sus2', sus4:'sus4',
+  six:'6', m6:'m6',
+  add9:'add9', madd9:'madd9',
+  dom9:'9', six9:'6/9', maj9:'maj9',
+};
+// Tie-break preference when several names fit the same notes (lower = plainer,
+// more idiomatic): a relative pair like C6/Am7 should surface C6 first when C is
+// the bass, Am7 when A is. Root-position bias in the cost does most of the work;
+// this ranks the rest.
+const QUALITY_RANK = {
+  major:0, minor:1, dom7:2, min7:3, maj7:4, six:5, m6:6, five:7,
+  sus4:8, sus2:9, dim:10, aug:11, m7b5:12, dim7:13,
+  add9:14, madd9:15, dom9:16, six9:17, maj9:18,
+};
+// Chord-root spellings: the conventional accidental for each pitch class as a
+// chord name (Eb not D#, Bb not A#, but C#/F# sharp). Used for roots, basses and
+// the played-note readout so a named chord and its notes agree.
+const ROOT_NAMES = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+
+function spellNote(pc){ return ROOT_NAMES[((pc%12)+12)%12]; }
+
+// Names the notes sounding in a fingering. `pcs` are the sounding pitch classes
+// (dupes fine); `bassPC` is the pitch class of the lowest note, or null. Returns
+// { played, bass, matches } where matches is ranked best-first, each match:
+// { root, quality, label, exact, missing:[noteName] }. Exact matches use every
+// played note and nothing more; near-misses (only when 3+ notes are played) are
+// one chord tone short of a fuller chord, so a strummed C E G reads as C even
+// though C E B would read as "Cmaj7 (no G)".
+function identifyChord(pcs, bassPC){
+  const norm = p => ((p%12)+12)%12;
+  const set = new Set(pcs.map(norm));
+  const played = [...set].sort((a,b)=>a-b);
+  const bass = bassPC==null ? null : norm(bassPC);
+  const matches = [];
+  if(played.length >= 2){
+    for(let root=0; root<12; root++){
+      for(const q of Object.keys(CHORD_TONES)){
+        const chordPCs = [...new Set(CHORD_TONES[q].map(iv => (root+iv)%12))];
+        const chordSet = new Set(chordPCs);
+        // every played note must belong to the chord — no foreign tones
+        if(!played.every(pc => chordSet.has(pc))) continue;
+        const missingPCs = chordPCs.filter(pc => !set.has(pc));
+        const exact = missingPCs.length === 0;
+        // near-misses stay useful only when they're a single tone shy of a
+        // richer chord, and only once enough notes are down to point at one
+        if(!exact && (played.length < 3 || missingPCs.length > 1)) continue;
+        // a near-miss name must not rest on a root that isn't even sounding
+        // (else C E B suggests "Amadd9 (no A)" — a chord missing its own root)
+        if(!exact && missingPCs.includes(root)) continue;
+        // On four-string (often reentrant) instruments the lowest-pitched string
+        // isn't a dependable bass, so inversions aren't read from it. A match
+        // already contains every sounding note, so the lowest note is always a
+        // chord tone — never a foreign bass — hence no slash. The chord is named
+        // in root position, preferring the root that equals the lowest note.
+        const cost = QUALITY_RANK[q] + missingPCs.length*100 + (bass!=null && bass!==root ? 20 : 0);
+        matches.push({
+          root, quality:q, exact,
+          label: ROOT_NAMES[root] + QUALITY_SUFFIX[q],
+          missing: missingPCs.map(spellNote),
+          cost,
+        });
+      }
+    }
+  }
+  matches.sort((a,b)=> a.cost-b.cost || a.label.localeCompare(b.label));
+  const seen = new Set();
+  const deduped = matches.filter(m => seen.has(m.label) ? false : (seen.add(m.label), true));
+  return { played, bass, matches: deduped };
+}
+
 export {
   NOTE_PC, CHORD_TONES, OMITTED_TONE, TUNINGS,
   MAX_FRET_MIN, MAX_FRET_MAX, MAX_FRET_DEFAULT,
@@ -243,4 +322,5 @@ export {
   pcName, noteToPC, resolveQuality, parseChord, parseNoteList,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes,
   transposedNoteName, transposeToken, transposeChordText,
+  identifyChord, spellNote,
 };

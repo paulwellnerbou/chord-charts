@@ -4,7 +4,7 @@ import {
   TUNINGS, MAX_VOICINGS,
   pcName, resolveQuality, parseChord, parseNoteList,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes,
-  transposeToken, transposeChordText,
+  transposeToken, transposeChordText, identifyChord, spellNote,
 } from '../js/theory.js';
 
 const UKE = TUNINGS[0]; // high-G GCEA
@@ -162,4 +162,82 @@ test('parseNoteList reads plain notes, dedupes, and rejects junk', () => {
 test('chordAbsNotes maps frets to MIDI and drops muted strings', () => {
   assert.deepEqual(chordAbsNotes([0, 0, 0, 3], UKE.openAbs), [67, 60, 64, 72]);
   assert.deepEqual(chordAbsNotes([null, 0, null, 3], UKE.openAbs), [60, 72]);
+});
+
+const exactLabels = res => res.matches.filter(m => m.exact).map(m => m.label);
+
+test('spellNote uses conventional flat/sharp chord-root spellings', () => {
+  assert.equal(spellNote(1), 'C#');
+  assert.equal(spellNote(3), 'Eb');
+  assert.equal(spellNote(6), 'F#');
+  assert.equal(spellNote(10), 'Bb');
+  assert.equal(spellNote(14), 'D'); // wraps
+});
+
+test('identifyChord names a plain triad, root in the bass', () => {
+  assert.deepEqual(exactLabels(identifyChord([0, 4, 7], 0)), ['C']);
+  assert.deepEqual(exactLabels(identifyChord([0, 3, 7], 0)), ['Cm']);
+});
+
+test('identifyChord names a low chord tone in root position, never as a slash', () => {
+  // C major with E lowest: E is a chord tone, so it's still "C" — not "C/E".
+  // On a reentrant four-string the lowest string isn't a dependable bass.
+  assert.deepEqual(exactLabels(identifyChord([0, 4, 7], 4)), ['C']);
+});
+
+test('identifyChord lets the lowest note hint the root without asserting an inversion', () => {
+  // same notes C E G A: C6 when C is lowest, Am7 when A is — but no slashes
+  const overC = exactLabels(identifyChord([0, 4, 7, 9], 0));
+  assert.equal(overC[0], 'C6');
+  assert.ok(overC.includes('Am7'));
+  assert.ok(!overC.some(l => l.includes('/')), 'no slash chords');
+
+  const overA = exactLabels(identifyChord([0, 4, 7, 9], 9));
+  assert.equal(overA[0], 'Am7');
+  assert.ok(overA.includes('C6'));
+  assert.ok(!overA.some(l => l.includes('/')), 'no slash chords');
+});
+
+test('identifyChord reads two notes a fifth (or fourth) apart as a power chord', () => {
+  assert.equal(exactLabels(identifyChord([0, 7], 0))[0], 'C5');
+  // a bare fourth is the fifth inverted: C and F is F5
+  assert.equal(exactLabels(identifyChord([0, 5], 5))[0], 'F5');
+});
+
+test('identifyChord offers relative names for the ambiguous sus and symmetric shapes', () => {
+  const sus = exactLabels(identifyChord([0, 2, 7], 0));
+  assert.equal(sus[0], 'Csus2');
+  assert.ok(sus.includes('Gsus4'));
+
+  // a diminished-7th is four stacked minor thirds — every rotation is a valid name
+  const dim = exactLabels(identifyChord([0, 3, 6, 9], 0));
+  assert.equal(dim[0], 'Cdim7');
+  assert.equal(dim.length, 4);
+});
+
+test('identifyChord falls back to a one-tone-short near-miss only when nothing fits exactly', () => {
+  const res = identifyChord([0, 4, 11], 0); // C E B — a 5th short of Cmaj7
+  assert.equal(exactLabels(res).length, 0);
+  assert.equal(res.matches[0].label, 'Cmaj7');
+  assert.deepEqual(res.matches[0].missing, ['G']);
+  // no near-miss may be named after a root that isn't sounding (no "Am… (no A)")
+  assert.ok(!res.matches.some(m => m.label.startsWith('Am')), 'no rootless Am reading of C E B');
+});
+
+test('identifyChord returns nothing nameable for a bare interval or single note', () => {
+  assert.equal(identifyChord([0, 4], 0).matches.length, 0); // lone major third
+  assert.equal(identifyChord([0], 0).matches.length, 0);
+});
+
+test('identifyChord names a fingering via its sounding notes', () => {
+  const bassPc = frets => {
+    const abs = chordAbsNotes(frets, UKE.openAbs);
+    return Math.min(...abs) % 12;
+  };
+  const named = frets => {
+    const abs = chordAbsNotes(frets, UKE.openAbs);
+    return exactLabels(identifyChord(abs.map(a => a % 12), bassPc(frets)));
+  };
+  assert.equal(named([0, 0, 0, 3])[0], 'C');   // classic high-G C shape
+  assert.equal(named([0, 0, 0, 0])[0], 'C6');  // open GCEA strings
 });

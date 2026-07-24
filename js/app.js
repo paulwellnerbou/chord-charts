@@ -2,6 +2,7 @@ import {
   TUNINGS, MAX_FRET_MIN, MAX_FRET_MAX, MAX_FRET_DEFAULT, MAX_SPAN_MIN,
   MAX_SPAN_MAX, MAX_SPAN_DEFAULT, MAX_VOICINGS, parseChord, parseNoteList,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes, transposeChordText,
+  identifyChord, spellNote,
 } from './theory.js';
 import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG } from './diagram.js';
 import { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash } from './audio.js';
@@ -241,9 +242,9 @@ async function copyLinkText(link){
 function chordPageURL(label, allVoicings){
   const params = new URLSearchParams(window.location.search);
   params.set('chords', label + (allVoicings ? '*' : ''));
-  // an explicit chord list is never song mode
-  params.delete('song');
-  params.delete('transpose');
+  // an explicit chord list is its own mode: drop song and the modal-opening
+  // params (notes/fretboard/findsongs) so the link lands cleanly on the chart
+  ['song','transpose','notes','fretboard','findsongs'].forEach(p=>params.delete(p));
   params.set('tuning', selectedTuningId);
   return window.location.pathname + '?' + params.toString();
 }
@@ -519,6 +520,8 @@ function saveSettings(){
     customChordAllowMuted: document.getElementById('customChordModalMuted').checked,
     reverseAnyKey: document.getElementById('reverseAnyKey').checked,
     reverseAllowExtra: document.getElementById('reverseAllowExtra').checked,
+    fretboardId: encodeFretboardState(fretboardIdState),
+    fretboardIdNames: fretboardIdNamesToggleEl.checked,
   };
   // Only persist chordInput once the user has actually edited it — otherwise a
   // fresh visit would freeze in the built-in default forever instead of picking
@@ -1323,6 +1326,301 @@ customChordNotesInputEl.addEventListener('keydown', e=>{
   if(e.key === 'Enter'){ e.preventDefault(); clearTimeout(customChordDebounce); renderCustomChordTiles(); }
 });
 
+// --- Reverse of the custom-chord search: the user clicks a fretboard and the
+// tool names the chord. The board is an SVG rebuilt on every change (the
+// codebase's usual innerHTML style), driven by pointer/touch; the aria-live
+// readout announces the notes and verdict. fretboardIdState is per string:
+// null muted, 0 open, n fretted.
+const FB_XS = [30,70,110,150];
+const FB_NUT_Y = 42, FB_FRET_H = 34, FB_FRETS = 15;
+const FB_TOP_Y = 24, FB_LEFT = 20, FB_RIGHT = 160, FB_MARKER_X = 90;
+const FB_FRET_MARKERS = [3,5,7,10,12,15];
+
+let fretboardIdState = [0,0,0,0];
+// Primary chord name of the current fingering (null when it names none) — drives
+// the "Open this chord" link's main-page target.
+let fretboardIdChordLabel = null;
+
+const fretboardIdModalEl = document.getElementById('fretboardIdModal');
+const fretboardIdBoardEl = document.getElementById('fretboardIdBoard');
+const fretboardIdNotesEl = document.getElementById('fretboardIdNotes');
+const fretboardIdVerdictEl = document.getElementById('fretboardIdVerdict');
+const fretboardIdCardSlotEl = document.getElementById('fretboardIdCardSlot');
+const fretboardIdPlayEl = document.getElementById('fretboardIdPlay');
+const fretboardIdCopyLinkEl = document.getElementById('fretboardIdCopyLink');
+const fretboardIdNamesToggleEl = document.getElementById('fretboardIdNamesToggle');
+fretboardIdNamesToggleEl.addEventListener('change', ()=> renderFretboardIdBoard());
+
+// Compact, link/settings-friendly encoding: x muted, o open, else the fret.
+function encodeFretboardState(state){
+  return state.map(v => v===null ? 'x' : v===0 ? 'o' : String(v)).join('-');
+}
+function decodeFretboardState(str){
+  if(!str) return null;
+  const parts = String(str).split(/[-,]/).map(s=>s.trim().toLowerCase());
+  if(parts.length !== 4) return null;
+  const out = [];
+  for(const p of parts){
+    if(p === 'x') out.push(null);
+    else if(p === 'o' || p === '0') out.push(0);
+    else if(/^\d{1,2}$/.test(p)){ const n = parseInt(p,10); if(n < 1 || n > FB_FRETS) return null; out.push(n); }
+    else return null;
+  }
+  return out;
+}
+
+function fretboardIdSVG(){
+  const t = currentTuning();
+  const st = fretboardIdState;
+  const showNames = fretboardIdNamesToggleEl.checked;
+  const bottomY = FB_NUT_Y + FB_FRETS*FB_FRET_H;
+  let s = `<svg class="fb-input" viewBox="0 0 180 ${bottomY+12}" role="img" aria-hidden="true">`;
+  // background-coloured radial glow that lifts un-selected note names off the
+  // string line running behind them (the names inside filled dots need none)
+  if(showNames) s += `<defs><radialGradient id="fbGlow"><stop class="fb-glow-a" offset="0"/><stop class="fb-glow-b" offset="0.4"/><stop class="fb-glow-c" offset="1"/></radialGradient></defs>`;
+  t.labels.forEach((lab,i)=>{ s += `<text class="fb-label" x="${FB_XS[i]}" y="13" text-anchor="middle">${escapeXML(lab)}</text>`; });
+  s += `<line class="fb-nut" x1="${FB_LEFT}" y1="${FB_NUT_Y}" x2="${FB_RIGHT}" y2="${FB_NUT_Y}"/>`;
+  for(let r=1;r<=FB_FRETS;r++){
+    const y = FB_NUT_Y + r*FB_FRET_H;
+    s += `<line class="fb-line" x1="${FB_LEFT}" y1="${y}" x2="${FB_RIGHT}" y2="${y}"/>`;
+    s += `<text class="fb-fretnum" x="168" y="${FB_NUT_Y+(r-0.5)*FB_FRET_H+4}">${r}</text>`;
+  }
+  FB_XS.forEach(x=>{ s += `<line class="fb-string" x1="${x}" y1="${FB_NUT_Y}" x2="${x}" y2="${bottomY}"/>`; });
+  FB_FRET_MARKERS.forEach(f=>{ if(f<=FB_FRETS) s += `<circle class="fb-inlay" cx="${FB_MARKER_X}" cy="${FB_NUT_Y+(f-0.5)*FB_FRET_H}" r="3"/>`; });
+  // open/mute markers sit above the nut, and only when the string isn't fretted;
+  // a fretted string is re-opened by clicking its dot, then this toggles o/×
+  FB_XS.forEach((x,i)=>{
+    const v = st[i];
+    if(v!==0 && v!==null) return;
+    const glyph = v===0
+      ? `<circle class="fb-open" cx="${x}" cy="${FB_TOP_Y}" r="6"/>`
+      : `<path class="fb-mute" d="M${x-5} ${FB_TOP_Y-5} L${x+5} ${FB_TOP_Y+5} M${x-5} ${FB_TOP_Y+5} L${x+5} ${FB_TOP_Y-5}"/>`;
+    s += `<g class="fb-top" data-string="${i}">${glyph}<rect class="fb-tophit" x="${x-18}" y="${FB_TOP_Y-14}" width="36" height="28"/></g>`;
+  });
+  for(let i=0;i<4;i++){
+    const x = FB_XS[i];
+    for(let f=1;f<=FB_FRETS;f++){
+      const y = FB_NUT_Y + (f-0.5)*FB_FRET_H;
+      const selected = st[i]===f;
+      const name = showNames ? spellNote((t.openPCs[i]+f)%12) : null;
+      s += `<g class="fb-cell${selected?' selected':''}" data-string="${i}" data-fret="${f}">`;
+      if(selected){
+        s += `<circle class="fb-dot" cx="${x}" cy="${y}" r="10"/>`;
+        if(name) s += `<text class="fb-dot-name" x="${x}" y="${y}">${name}</text>`;
+      } else if(name){
+        s += `<circle class="fb-glow" cx="${x}" cy="${y}" r="9" fill="url(#fbGlow)"/>`;
+        s += `<text class="fb-guide-name" x="${x}" y="${y}">${name}</text>`;
+      } else {
+        s += `<circle class="fb-guide" cx="${x}" cy="${y}" r="3.5"/>`;
+      }
+      s += `<rect class="fb-hit" x="${x-20}" y="${y-FB_FRET_H/2}" width="40" height="${FB_FRET_H}"/></g>`;
+    }
+  }
+  return s + '</svg>';
+}
+
+// Absolute link that reopens this exact fingering in the namer, or null when
+// nothing sounds. This is what "Copy link" shares — a direct link to the modal.
+function fretboardShareURL(){
+  if(!fretboardIdState.some(v=>v!==null)) return null;
+  const params = new URLSearchParams(window.location.search);
+  ['notes','chords','song','transpose','findsongs'].forEach(p=>params.delete(p));
+  params.set('fretboard', encodeFretboardState(fretboardIdState));
+  params.set('tuning', selectedTuningId);
+  return new URL(window.location.pathname + '?' + params.toString(), window.location.href).href;
+}
+
+// Absolute link into the main sheet for the "See all fingerings" action: every
+// voicing of the named chord (printable cards) when the fingering names one,
+// otherwise the custom-notes search, which likewise lists every fingering.
+function fretboardMainPageURL(){
+  const t = currentTuning();
+  const sounding = [];
+  fretboardIdState.forEach((v,i)=>{ if(v!==null) sounding.push(t.openAbs[i]+v); });
+  if(!sounding.length) return null;
+  const params = new URLSearchParams(window.location.search);
+  ['notes','chords','song','transpose','findsongs','fretboard'].forEach(p=>params.delete(p));
+  params.set('tuning', selectedTuningId);
+  if(fretboardIdChordLabel){
+    params.set('chords', fretboardIdChordLabel + '*'); // * lays out every voicing
+  } else {
+    const distinct = [...new Set(sounding.map(a=>((a%12)+12)%12))];
+    params.set('notes', distinct.map(spellNote).join(','));
+  }
+  return new URL(window.location.pathname + '?' + params.toString(), window.location.href).href;
+}
+
+function syncFretboardIdShareLink(){
+  fretboardIdCopyLinkEl.disabled = !fretboardShareURL();
+  const mainUrl = fretboardMainPageURL();
+  const link = document.getElementById('fretboardIdShareLink');
+  if(mainUrl){ link.hidden = false; link.href = mainUrl; }
+  else { link.hidden = true; link.removeAttribute('href'); }
+}
+
+function fretboardIdVerdictHTML(matches){
+  const exact = matches.filter(m=>m.exact);
+  if(exact.length){
+    let h = `<p class="fb-verdict-line"><span class="fb-verdict-lead">This is</span> <strong class="fb-chord-name">${escapeXML(exact[0].label)}</strong></p>`;
+    const alts = exact.slice(1,4).map(m=>escapeXML(m.label));
+    if(alts.length) h += `<p class="fb-alts">also written ${alts.map(a=>`<span>${a}</span>`).join(', ')}</p>`;
+    return h;
+  }
+  const near = matches.slice(0,3);
+  if(!near.length) return `<p class="fb-none">No common chord for these notes.</p>`;
+  const p = near[0];
+  let h = `<p class="fb-verdict-line"><span class="fb-verdict-lead">Looks like</span> <strong class="fb-chord-name">${escapeXML(p.label)}</strong>`;
+  if(p.missing.length) h += ` <span class="fb-missing">(no ${p.missing.map(escapeXML).join(', ')})</span>`;
+  h += `</p>`;
+  const alts = near.slice(1).map(m => escapeXML(m.missing.length ? `${m.label} (no ${m.missing.join(', ')})` : m.label));
+  if(alts.length) h += `<p class="fb-alts">or ${alts.map(a=>`<span>${a}</span>`).join(', ')}</p>`;
+  return h;
+}
+
+// Cross-fades the verdict on change (and fades it out as it empties), skipping
+// re-animation when the text is unchanged so building up a chord doesn't flicker.
+let lastVerdictHTML = null;
+function setFretboardVerdict(html){
+  if(html === lastVerdictHTML) return;
+  lastVerdictHTML = html;
+  const el = fretboardIdVerdictEl;
+  if(!el.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    el.innerHTML = html;
+    return;
+  }
+  el.getAnimations().forEach(a=>a.cancel());
+  if(!html){
+    const out = el.animate([{ opacity:1, transform:'none' }, { opacity:0, transform:'translateY(-3px)' }],
+      { duration:150, easing:'ease', fill:'forwards' });
+    // clear only if nothing newer arrived; cancel drops the forwards-fill afterwards
+    out.finished.then(()=>{ if(lastVerdictHTML === ''){ el.innerHTML = ''; } out.cancel(); }).catch(()=>{});
+    return;
+  }
+  el.innerHTML = html;
+  el.animate([{ opacity:0, transform:'translateY(4px)' }, { opacity:1, transform:'none' }],
+    { duration:200, easing:'cubic-bezier(.4,0,.2,1)' });
+}
+
+// The current fingering as a real main-sheet card (printable/copyable, same
+// features), or an empty slot when the notes name no chord. `primary` is the
+// top identifyChord match; a single-voicing result means no voicing nav.
+function renderFretboardIdCard(primary){
+  closeCardMenu(); // an open menu still points at the card we're about to replace
+  fretboardIdCardSlotEl.innerHTML = '';
+  if(!primary) return;
+  const ctx = {
+    tuning: currentTuning(),
+    colors: currentColors(),
+    highlightRoot: document.getElementById('rootToggle').checked,
+    showOmitted: document.getElementById('omitToggle').checked,
+  };
+  const result = {
+    label: primary.label, showAll: false,
+    requiredPCs: [], bassPC: null,
+    voicings: [fretboardIdState.slice()], altIndex: 0, customFrets: null,
+    rootPC: primary.root, omitted: null,
+  };
+  fretboardIdCardSlotEl.appendChild(buildCard(result, ctx));
+}
+
+function updateFretboardIdResult(){
+  const t = currentTuning();
+  // absolute pitch of every sounding string, kept in string order (dupes and all)
+  const sounding = [];
+  fretboardIdState.forEach((v,i)=>{ if(v!==null) sounding.push(t.openAbs[i]+v); });
+  let notesText, verdictHTML = '', primary = null;
+  if(!sounding.length){
+    notesText = 'No strings selected — tap the fretboard to place notes.';
+  } else {
+    const names = sounding.map(spellNote); // every note, redundancies included, string order
+    notesText = sounding.length===1 ? `Note: ${names[0]}` : `Notes: ${names.join(' · ')}`;
+    if(new Set(sounding.map(a=>((a%12)+12)%12)).size < 2){
+      verdictHTML = `<p class="fb-none">Just one note so far — add another to name a chord.</p>`;
+    } else {
+      const bassPC = ((Math.min(...sounding)%12)+12)%12;
+      const { matches } = identifyChord(sounding.map(a=>a%12), bassPC);
+      primary = matches.length ? matches[0] : null;
+      verdictHTML = fretboardIdVerdictHTML(matches);
+    }
+  }
+  fretboardIdNotesEl.textContent = notesText;
+  fretboardIdPlayEl.disabled = !sounding.length;
+  fretboardIdChordLabel = primary ? primary.label : null;
+  renderFretboardIdCard(primary);
+  setFretboardVerdict(verdictHTML);
+  syncFretboardIdShareLink();
+}
+
+function renderFretboardIdBoard(){
+  fretboardIdBoardEl.innerHTML = fretboardIdSVG();
+  updateFretboardIdResult();
+  saveSettings();
+}
+
+// Sounds the single note a string is now set to (nothing when it was muted).
+function playFretboardString(i){
+  const v = fretboardIdState[i];
+  if(v === null) return;
+  const abs = currentTuning().openAbs[i] + v;
+  flashPlayButton(fretboardIdPlayEl, playNote(abs), chordPlayDuration([abs]));
+}
+
+fretboardIdBoardEl.addEventListener('click', e=>{
+  const top = e.target.closest('.fb-top');
+  if(top){
+    const i = +top.dataset.string;
+    fretboardIdState[i] = fretboardIdState[i]===0 ? null : 0;
+    renderFretboardIdBoard();
+    playFretboardString(i);
+    return;
+  }
+  const cell = e.target.closest('.fb-cell');
+  if(cell){
+    const i = +cell.dataset.string, f = +cell.dataset.fret;
+    fretboardIdState[i] = fretboardIdState[i]===f ? 0 : f; // re-tapping a fret opens the string
+    renderFretboardIdBoard();
+    playFretboardString(i);
+  }
+});
+
+fretboardIdPlayEl.addEventListener('click', ()=>{
+  const abs = chordAbsNotes(fretboardIdState, currentTuning().openAbs);
+  if(abs.length) playChordAndFlash(fretboardIdPlayEl, abs);
+});
+
+// Brief inline "Copied"/"Shown" feedback on the copy-link button's own label.
+function flashCopyLink(text){
+  const label = fretboardIdCopyLinkEl.querySelector('.fb-copy-label');
+  if(!label) return;
+  if(fretboardIdCopyLinkEl._flashTimer) clearTimeout(fretboardIdCopyLinkEl._flashTimer);
+  if(fretboardIdCopyLinkEl._origLabel == null) fretboardIdCopyLinkEl._origLabel = label.textContent;
+  label.textContent = text;
+  fretboardIdCopyLinkEl._flashTimer = setTimeout(()=>{
+    label.textContent = fretboardIdCopyLinkEl._origLabel;
+    fretboardIdCopyLinkEl._flashTimer = null;
+  }, 1300);
+}
+
+fretboardIdCopyLinkEl.addEventListener('click', async ()=>{
+  const url = fretboardShareURL();
+  if(!url) return;
+  flashCopyLink(await copyLinkText(url));
+});
+
+const fretboardIdModal = createModal(fretboardIdModalEl);
+
+function openFretboardIdModal(opener){
+  const fresh = fretboardIdModal.open(opener);
+  renderFretboardIdBoard();
+  if(fresh){
+    const closeBtn = document.getElementById('fretboardIdModalClose');
+    try{ closeBtn.focus({ preventScroll:true }); }catch(err){ closeBtn.focus(); }
+  }
+}
+
+document.getElementById('fretboardIdModalClose').addEventListener('click', ()=> fretboardIdModal.close());
+document.getElementById('fretboardIdOpenBtn').addEventListener('click', e=> openFretboardIdModal(e.currentTarget));
+
 function updateURLParam(chordInputValue){
   const params = new URLSearchParams(window.location.search);
   // The URL carries either the song identity or the literal chords, never both:
@@ -1350,15 +1648,28 @@ function updateURLParam(chordInputValue){
   history.replaceState(null, '', newURL);
 }
 
-const tuningWrap = document.getElementById('tuningSelectWrap');
-const tuningBtn = document.getElementById('tuningSelectBtn');
-const tuningMenu = document.getElementById('tuningSelectMenu');
-const tuningIconEl = document.getElementById('tuningSelectIcon');
-const tuningNameEl = document.getElementById('tuningSelectName');
-const tuningTuningEl = document.getElementById('tuningSelectTuning');
+// One reusable instrument picker, instantiated for the page and for the
+// create-your-own-chord modal so both look and behave identically. selectTuning
+// is the shared handler: it re-tunes the whole app and refreshes every instance.
+const tuningSelects = [];
 
-function buildTuningMenu(){
-  tuningMenu.innerHTML = '';
+function selectTuning(id, opts){
+  selectedTuningId = id;
+  tuningSelects.forEach(sel=> sel.update(id));
+  if(!opts || !opts.silent){
+    tuningSelects.forEach(sel=> sel.close());
+    generate();
+    // the create-chord board reads the live tuning, so re-render it if open
+    if(!fretboardIdModalEl.hidden) renderFretboardIdBoard();
+  }
+}
+
+function createTuningSelect(root){
+  const btn = root.querySelector('.tuning-select-trigger');
+  const menu = root.querySelector('.tuning-select-menu');
+  const iconEl = btn.querySelector('.tuning-select-icon');
+  const nameEl = btn.querySelector('.tuning-select-name');
+  const tuningEl = btn.querySelector('.tuning-select-tuning');
   TUNINGS.forEach(t=>{
     const li = document.createElement('li');
     li.className = 'tuning-select-option';
@@ -1372,48 +1683,43 @@ function buildTuningMenu(){
       </span>
       <svg class="check" aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
     li.addEventListener('click', ()=> selectTuning(t.id));
-    tuningMenu.appendChild(li);
+    menu.appendChild(li);
   });
-}
-
-function updateTuningMenuSelection(){
-  [...tuningMenu.children].forEach(li=>{
-    li.classList.toggle('selected', li.dataset.id === selectedTuningId);
+  const ctl = createMenu(root, btn);
+  btn.addEventListener('keydown', e=>{
+    const opts = [...menu.children];
+    const idx = opts.findIndex(li=>li.dataset.id===selectedTuningId);
+    if(e.key==='ArrowDown'){
+      e.preventDefault();
+      if(!ctl.isOpen()) ctl.open();
+      selectTuning(opts[Math.min(idx+1, opts.length-1)].dataset.id);
+    } else if(e.key==='ArrowUp'){
+      e.preventDefault();
+      if(!ctl.isOpen()) ctl.open();
+      selectTuning(opts[Math.max(idx-1, 0)].dataset.id);
+    } else if(e.key==='Escape'){
+      // consume it while open so a containing dialog doesn't also close
+      if(ctl.isOpen()) e.stopPropagation();
+      ctl.close();
+    } else if(e.key==='Enter' || e.key===' '){
+      e.preventDefault();
+      ctl.isOpen() ? ctl.close() : ctl.open();
+    }
   });
+  const inst = {
+    update(id){
+      const t = TUNINGS.find(x=>x.id===id) || TUNINGS[0];
+      iconEl.innerHTML = INSTRUMENT_ICONS[t.icon];
+      nameEl.textContent = t.name;
+      tuningEl.textContent = t.tuningLabel;
+      [...menu.children].forEach(li=> li.classList.toggle('selected', li.dataset.id===id));
+    },
+    close: ctl.close,
+    isOpen: ctl.isOpen,
+  };
+  tuningSelects.push(inst);
+  return inst;
 }
-
-function selectTuning(id, opts){
-  selectedTuningId = id;
-  const t = currentTuning();
-  tuningIconEl.innerHTML = INSTRUMENT_ICONS[t.icon];
-  tuningNameEl.textContent = t.name;
-  tuningTuningEl.textContent = t.tuningLabel;
-  updateTuningMenuSelection();
-  if(!opts || !opts.silent){
-    tuningMenuCtl.close();
-    generate();
-  }
-}
-
-const tuningMenuCtl = createMenu(tuningWrap, tuningBtn);
-tuningBtn.addEventListener('keydown', e=>{
-  const opts = [...tuningMenu.children];
-  const idx = opts.findIndex(li=>li.dataset.id===selectedTuningId);
-  if(e.key==='ArrowDown'){
-    e.preventDefault();
-    if(!tuningMenuCtl.isOpen()) tuningMenuCtl.open();
-    selectTuning(opts[Math.min(idx+1, opts.length-1)].dataset.id);
-  } else if(e.key==='ArrowUp'){
-    e.preventDefault();
-    if(!tuningMenuCtl.isOpen()) tuningMenuCtl.open();
-    selectTuning(opts[Math.max(idx-1, 0)].dataset.id);
-  } else if(e.key==='Escape'){
-    tuningMenuCtl.close();
-  } else if(e.key==='Enter' || e.key===' '){
-    e.preventDefault();
-    tuningMenuCtl.isOpen() ? tuningMenuCtl.close() : tuningMenuCtl.open();
-  }
-});
 
 setupInfoPopover('aquilaInfoWrap', 'aquilaInfoBtn');
 setupInfoPopover('omitInfoWrap', 'omitInfoBtn');
@@ -1501,13 +1807,21 @@ document.getElementById('customChordModalMasonry').checked = typeof savedSetting
 document.getElementById('customChordModalMuted').checked = typeof savedSettings.customChordAllowMuted === 'boolean'
   ? savedSettings.customChordAllowMuted
   : document.getElementById('mutedToggle').checked;
+{
+  const savedBoard = decodeFretboardState(savedSettings.fretboardId);
+  if(savedBoard) fretboardIdState = savedBoard;
+}
+if(typeof savedSettings.fretboardIdNames === 'boolean'){
+  fretboardIdNamesToggleEl.checked = savedSettings.fretboardIdNames;
+}
 const tuningParam = new URLSearchParams(window.location.search).get('tuning');
 const initialTuningId = (tuningParam && TUNINGS.some(t=>t.id===tuningParam))
   ? tuningParam
   : (savedSettings.tuningId && TUNINGS.some(t=>t.id===savedSettings.tuningId))
     ? savedSettings.tuningId : TUNINGS[0].id;
 
-buildTuningMenu();
+createTuningSelect(document.getElementById('tuningSelectWrap'));
+createTuningSelect(document.getElementById('fretboardIdTuningWrap'));
 selectTuning(initialTuningId, { silent:true });
 
 // --- tips toast: a rotating collection shown bottom-right, reachable via the bulb fab forever ---
@@ -2375,4 +2689,16 @@ const findSongsParam = new URLSearchParams(window.location.search).get('findsong
 if(findSongsParam && findSongsParam.trim()){
   reverseChordsInputEl.value = findSongsParam.split(',').map(t=>t.trim()).filter(Boolean).join(', ');
   openReverseModal(false);
+}
+
+// ?fretboard=<per-string frets> opens the chord namer on that exact fingering,
+// mirroring ?notes= above. The board is a fixed-size scaled SVG, so unlike the
+// custom-chord grid it needs no viewport-ready wait.
+const fretboardParam = new URLSearchParams(window.location.search).get('fretboard');
+if(fretboardParam){
+  const decoded = decodeFretboardState(fretboardParam);
+  if(decoded){
+    fretboardIdState = decoded;
+    openFretboardIdModal(document.getElementById('fretboardIdOpenBtn'));
+  }
 }

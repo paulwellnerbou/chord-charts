@@ -72,6 +72,10 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>
               Custom chord by given notes
             </button>
+            <button type="button" class="secondary rsearch-open-btn" id="fretboardIdOpenBtn" aria-haspopup="dialog" title="Click a fretboard and let the tool name the chord">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="3" x2="4" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="20" y1="3" x2="20" y2="21"/><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="12" cy="11.5" r="2.4" fill="currentColor" stroke="none"/></svg>
+              Name chord from fretboard
+            </button>
             <button type="button" class="secondary rsearch-open-btn" id="reverseSearchBtn" hidden aria-haspopup="dialog" title="Find songs that use the chords in this input">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
               Find songs by chords
@@ -426,6 +430,62 @@
       <span class="voicing-modal-hint">Click a diagram or hit ▶ to hear it.</span>
       <a class="voicing-modal-open-all" id="customChordModalShareLink" target="_blank" rel="noopener" hidden>
         <span id="customChordModalShareLabel"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="voicing-modal-backdrop no-print" id="fretboardIdModal" hidden>
+  <div class="voicing-modal fb-modal" role="dialog" aria-modal="true" aria-labelledby="fretboardIdModalTitle">
+    <div class="voicing-modal-head">
+      <h2 id="fretboardIdModalTitle">Create your own chord</h2>
+      <button type="button" class="voicing-modal-close" id="fretboardIdModalClose" aria-label="Close create your own chord dialog">&times;</button>
+    </div>
+    <p class="fb-hint">Tap a fret to place a note. Tap the <span class="fb-hint-o">○</span> or <span class="fb-hint-x">×</span> above a string to sound it open or mute it.</p>
+    <div class="fb-body">
+      <div class="fb-board-col">
+        <label class="switch fb-names-switch">
+          <input type="checkbox" id="fretboardIdNamesToggle">
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+          <span>Show note names</span>
+        </label>
+        <div class="fb-board" id="fretboardIdBoard"></div>
+      </div>
+      <div class="fb-readout">
+        <div class="fb-tuning">
+          <span class="field-label" id="fretboardIdTuningLabel">Instrument &amp; tuning</span>
+          <div class="tuning-select" id="fretboardIdTuningWrap">
+            <button type="button" class="tuning-select-trigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fretboardIdTuningLabel fretboardIdTuningName fretboardIdTuningTuning">
+              <span class="tuning-select-icon"></span>
+              <span class="tuning-select-text">
+                <span class="tuning-select-name" id="fretboardIdTuningName"></span>
+                <span class="tuning-select-tuning" id="fretboardIdTuningTuning"></span>
+              </span>
+              <svg class="tuning-select-chevron" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <ul class="tuning-select-menu" role="listbox" aria-label="Instrument"></ul>
+          </div>
+        </div>
+        <div class="fb-result">
+          <button type="button" class="fb-play" id="fretboardIdPlay" title="Hear the selected notes" aria-label="Hear the selected notes">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <div class="fb-result-text">
+            <p class="fb-notes" id="fretboardIdNotes" aria-live="polite"></p>
+            <div class="fb-verdict" id="fretboardIdVerdict" aria-live="polite"></div>
+          </div>
+        </div>
+        <div class="fb-card-slot" id="fretboardIdCardSlot"></div>
+      </div>
+    </div>
+    <div class="voicing-modal-footer">
+      <button type="button" class="fb-footer-copy" id="fretboardIdCopyLink" title="Copy a link to this chord">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <span class="fb-copy-label">Copy link to this chord</span>
+      </button>
+      <a class="voicing-modal-open-all" id="fretboardIdShareLink" target="_blank" rel="noopener" hidden>
+        See all fingerings
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       </a>
     </div>

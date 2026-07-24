@@ -11,6 +11,7 @@ Live at [chords.wbou.dev](https://chords.wbou.dev/).
 - Play a chord back (Web Audio) to check it by ear.
 - Print the chart, export a chord as an image, or share it via URL.
 - Black & white print mode, and an "Aquila Kids" colored-string mode for teaching.
+- Reverse lookup, both directions: give a set of notes to get fingerings for them, or click the notes onto an interactive fretboard and let the app name the chord (with `×`/`○` for muted/open strings).
 - **Song search**: search a song title to load its chord progression straight into the chart builder, instead of typing chords by hand. Backed by a companion service — see below.
 
 ## Song search
