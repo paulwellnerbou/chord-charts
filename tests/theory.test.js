@@ -4,7 +4,7 @@ import {
   TUNINGS, MAX_VOICINGS,
   pcName, resolveQuality, parseChord, parseNoteList,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes,
-  transposeToken, transposeChordText, identifyChord, spellNote,
+  transposeToken, transposeChordText, identifyChord, spellNote, formatAccidentals,
 } from '../js/theory.js';
 
 const UKE = TUNINGS[0]; // high-G GCEA
@@ -172,6 +172,15 @@ test('spellNote uses conventional flat/sharp chord-root spellings', () => {
   assert.equal(spellNote(6), 'F#');
   assert.equal(spellNote(10), 'Bb');
   assert.equal(spellNote(14), 'D'); // wraps
+});
+
+test('formatAccidentals swaps ASCII accidentals for notation glyphs, sparing note letters', () => {
+  assert.equal(formatAccidentals('Bb'), 'B♭');
+  assert.equal(formatAccidentals('Ebm7'), 'E♭m7');
+  assert.equal(formatAccidentals('F#'), 'F♯');
+  assert.equal(formatAccidentals('Cm7b5'), 'Cm7♭5'); // the b5 flat, not the note B
+  assert.equal(formatAccidentals('D7/F#'), 'D7/F♯');
+  assert.equal(formatAccidentals('C'), 'C');
 });
 
 test('identifyChord names a plain triad, root in the bass', () => {

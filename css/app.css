@@ -890,6 +890,9 @@
   .fb-verdict-line{ margin:0; font-size:16px; line-height:1.35; color:var(--ink); }
   .fb-verdict-lead{ color:var(--ink-soft); }
   .fb-chord-name{ font-family:var(--heading-font); font-weight:650; font-size:30px; color:var(--accent); }
+  /* accidental glyphs: smaller and tucked against the note letter, engraving-style.
+     Margins are in the .acc's own (small) em, so they need to be sizeable to bite. */
+  .acc{ font-size:0.62em; vertical-align:0.09em; margin-left:-0.24em; margin-right:-0.09em; }
   .fb-missing{ font-size:14px; color:var(--ink-soft); }
   .fb-alts{ margin:8px 0 0; font-size:13.5px; color:var(--ink-soft); }
   .fb-alts span{ font-weight:650; color:var(--ink); white-space:nowrap; }

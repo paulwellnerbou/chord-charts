@@ -2,7 +2,7 @@ import {
   TUNINGS, MAX_FRET_MIN, MAX_FRET_MAX, MAX_FRET_DEFAULT, MAX_SPAN_MIN,
   MAX_SPAN_MAX, MAX_SPAN_DEFAULT, MAX_VOICINGS, parseChord, parseNoteList,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes, transposeChordText,
-  identifyChord, spellNote,
+  identifyChord, spellNote, formatAccidentals,
 } from './theory.js';
 import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG } from './diagram.js';
 import { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash } from './audio.js';
@@ -61,12 +61,20 @@ const LINK_ICON = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" strok
 const EXTERNAL_LINK_ICON = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
 const GRID_ICON = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`;
 
+// Accidentals wrapped in a span so CSS can shrink them and tuck them against the
+// note letter, engraving-style. HTML sink only — never assign to textContent.
+function accidentalsHTML(name){
+  return escapeXML(name)
+    .replace(/([A-Ga-g0-9])b/g, '$1<span class="acc">♭</span>')
+    .replace(/#/g, '<span class="acc">♯</span>');
+}
+
 function chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){
   const colors = currentColors();
   const sourceURL = new URL(chordPageURL(label, false), window.location.href).href;
   const showBorder = document.getElementById('borderToggle').checked;
   const highlightRoot = document.getElementById('rootToggle').checked;
-  return exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL);
+  return exportTileSVG(formatAccidentals(label), frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL);
 }
 
 async function chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){
@@ -156,7 +164,7 @@ async function copyAllChordsAsImage(btnEl){
       const result = cardEl._chordResult;
       const frets = result.voicings[result.altIndex];
       const { fretMax, startFret } = computeFretWindow(frets, shortenThreshold);
-      const svgStr = exportTileSVG(result.label, frets, fretMax, tuning.labels, colors, showBorder, tuning.openPCs, result.rootPC, highlightRoot, startFret, showOmitted ? result.omitted : null, new URL(chordPageURL(result.label, false), window.location.href).href);
+      const svgStr = exportTileSVG(formatAccidentals(result.label), frets, fretMax, tuning.labels, colors, showBorder, tuning.openPCs, result.rootPC, highlightRoot, startFret, showOmitted ? result.omitted : null, new URL(chordPageURL(result.label, false), window.location.href).href);
       const rect = cardEl.getBoundingClientRect();
       return { svgStr, x: rect.left-gridRect.left, y: rect.top-gridRect.top, w: rect.width, h: rect.height };
     });
@@ -782,7 +790,7 @@ function buildCard(result, ctx){
   const card = document.createElement('div');
   card.className = 'card';
   card._chordResult = result;
-  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${escapeXML(result.label)}</h2></div><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret)}</div>${omitHTML}`;
+  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${accidentalsHTML(result.label)}</h2></div><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret)}</div>${omitHTML}`;
 
   bindNoteDotHandlers(card.querySelector('.diagram-slot'));
 
@@ -842,7 +850,7 @@ function generate(){
   closeCardMenu();
   const tuning = currentTuning();
   document.getElementById('pageTitleMain').textContent = `${tuning.name} chords`;
-  document.getElementById('pageTitleSub').textContent = `${tuning.tuningLabel} tuning`;
+  document.getElementById('pageTitleSub').textContent = `${formatAccidentals(tuning.tuningLabel)} tuning`;
 
   const raw = document.getElementById('chordInput').value;
   const tokens = raw.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean);
@@ -1378,7 +1386,7 @@ function fretboardIdSVG(){
   // background-coloured radial glow that lifts un-selected note names off the
   // string line running behind them (the names inside filled dots need none)
   if(showNames) s += `<defs><radialGradient id="fbGlow"><stop class="fb-glow-a" offset="0"/><stop class="fb-glow-b" offset="0.4"/><stop class="fb-glow-c" offset="1"/></radialGradient></defs>`;
-  t.labels.forEach((lab,i)=>{ s += `<text class="fb-label" x="${FB_XS[i]}" y="13" text-anchor="middle">${escapeXML(lab)}</text>`; });
+  t.labels.forEach((lab,i)=>{ s += `<text class="fb-label" x="${FB_XS[i]}" y="13" text-anchor="middle">${escapeXML(formatAccidentals(lab))}</text>`; });
   s += `<line class="fb-nut" x1="${FB_LEFT}" y1="${FB_NUT_Y}" x2="${FB_RIGHT}" y2="${FB_NUT_Y}"/>`;
   for(let r=1;r<=FB_FRETS;r++){
     const y = FB_NUT_Y + r*FB_FRET_H;
@@ -1402,7 +1410,7 @@ function fretboardIdSVG(){
     for(let f=1;f<=FB_FRETS;f++){
       const y = FB_NUT_Y + (f-0.5)*FB_FRET_H;
       const selected = st[i]===f;
-      const name = showNames ? spellNote((t.openPCs[i]+f)%12) : null;
+      const name = showNames ? formatAccidentals(spellNote((t.openPCs[i]+f)%12)) : null;
       s += `<g class="fb-cell${selected?' selected':''}" data-string="${i}" data-fret="${f}">`;
       if(selected){
         s += `<circle class="fb-dot" cx="${x}" cy="${y}" r="10"/>`;
@@ -1461,18 +1469,18 @@ function syncFretboardIdShareLink(){
 function fretboardIdVerdictHTML(matches){
   const exact = matches.filter(m=>m.exact);
   if(exact.length){
-    let h = `<p class="fb-verdict-line"><span class="fb-verdict-lead">This is</span> <strong class="fb-chord-name">${escapeXML(exact[0].label)}</strong></p>`;
-    const alts = exact.slice(1,4).map(m=>escapeXML(m.label));
+    let h = `<p class="fb-verdict-line"><span class="fb-verdict-lead">This is</span> <strong class="fb-chord-name">${accidentalsHTML(exact[0].label)}</strong></p>`;
+    const alts = exact.slice(1,4).map(m=>accidentalsHTML(m.label));
     if(alts.length) h += `<p class="fb-alts">also written ${alts.map(a=>`<span>${a}</span>`).join(', ')}</p>`;
     return h;
   }
   const near = matches.slice(0,3);
   if(!near.length) return `<p class="fb-none">No common chord for these notes.</p>`;
   const p = near[0];
-  let h = `<p class="fb-verdict-line"><span class="fb-verdict-lead">Looks like</span> <strong class="fb-chord-name">${escapeXML(p.label)}</strong>`;
-  if(p.missing.length) h += ` <span class="fb-missing">(no ${p.missing.map(escapeXML).join(', ')})</span>`;
+  let h = `<p class="fb-verdict-line"><span class="fb-verdict-lead">Looks like</span> <strong class="fb-chord-name">${accidentalsHTML(p.label)}</strong>`;
+  if(p.missing.length) h += ` <span class="fb-missing">(no ${p.missing.map(n=>accidentalsHTML(n)).join(', ')})</span>`;
   h += `</p>`;
-  const alts = near.slice(1).map(m => escapeXML(m.missing.length ? `${m.label} (no ${m.missing.join(', ')})` : m.label));
+  const alts = near.slice(1).map(m => accidentalsHTML(m.missing.length ? `${m.label} (no ${m.missing.join(', ')})` : m.label));
   if(alts.length) h += `<p class="fb-alts">or ${alts.map(a=>`<span>${a}</span>`).join(', ')}</p>`;
   return h;
 }
@@ -1532,7 +1540,7 @@ function updateFretboardIdResult(){
   if(!sounding.length){
     notesText = 'No strings selected — tap the fretboard to place notes.';
   } else {
-    const names = sounding.map(spellNote); // every note, redundancies included, string order
+    const names = sounding.map(a=>formatAccidentals(spellNote(a))); // every note, redundancies included, string order
     notesText = sounding.length===1 ? `Note: ${names[0]}` : `Notes: ${names.join(' · ')}`;
     if(new Set(sounding.map(a=>((a%12)+12)%12)).size < 2){
       verdictHTML = `<p class="fb-none">Just one note so far — add another to name a chord.</p>`;
@@ -1679,7 +1687,7 @@ function createTuningSelect(root){
       <span class="tuning-select-icon">${INSTRUMENT_ICONS[t.icon]}</span>
       <span class="tuning-select-text">
         <span class="tuning-select-name">${t.name}</span>
-        <span class="tuning-select-tuning">${t.tuningLabel}</span>
+        <span class="tuning-select-tuning">${formatAccidentals(t.tuningLabel)}</span>
       </span>
       <svg class="check" aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
     li.addEventListener('click', ()=> selectTuning(t.id));
@@ -1711,7 +1719,7 @@ function createTuningSelect(root){
       const t = TUNINGS.find(x=>x.id===id) || TUNINGS[0];
       iconEl.innerHTML = INSTRUMENT_ICONS[t.icon];
       nameEl.textContent = t.name;
-      tuningEl.textContent = t.tuningLabel;
+      tuningEl.textContent = formatAccidentals(t.tuningLabel);
       [...menu.children].forEach(li=> li.classList.toggle('selected', li.dataset.id===id));
     },
     close: ctl.close,

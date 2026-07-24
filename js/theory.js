@@ -265,6 +265,14 @@ const ROOT_NAMES = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
 
 function spellNote(pc){ return ROOT_NAMES[((pc%12)+12)%12]; }
 
+// Rewrites ASCII accidentals to their music-notation glyphs for DISPLAY only.
+// A flat "b" always follows a note letter or a digit (as in m7b5), which tells
+// it apart from a lower-case "b" standing for the note B; "#" is always a sharp.
+// Never run this on strings bound for parsing, URLs, filenames or storage.
+function formatAccidentals(name){
+  return String(name).replace(/([A-Ga-g0-9])b/g, '$1♭').replace(/#/g, '♯');
+}
+
 // Names the notes sounding in a fingering. `pcs` are the sounding pitch classes
 // (dupes fine); `bassPC` is the pitch class of the lowest note, or null. Returns
 // { played, bass, matches } where matches is ranked best-first, each match:
@@ -322,5 +330,5 @@ export {
   pcName, noteToPC, resolveQuality, parseChord, parseNoteList,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes,
   transposedNoteName, transposeToken, transposeChordText,
-  identifyChord, spellNote,
+  identifyChord, spellNote, formatAccidentals,
 };
