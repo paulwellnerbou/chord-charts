@@ -64,6 +64,15 @@
     font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
     color:var(--ink-soft);
   }
+  .masthead-end{ display:flex; align-items:center; gap:14px; }
+  .gh-link{
+    display:grid; place-items:center; width:40px; height:40px; flex:0 0 40px;
+    color:var(--ink-soft); background:var(--card-bg);
+    border:1px solid var(--control-border); border-radius:12px;
+    transition:color .15s ease,background .15s ease,border-color .15s ease,transform .15s ease;
+  }
+  .gh-link:hover{ color:var(--accent-strong); background:var(--accent-soft); border-color:var(--accent); transform:translateY(-1px); }
+  .gh-link:focus-visible{ outline:3px solid color-mix(in srgb,var(--accent) 26%,transparent); outline-offset:2px; }
   .settings-section{
     margin-bottom:18px; padding:18px;
     background:color-mix(in srgb,var(--card-bg) 93%,transparent);
