@@ -1612,20 +1612,23 @@ function playFretboardString(i){
 }
 
 fretboardIdBoardEl.addEventListener('click', e=>{
+  // sound the note before the (heavier) re-render + settings write, so the tap
+  // feels responsive; playFretboardString only reads the just-updated state and
+  // the stable play button, so it doesn't depend on the render
   const top = e.target.closest('.fb-top');
   if(top){
     const i = +top.dataset.string;
     fretboardIdState[i] = fretboardIdState[i]===0 ? null : 0;
-    renderFretboardIdBoard();
     playFretboardString(i);
+    renderFretboardIdBoard();
     return;
   }
   const cell = e.target.closest('.fb-cell');
   if(cell){
     const i = +cell.dataset.string, f = +cell.dataset.fret;
     fretboardIdState[i] = fretboardIdState[i]===f ? 0 : f; // re-tapping a fret opens the string
-    renderFretboardIdBoard();
     playFretboardString(i);
+    renderFretboardIdBoard();
   }
 });
 
