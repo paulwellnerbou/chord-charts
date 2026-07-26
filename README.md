@@ -2,7 +2,7 @@
 
 A single-page web app that draws printable chord diagrams (fretboard finger positions) for ukulele (several tunings, plus baritone), mandolin, mandola, tenor banjo and plectrum banjo.
 
-Live at [chords.wbou.dev](https://chords.wbou.dev/).
+Live at [chords.wbou.de](https://chords.wbou.de/).
 
 ## Features
 
@@ -46,6 +46,7 @@ Zero dependencies — the suite runs on Node's built-in test runner:
 `package.json` exists only to mark the repo as ESM and hold that script; there is
 no build step and nothing to install.
 
-## Deploy
+## Hosting
 
-GitHub Pages, serving the repo straight from `main`. `CNAME` holds the custom domain.
+Plain static files with no build step — serve the repo root with any web server,
+GitHub Pages included. Every path is relative, so a subdirectory works too.
