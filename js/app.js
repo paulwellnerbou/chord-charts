@@ -720,8 +720,13 @@ function renderChordSuggestions(labels){
     ? `More ${formatAccidentals(root)} chords:`
     : `Start with a ${formatAccidentals(root)} chord:`;
   row.innerHTML = `<span class="chord-suggestions-label">${escapeXML(label)}</span>`
-    + pills.map(s => `<button type="button" class="chord-suggestion" data-chord="${escapeXML(s.chord)}"`
-        + ` title="${escapeXML(`${s.chord} — ${s.hint}`)}">${escapeXML(formatAccidentals(s.chord))}</button>`).join('');
+    + pills.map(s => {
+        // the quality spelled out carries the pill for anyone who doesn't read the
+        // shorthand, so it names the button rather than sitting in a tooltip alone
+        const name = escapeXML(`Add ${s.chord} — ${s.hint}`);
+        return `<button type="button" class="chord-suggestion" data-chord="${escapeXML(s.chord)}"`
+          + ` title="${name}" aria-label="${name}">${escapeXML(formatAccidentals(s.chord))}</button>`;
+      }).join('');
 }
 
 function addSuggestedChord(chord){
@@ -2161,7 +2166,8 @@ chordInputEl.addEventListener('input', ()=>{
 });
 // Delegated: the pills are rebuilt on every generate. The clicked one is gone
 // afterwards (its chord is on the sheet now), so the keyboard is handed to
-// whichever pill took its place instead of falling back to the page.
+// whichever pill took its place — or to the input the pills feed once the last
+// one has been taken — instead of falling back to the page.
 document.getElementById('chordSuggestions').addEventListener('click', e=>{
   const row = e.currentTarget;
   const btn = e.target.closest('.chord-suggestion');
@@ -2170,6 +2176,7 @@ document.getElementById('chordSuggestions').addEventListener('click', e=>{
   addSuggestedChord(btn.dataset.chord);
   const pills = row.querySelectorAll('.chord-suggestion');
   if(pills.length) pills[Math.min(index, pills.length - 1)].focus();
+  else document.getElementById('chordInput').focus();
 });
 document.getElementById('chordInputClear').addEventListener('click', ()=>{
   clearTimeout(chordInputDebounce);
