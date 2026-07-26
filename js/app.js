@@ -1,6 +1,6 @@
 import {
   TUNINGS, MAX_FRET_MIN, MAX_FRET_MAX, MAX_FRET_DEFAULT, MAX_SPAN_MIN,
-  MAX_SPAN_MAX, MAX_SPAN_DEFAULT, MAX_VOICINGS, parseChord, parseNoteList,
+  MAX_SPAN_MAX, MAX_SPAN_DEFAULT, MAX_VOICINGS, parseChord, parseNoteList, suggestedChords,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes, transposeChordText,
   identifyChord, spellNote, formatAccidentals,
 } from './theory.js';
@@ -702,6 +702,39 @@ function updateChordInputClearUI(){
   document.getElementById('chordInputWrap').classList.toggle('has-value', hasValue);
 }
 
+// The suggestion pills under the input: a chart opens with a handful of chords,
+// and these keep the rest of what it can draw one click away. Rooted on the
+// chart's first chord (an empty input starts from C) and rebuilt on every
+// generate, so they stay usable as typed. Chords already on the sheet are
+// dropped — a pill that changes nothing is noise.
+function renderChordSuggestions(labels){
+  const row = document.getElementById('chordSuggestions');
+  const rootMatch = labels.length ? labels[0].match(/^([A-Ga-g])(#|b)?/) : null;
+  // a root typed lower case ("eb, ab") still yields pills spelled the usual way
+  const root = rootMatch ? rootMatch[1].toUpperCase() + (rootMatch[2] || '') : 'C';
+  const present = new Set(labels.map(l => l.toLowerCase()));
+  const pills = suggestedChords(root).filter(s => !present.has(s.chord.toLowerCase()));
+  row.hidden = !pills.length;
+  if(!pills.length){ row.innerHTML = ''; return; }
+  const label = labels.length
+    ? `More ${formatAccidentals(root)} chords:`
+    : `Start with a ${formatAccidentals(root)} chord:`;
+  row.innerHTML = `<span class="chord-suggestions-label">${escapeXML(label)}</span>`
+    + pills.map(s => `<button type="button" class="chord-suggestion" data-chord="${escapeXML(s.chord)}"`
+        + ` title="${escapeXML(`${s.chord} — ${s.hint}`)}">${escapeXML(formatAccidentals(s.chord))}</button>`).join('');
+}
+
+function addSuggestedChord(chord){
+  const input = document.getElementById('chordInput');
+  const kept = input.value.replace(/[\s,]+$/, '');
+  input.value = kept ? `${kept}, ${chord}` : chord;
+  chordInputIsDefault = false;
+  clearActiveSong();
+  clearTimeout(chordInputDebounce);
+  resizeChordInput();
+  generate();
+}
+
 function resizeChordInput(){
   const input = document.getElementById('chordInput');
   const styles = getComputedStyle(input);
@@ -898,6 +931,7 @@ function generate(){
   });
 
   errorBox.textContent = errors.join('  ·  ');
+  renderChordSuggestions(results.map(r => r.label));
   const countLabel = `${results.length} ${results.length === 1 ? 'chord' : 'chords'}`;
   document.getElementById('resultsCount').textContent = countLabel;
   document.getElementById('resultsContext').textContent = errors.length
@@ -2124,6 +2158,18 @@ chordInputEl.addEventListener('input', ()=>{
   // debounce long enough that partial tokens rarely flash a parse error
   clearTimeout(chordInputDebounce);
   chordInputDebounce = setTimeout(generate, 450);
+});
+// Delegated: the pills are rebuilt on every generate. The clicked one is gone
+// afterwards (its chord is on the sheet now), so the keyboard is handed to
+// whichever pill took its place instead of falling back to the page.
+document.getElementById('chordSuggestions').addEventListener('click', e=>{
+  const row = e.currentTarget;
+  const btn = e.target.closest('.chord-suggestion');
+  if(!btn) return;
+  const index = [...row.querySelectorAll('.chord-suggestion')].indexOf(btn);
+  addSuggestedChord(btn.dataset.chord);
+  const pills = row.querySelectorAll('.chord-suggestion');
+  if(pills.length) pills[Math.min(index, pills.length - 1)].focus();
 });
 document.getElementById('chordInputClear').addEventListener('click', ()=>{
   clearTimeout(chordInputDebounce);
