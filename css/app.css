@@ -233,6 +233,8 @@
   }
   .site-footer p{ margin:0; }
   .site-footer p:not([hidden]) + p{ margin-top:6px; }
+  .site-footer-free{ font-size:13px; color:var(--ink); }
+  .site-footer-free strong{ font-weight:700; color:var(--accent); }
   .site-footer-meta{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 24px; }
   .site-footer a{ color:var(--accent); text-decoration:none; }
   .site-footer a:hover{ text-decoration:underline; }
