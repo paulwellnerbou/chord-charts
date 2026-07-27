@@ -165,10 +165,11 @@ test('suggestedChords keeps the root spelling and offers only parsable chords', 
   assert.equal(chords.at(-1), 'C/G'); // the inversion, on the root's own 5th
   assert.ok(chords.includes('Cm7b5'));
   // whatever the shortlist holds, every pill must be usable as typed
-  for(const root of ['C', 'Eb', 'F#', 'Bb', 'a', 'g#']){
-    for(const { chord, hint } of suggestedChords(root)){
+  for (const root of ['C', 'Eb', 'F#', 'Bb', 'a', 'g#']) {
+    for (const { chord, hint } of suggestedChords(root)) {
+      const parsed = parseChord(chord);
       assert.ok(hint, `${chord} needs a hint`);
-      assert.ok(!parseChord(chord).error, `${chord} should parse: ${parseChord(chord).error}`);
+      assert.ok(!parsed.error, `${chord} should parse: ${parsed.error}`);
     }
   }
   assert.equal(suggestedChords('eb')[1].chord, 'Ebm'); // never D#m
