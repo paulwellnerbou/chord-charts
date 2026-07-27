@@ -90,7 +90,7 @@
           </div>
         </div>
         <div class="input-clear-wrap" id="chordInputWrap">
-          <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, Cm, C5, C7, Cm7, Cmaj7, Cdim, Cdim7, Cm7b5, Caug, Csus2, Csus4, C6, Cm6, Cadd9, Cmadd9, C9, C6/9, Cmaj9, G/B</textarea>
+          <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, F, G7</textarea>
           <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
         </div>
       </div>
@@ -109,6 +109,8 @@
         </div>
       </div>
     </div>
+    <!-- Filled in by the app: the pills follow the root the input already uses. -->
+    <div class="chord-suggestions no-print" id="chordSuggestions" hidden></div>
     <div class="syntax-help no-print">
       <button type="button" class="syntax-summary" id="syntaxToggleBtn" aria-expanded="false" aria-controls="syntaxPanel">Separate chords with commas or new lines. Try <code>C, Am7, D7/F#, G/B</code>. <span class="syntax-toggle">Supported qualities <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></button>
       <div class="syntax-panel" id="syntaxPanel" aria-hidden="true">

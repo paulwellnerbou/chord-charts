@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   TUNINGS, MAX_VOICINGS,
-  pcName, resolveQuality, parseChord, parseNoteList,
+  pcName, resolveQuality, parseChord, parseNoteList, suggestedChords,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes,
   transposeToken, transposeChordText, identifyChord, spellNote, formatAccidentals,
 } from '../js/theory.js';
@@ -157,6 +157,33 @@ test('parseNoteList reads plain notes, dedupes, and rejects junk', () => {
   assert.match(parseNoteList('').error, /at least one/);
   assert.match(parseNoteList('C, D, E, F, G').error, /at most 4/);
   assert.match(parseNoteList('Cm').error, /Could not parse "Cm"/);
+});
+
+test('suggestedChords keeps the root spelling and offers only parsable chords', () => {
+  const chords = suggestedChords('C').map(s => s.chord);
+  assert.deepEqual(chords.slice(0, 3), ['C', 'Cm', 'C7']);
+  assert.equal(chords.at(-1), 'C/G'); // the inversion, on the root's own 5th
+  assert.ok(chords.includes('Cm7b5'));
+  // whatever the shortlist holds, every pill must be usable as typed
+  for (const root of ['C', 'Eb', 'F#', 'Bb', 'a', 'g#']) {
+    for (const { chord, hint } of suggestedChords(root)) {
+      const parsed = parseChord(chord);
+      assert.ok(hint, `${chord} needs a hint`);
+      assert.ok(!parsed.error, `${chord} should parse: ${parsed.error}`);
+    }
+  }
+  assert.equal(suggestedChords('eb')[1].chord, 'Ebm'); // never D#m
+  // the inversion's bass stays in the root's accidental family
+  assert.equal(suggestedChords('Eb').at(-1).chord, 'Eb/Bb');
+  assert.equal(suggestedChords('G#').at(-1).chord, 'G#/D#');
+  assert.equal(suggestedChords('B').at(-1).chord, 'B/F#');
+});
+
+test('suggestedChords declines anything that is not a bare note name', () => {
+  assert.deepEqual(suggestedChords('Cm'), []);
+  assert.deepEqual(suggestedChords('H'), []);
+  assert.deepEqual(suggestedChords(''), []);
+  assert.deepEqual(suggestedChords(undefined), []);
 });
 
 test('chordAbsNotes maps frets to MIDI and drops muted strings', () => {

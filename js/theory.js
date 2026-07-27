@@ -107,6 +107,42 @@ function parseChord(input){
   return { label: core, showAll, requiredPCs, bassPC, rootPC, omitted };
 }
 
+// Chord suggestions offered beside the input. Written as suffixes on the root the
+// chart already uses, so a pill keeps that root's spelling (Ebm7, never D#m7).
+// Ordered roughly by how often a player meets them; the full quality list lives
+// in the syntax help, this is the shortlist worth one click.
+const SUGGESTION_QUALITIES = [
+  { suffix:'',     hint:'major' },
+  { suffix:'m',    hint:'minor' },
+  { suffix:'7',    hint:'dominant 7th' },
+  { suffix:'m7',   hint:'minor 7th' },
+  { suffix:'maj7', hint:'major 7th' },
+  { suffix:'6',    hint:'major 6th' },
+  { suffix:'sus4', hint:'suspended 4th' },
+  { suffix:'add9', hint:'added 9th' },
+  { suffix:'9',    hint:'dominant 9th' },
+  { suffix:'5',    hint:'power chord, no 3rd' },
+  { suffix:'dim7', hint:'diminished 7th' },
+  { suffix:'m7b5', hint:'half-diminished' },
+  { suffix:'aug',  hint:'augmented' },
+];
+
+// [{ chord:'Ebm7', hint:'minor 7th' }, …] for a chart rooted on `rootText`
+// ("C", "Eb", "f#"). Empty for anything that isn't a bare note name.
+function suggestedChords(rootText){
+  const m = String(rootText).match(/^([A-Ga-g])(#|b)?$/);
+  if(!m) return [];
+  const acc = m[2] || '';
+  const root = m[1].toUpperCase() + acc;
+  // the bass follows the root's accidental family (G#/D#, Eb/Bb), as transposing does
+  const fifthPC = noteToPC(m[1], acc) + 7;
+  const fifth = acc ? pcName(fifthPC, acc === 'b') : spellNote(fifthPC);
+  return [
+    ...SUGGESTION_QUALITIES.map(q => ({ chord: root + q.suffix, hint: q.hint })),
+    { chord: `${root}/${fifth}`, hint: 'inversion — the 5th in the bass' },
+  ];
+}
+
 function findVoicings(requiredPCs, bassPC, tuning, maxFret, maxSpan, maxCount, allowMuted){
   const perString = tuning.openPCs.map((openPC,i)=>{
     const opts = [];
@@ -327,7 +363,7 @@ export {
   MAX_FRET_MIN, MAX_FRET_MAX, MAX_FRET_DEFAULT,
   MAX_SPAN_MIN, MAX_SPAN_MAX, MAX_SPAN_DEFAULT,
   MAX_VOICINGS, CUSTOM_CHORD_MAX_NOTES,
-  pcName, noteToPC, resolveQuality, parseChord, parseNoteList,
+  pcName, noteToPC, resolveQuality, parseChord, parseNoteList, suggestedChords,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes,
   transposedNoteName, transposeToken, transposeChordText,
   identifyChord, spellNote, formatAccidentals,
