@@ -35,10 +35,18 @@ const TUNINGS = [
   { id:'uke_d_tuning', name:'Ukulele (D-tuning)', tuningLabel:'ADF#B', labels:['A','D','F#','B'], openAbs:[69,62,66,71], icon:'ukulele' },
   { id:'uke_low_e',   name:'Ukulele (low E)',     tuningLabel:'EAC#F#', labels:['E','A','C#','F#'], openAbs:[52,57,61,66], icon:'ukulele' },
   { id:'bari_uke',    name:'Baritone ukulele',    tuningLabel:'DGBE', labels:['D','G','B','E'], openAbs:[50,55,59,64], icon:'ukulele' },
+  { id:'cavaquinho_br', name:'Cavaquinho (Brazil)', tuningLabel:'DGBD', labels:['D','G','B','D'], openAbs:[62,67,71,74], icon:'cavaquinho' },
+  // Portuguese CGAD is re-entrant: the 4th string sits above the 3rd and 2nd
+  { id:'cavaquinho_pt', name:'Cavaquinho (Portugal)', tuningLabel:'CGAD', labels:['C','G','A','D'], openAbs:[72,67,69,74], icon:'cavaquinho' },
+  // "cambur pintón": same note names as the D-tuning ukulele, but the 1st string
+  // drops an octave, so the cuatro voices chords — and slash basses — differently
+  { id:'cuatro',      name:'Venezuelan cuatro',   tuningLabel:'ADF#B', labels:['A','D','F#','B'], openAbs:[57,62,66,59], icon:'cuatro' },
   { id:'mandolin',    name:'Mandolin',            tuningLabel:'GDAE', labels:['G','D','A','E'], openAbs:[55,62,69,76], icon:'mandolin' },
   { id:'mandola',     name:'Mandola',             tuningLabel:'CGDA', labels:['C','G','D','A'], openAbs:[48,55,62,69], icon:'mandolin' },
   { id:'tenor_banjo', name:'Tenor banjo',         tuningLabel:'CGDA', labels:['C','G','D','A'], openAbs:[48,55,62,69], icon:'banjo' },
   { id:'plectrum_banjo', name:'Plectrum banjo',   tuningLabel:'CGBD', labels:['C','G','B','D'], openAbs:[48,55,59,62], icon:'banjo' },
+  // also covers the U-Bass style bass ukulele, tuned to the same pitches
+  { id:'bass',        name:'Bass guitar',         tuningLabel:'EADG', labels:['E','A','D','G'], openAbs:[28,33,38,43], icon:'bass' },
 ];
 TUNINGS.forEach(t => t.openPCs = t.openAbs.map(a => ((a%12)+12)%12));
 
