@@ -48,6 +48,31 @@ const INSTRUMENT_ICONS = {
     <path d="M10.6 17.0h2.8"/>
     <path d="M11.2 21.2v.6h1.6v-.6"/>
   </svg>`,
+  cavaquinho: `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.68" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 10.9c-2.3 0-3.3 1.1-3.3 2.3 0 1.1 1.3 1.6 1.3 2.6 0 1.2-2.3 2.1-2.3 4.1 0 1.6 2 2.4 4.3 2.4s4.3-.8 4.3-2.4c0-2-2.3-2.9-2.3-4.1 0-1 1.3-1.5 1.3-2.6 0-1.2-1-2.3-3.3-2.3z"/>
+    <circle cx="12" cy="13.9" r="1.1"/>
+    <path d="M9.7 18.7h4.6"/>
+    <path d="M11.1 10.9V5h1.8v5.9"/>
+    <path d="M10.3 5V2.1c0-.5.4-.9.9-.9h1.6c.5 0 .9.4.9.9V5"/>
+    <path d="M11.3 2.1v2.2M12.7 2.1v2.2"/>
+    <path d="M10.3 2.5h-.9M10.3 3.9h-.9M13.7 2.5h.9M13.7 3.9h.9"/>
+  </svg>`,
+  cuatro: `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.68" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 10.6c-2.7 0-3.9 1.2-3.9 2.6 0 1.2 1.5 1.8 1.5 2.7 0 1.1-2.2 1.9-2.2 3.7 0 1.7 2.1 2.8 4.6 2.8s4.6-1.1 4.6-2.8c0-1.8-2.2-2.6-2.2-3.7 0-.9 1.5-1.5 1.5-2.7 0-1.4-1.2-2.6-3.9-2.6z"/>
+    <circle cx="12" cy="13.7" r="1.2"/>
+    <path d="M9.5 18.9h5"/>
+    <path d="M11.1 10.6V5h1.8v5.6"/>
+    <path d="M10.2 5V2.4c0-.7.5-1.2 1.2-1.2h1.2c.7 0 1.2.5 1.2 1.2V5"/>
+    <path d="M10.2 3h-.8M10.2 4.2h-.8M13.8 3h.8M13.8 4.2h.8"/>
+  </svg>`,
+  bass: `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.68" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11.2 13.6C10.6 12.4 9.6 11.5 8.6 11.6C7.4 11.7 6.8 13.0 7.0 14.7C7.2 16.0 6.8 16.8 6.8 17.9C6.8 20.3 8.4 21.5 12 21.5C15.6 21.5 17.2 20.3 17.2 17.9C17.2 16.8 16.8 16.0 17.0 14.7C17.2 13.0 16.6 11.7 15.4 11.6C14.4 11.5 13.4 12.4 12.8 13.6"/>
+    <path d="M11.2 13.6V5h1.6v8.6"/>
+    <path d="M10.4 5V2.4c0-.7.5-1.2 1.1-1.2h1c.6 0 1.1.5 1.1 1.2V5"/>
+    <path d="M10.4 1.9h-1M10.4 2.7h-1M10.4 3.5h-1M10.4 4.3h-1"/>
+    <path d="M9.8 16.4h4.4v1.3h-4.4z"/>
+    <path d="M10.6 19.3h2.8"/>
+  </svg>`,
 };
 
 const COPY_ICON = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;

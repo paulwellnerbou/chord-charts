@@ -1,6 +1,6 @@
 # Chord chart generator
 
-A single-page web app that draws printable chord diagrams (fretboard finger positions) for ukulele (several tunings, plus baritone), mandolin, mandola, tenor banjo and plectrum banjo.
+A single-page web app that draws printable chord diagrams (fretboard finger positions) for ukulele (several tunings, plus baritone), cavaquinho (Brazilian and Portuguese), Venezuelan cuatro, mandolin, mandola, tenor banjo, plectrum banjo and bass guitar.
 
 Live at [chords.wbou.de](https://chords.wbou.de/).
 

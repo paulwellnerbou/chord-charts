@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   TUNINGS, MAX_VOICINGS,
-  pcName, resolveQuality, parseChord, parseNoteList, suggestedChords,
+  pcName, noteToPC, resolveQuality, parseChord, parseNoteList, suggestedChords,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes,
   transposeToken, transposeChordText, identifyChord, spellNote, formatAccidentals,
 } from '../js/theory.js';
@@ -276,4 +276,29 @@ test('identifyChord names a fingering via its sounding notes', () => {
   };
   assert.equal(named([0, 0, 0, 3])[0], 'C');   // classic high-G C shape
   assert.equal(named([0, 0, 0, 0])[0], 'C6');  // open GCEA strings
+});
+
+test('every tuning names its four strings consistently with its open pitches', () => {
+  for(const t of TUNINGS){
+    assert.equal(t.openAbs.length, 4, `${t.id} has four strings`);
+    assert.deepEqual(t.labels.map(l => noteToPC(l[0], l[1] || '')), t.openPCs,
+      `${t.id} labels match openAbs`);
+    assert.equal(t.labels.join(''), t.tuningLabel, `${t.id} tuningLabel matches labels`);
+  }
+});
+
+test('re-entrant tunings keep the octave that makes them distinct', () => {
+  const abs = id => TUNINGS.find(t => t.id === id).openAbs;
+  // the cuatro shares the D-tuning ukulele's note names but drops its 1st string
+  // an octave, so a B bass is reachable low on the neck instead of up at fret 8
+  assert.deepEqual(abs('cuatro'), [57, 62, 66, 59]);
+  assert.ok(abs('cuatro')[3] < abs('cuatro')[2], 'cuatro 1st string re-enters below the 2nd');
+  assert.deepEqual(abs('uke_d_tuning'), [69, 62, 66, 71]);
+  // Portuguese CGAD re-enters at the other end: the 4th string tops the 3rd and 2nd
+  assert.ok(abs('cavaquinho_pt')[0] > abs('cavaquinho_pt')[1], 'cavaquinho_pt 4th string sits above the 3rd and 2nd');
+  // Brazilian cavaquinho is an open G chord across all four strings
+  assert.deepEqual(abs('cavaquinho_br'), [62, 67, 71, 74]);
+  assert.deepEqual([...new Set(abs('cavaquinho_br').map(a => a % 12))].sort((a, b) => a - b), [2, 7, 11]);
+  // bass sits an octave below the guitar's low four, same as the U-Bass style bass uke
+  assert.deepEqual(abs('bass'), [28, 33, 38, 43]);
 });
