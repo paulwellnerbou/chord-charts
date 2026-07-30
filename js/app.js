@@ -546,7 +546,6 @@ function saveSettings(){
     aquilaStrings: document.getElementById('aquilaToggle').checked,
     columns: columnsValue,
     masonry: document.getElementById('masonryToggle').checked,
-    arpeggio: document.getElementById('arpeggioToggle').checked,
     shortenThreshold: shortenThreshold,
     showOmitted: document.getElementById('omitToggle').checked,
     maxFret: maxFretValue,
@@ -1903,9 +1902,6 @@ if(typeof savedSettings.aquilaStrings === 'boolean'){
 if(typeof savedSettings.masonry === 'boolean'){
   document.getElementById('masonryToggle').checked = savedSettings.masonry;
 }
-if(typeof savedSettings.arpeggio === 'boolean'){
-  document.getElementById('arpeggioToggle').checked = savedSettings.arpeggio;
-}
 if(typeof savedSettings.showOmitted === 'boolean'){
   document.getElementById('omitToggle').checked = savedSettings.showOmitted;
 }
@@ -2252,8 +2248,6 @@ document.getElementById('bwToggle').addEventListener('change', e=>{
 document.getElementById('rootToggle').addEventListener('change', generate);
 document.getElementById('noteNamesToggle').addEventListener('change', generate);
 document.getElementById('aquilaToggle').addEventListener('change', generate);
-// playback-only setting: nothing on the page needs re-rendering
-document.getElementById('arpeggioToggle').addEventListener('change', saveSettings);
 initStepper('columns', stepColumns);
 document.getElementById('masonryToggle').addEventListener('change', generate);
 document.getElementById('omitToggle').addEventListener('change', generate);
