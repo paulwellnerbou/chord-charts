@@ -55,9 +55,15 @@ test('exportTileSVG renders border, omitted footer and source metadata on demand
   assert.match(full, /<metadata>Chord diagram from https:\/\/chords\.example\/\?chords=C9<\/metadata>/);
   assert.match(full, /5th \(G\) omitted/);
   assert.match(full, /stroke="#ddd3c5"/);
+  assert.ok(!full.includes('class="note-name"'), 'no note-name labels without the toggle');
 
   const bare = exportTileSVG('C', [0, 0, 0, 3], 3, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, 0, null);
   assert.ok(!bare.includes('<metadata>'));
   assert.ok(!bare.includes('omitted'));
   assert.match(bare, /stroke="none"/);
+
+  const named = exportTileSVG('C9', [0, 0, 0, 1], 3, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+    { label: '5th', note: 'G' }, 'https://chords.example/?chords=C9', true);
+  assert.equal((named.match(/class="note-name"/g) || []).length, 1);
+  assert.match(named, /class="note-name"[^>]*>B♭<\/text>/);
 });

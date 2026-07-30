@@ -981,8 +981,8 @@ function generate(){
   if(exampleEl){
     const exFrets = [5,5,5,5];
     exampleEl.innerHTML =
-      `<figure><figcaption>set to 5</figcaption>${chordSVG('Example: not cropped', exFrets, 5, tuning.labels, colors, tuning.openPCs, null, false, undefined, 0)}</figure>` +
-      `<figure><figcaption>set to 4</figcaption>${chordSVG('Example: cropped', exFrets, 5, tuning.labels, colors, tuning.openPCs, null, false, undefined, 3)}</figure>`;
+      `<figure><figcaption>set to 5</figcaption>${chordSVG('Example: not cropped', exFrets, 5, tuning.labels, colors, tuning.openPCs, null, false, undefined, 0, showNoteNames)}</figure>` +
+      `<figure><figcaption>set to 4</figcaption>${chordSVG('Example: cropped', exFrets, 5, tuning.labels, colors, tuning.openPCs, null, false, undefined, 3, showNoteNames)}</figure>`;
   }
 
   const ctx = { tuning, colors, highlightRoot, showOmitted, showNoteNames };
