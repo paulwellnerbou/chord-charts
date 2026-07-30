@@ -1,14 +1,14 @@
 import {
   TUNINGS, MAX_FRET_MIN, MAX_FRET_MAX, MAX_FRET_DEFAULT, MAX_SPAN_MIN,
   MAX_SPAN_MAX, MAX_SPAN_DEFAULT, MAX_VOICINGS, parseChord, parseNoteList, suggestedChords,
-  findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes, transposeChordText,
+  findVoicings, computeFretWindow, chordAbsNotes, transposeChordText,
   identifyChord, spellNote, formatAccidentals,
 } from './theory.js';
 import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG } from './diagram.js';
 import { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash } from './audio.js';
 import {
   afterNextPaint, flashButton, flashButtonText,
-  createModal, createMenu, initStepper, bumpValue, setupInfoPopover,
+  createModal, createMenu, initStepper, bumpValue, setLabelText, setupInfoPopover,
 } from './ui.js';
 
 // Which palette the current view state calls for — lives here, not in
@@ -542,11 +542,8 @@ function saveSettings(){
     showOmitted: document.getElementById('omitToggle').checked,
     maxFret: maxFretValue,
     maxSpan: maxSpanValue,
-    allowMuted: document.getElementById('mutedToggle').checked,
+    allowMuted: document.getElementById('voicingModalMuted').checked,
     chooserMasonry: document.getElementById('voicingModalMasonry').checked,
-    chooserMaxFret: chooserMaxFretValue,
-    chooserMaxSpan: chooserMaxSpanValue,
-    chooserAllowMuted: document.getElementById('voicingModalMuted').checked,
     customChordMasonry: document.getElementById('customChordModalMasonry').checked,
     customChordMaxFret: customChordMaxFretValue,
     customChordMaxSpan: customChordMaxSpanValue,
@@ -569,6 +566,10 @@ function saveSettings(){
 }
 
 const MASONRY_GAP = 16, MASONRY_MIN_COL_WIDTH = 190;
+
+// cards from the last generate(), in chord order — a resize re-layout can't
+// recollect them from the DOM because masonry bin-packing scrambles DOM order
+let currentCardEls = [];
 
 // Native CSS column-count is a *maximum*: its balance algorithm often settles on
 // fewer, evenly-divisible columns for a handful of same-height cards. Distributing
@@ -665,22 +666,47 @@ function scheduleGenerate(){
   });
 }
 
-function updateColumnsUI(){
-  document.getElementById('columnsValue').textContent = columnsValue === 'auto' ? 'Auto' : String(columnsValue);
-  document.getElementById('columnsMinus').disabled = columnsValue === 'auto';
-  document.getElementById('columnsPlus').disabled = columnsValue === COLUMNS_MAX;
+function updateColumnsUI(animateLabel){
+  const auto = columnsValue === 'auto';
+  document.getElementById('autoColumnsToggle').checked = auto;
+  setLabelText(document.getElementById('autoColumnsLabel'), auto ? 'Auto columns' : 'Columns:', animateLabel);
+  document.getElementById('columnsReveal').classList.toggle('open', !auto);
+  // in auto mode the stepper is collapsed — leave its last value in place so
+  // the number doesn't blank out mid slide-away
+  if(!auto) document.getElementById('columnsValue').textContent = String(columnsValue);
+  document.getElementById('columnsMinus').disabled = auto || columnsValue === COLUMNS_MIN;
+  document.getElementById('columnsPlus').disabled = auto || columnsValue === COLUMNS_MAX;
 }
 
 function stepColumns(delta){
-  if(columnsValue === 'auto'){
-    if(delta > 0) columnsValue = COLUMNS_MIN;
-  } else {
-    const next = columnsValue + delta;
-    columnsValue = next < COLUMNS_MIN ? 'auto' : Math.min(next, COLUMNS_MAX);
-  }
+  if(columnsValue === 'auto') return;
+  columnsValue = Math.min(COLUMNS_MAX, Math.max(COLUMNS_MIN, columnsValue + delta));
   updateColumnsUI();
   bumpValue(document.getElementById('columnsValue'));
   scheduleGenerate();
+}
+
+// The column count the grid is showing right now. In masonry mode the columns
+// are real elements; in even-rows mode the browser resolves the track list,
+// so count its non-collapsed tracks. Must be read after layoutCards has run.
+function renderedColumnCount(){
+  const grid = document.getElementById('grid');
+  return grid.classList.contains('masonry')
+    ? grid.querySelectorAll('.masonry-col').length
+    : getComputedStyle(grid).gridTemplateColumns.split(' ').filter(w => parseFloat(w) > 0).length;
+}
+
+// Seeds the stepper when auto columns is switched off, so nothing jumps at
+// that moment; clamped to the stepper's range.
+function currentRenderedColumns(){
+  return Math.min(COLUMNS_MAX, Math.max(COLUMNS_MIN, renderedColumnCount() || COLUMNS_MIN));
+}
+
+// Masonry and even rows only differ when some column stacks two or more cards
+// of varying height — with few cards or everything on one line the toggle
+// would be a dead control, so it hides. Width-dependent: re-run on resize too.
+function updateMasonryToggleVisibility(cardCount){
+  document.getElementById('masonryWrap').hidden = cardCount < 3 || renderedColumnCount() >= cardCount;
 }
 
 function updateThresholdUI(){
@@ -693,32 +719,6 @@ function stepThreshold(delta){
   shortenThreshold = Math.min(THRESHOLD_MAX, Math.max(THRESHOLD_MIN, shortenThreshold + delta));
   updateThresholdUI();
   bumpValue(document.getElementById('thresholdValue'));
-  scheduleGenerate();
-}
-
-function updateMaxFretUI(){
-  document.getElementById('maxFretValue').textContent = String(maxFretValue);
-  document.getElementById('maxFretMinus').disabled = maxFretValue === MAX_FRET_MIN;
-  document.getElementById('maxFretPlus').disabled = maxFretValue === MAX_FRET_MAX;
-}
-
-function stepMaxFret(delta){
-  maxFretValue = Math.min(MAX_FRET_MAX, Math.max(MAX_FRET_MIN, maxFretValue + delta));
-  updateMaxFretUI();
-  bumpValue(document.getElementById('maxFretValue'));
-  scheduleGenerate();
-}
-
-function updateMaxSpanUI(){
-  document.getElementById('maxSpanValue').textContent = String(maxSpanValue);
-  document.getElementById('maxSpanMinus').disabled = maxSpanValue === MAX_SPAN_MIN;
-  document.getElementById('maxSpanPlus').disabled = maxSpanValue === MAX_SPAN_MAX;
-}
-
-function stepMaxSpan(delta){
-  maxSpanValue = Math.min(MAX_SPAN_MAX, Math.max(MAX_SPAN_MIN, maxSpanValue + delta));
-  updateMaxSpanUI();
-  bumpValue(document.getElementById('maxSpanValue'));
   scheduleGenerate();
 }
 
@@ -927,13 +927,10 @@ function generate(){
   const prevShown = new Map();
   document.querySelectorAll('#grid .card').forEach(card=>{
     const r = card._chordResult;
-    if(r && !r.expanded){
-      const shown = r.voicings[r.altIndex];
-      prevShown.set(r.label, { frets: shown, custom: !!(r.customFrets && shown.every((f,i)=> f === r.customFrets[i])) });
-    }
+    if(r && !r.expanded) prevShown.set(r.label, r.voicings[r.altIndex]);
   });
 
-  const allowMuted = document.getElementById('mutedToggle').checked;
+  const allowMuted = document.getElementById('voicingModalMuted').checked;
   tokens.forEach(tok=>{
     const parsed = parseChord(tok);
     if(parsed.error){ errors.push(parsed.error); return; }
@@ -942,22 +939,12 @@ function generate(){
     // re-select the same frets if they still exist in the new voicing list;
     // fall back to the best voicing when they don't (new tuning, lower max fret)
     const pref = prevShown.get(parsed.label);
-    let altIndex = 0, customFrets = null;
+    let altIndex = 0;
     if(pref){
-      const idx = voicings.findIndex(v => v.every((f,i)=> f === pref.frets[i]));
-      if(idx >= 0){
-        altIndex = idx;
-      } else if(pref.custom && fretsSpellChord(pref.frets, parsed.requiredPCs, parsed.bassPC, tuning)){
-        // hand-picked in the chooser under a deeper search than the page's
-        // max fret — keep it available, trading away the last search hit so
-        // the list never exceeds MAX_VOICINGS
-        if(voicings.length >= MAX_VOICINGS) voicings.length = MAX_VOICINGS - 1;
-        voicings.push(pref.frets);
-        altIndex = voicings.length - 1;
-        customFrets = pref.frets;
-      }
+      const idx = voicings.findIndex(v => v.every((f,i)=> f === pref[i]));
+      if(idx >= 0) altIndex = idx;
     }
-    results.push({ label: parsed.label, showAll: parsed.showAll, requiredPCs: parsed.requiredPCs, bassPC: parsed.bassPC, voicings, altIndex, customFrets, rootPC: parsed.rootPC, omitted: parsed.omitted });
+    results.push({ label: parsed.label, showAll: parsed.showAll, requiredPCs: parsed.requiredPCs, bassPC: parsed.bassPC, voicings, altIndex, rootPC: parsed.rootPC, omitted: parsed.omitted });
   });
 
   errorBox.textContent = errors.join('  ·  ');
@@ -994,7 +981,9 @@ function generate(){
     }
   });
 
+  currentCardEls = cardEls;
   layoutCards(cardEls);
+  updateMasonryToggleVisibility(cardEls.length);
   fitCardTitles();
   if(!cardEls.length && !errors.length){
     document.getElementById('grid').innerHTML = '<p class="empty-hint">Enter chord names above to see charts.</p>';
@@ -1048,14 +1037,12 @@ const voicingModalEl = document.getElementById('voicingModal');
 const voicingModalTitleEl = document.getElementById('voicingModalTitle');
 const voicingModalGridEl = document.getElementById('voicingModalGrid');
 let voicingChooserState = null;
-// The chooser's masonry toggle, max fret and max stretch are its own settings
-// (the checkbox holds the masonry state); they never touch the main page's
-// layout or search.
-let chooserMaxFretValue = MAX_FRET_DEFAULT;
-let chooserMaxSpanValue = MAX_SPAN_DEFAULT;
+// The chooser's fret, stretch and muted controls ARE the sheet-wide voicing
+// search settings — changing them regenerates the whole chart. Only the
+// masonry toggle is the chooser's own (it arranges just this modal's tiles).
 
-// shared by the voicing chooser and the custom-chord modal below, which each
-// keep their own independent max-fret/max-span search settings
+// shared by the voicing chooser (sheet-wide settings) and the custom-chord
+// modal below (its own independent search settings)
 function syncFretSpanControls(prefix, maxFretVal, maxSpanVal){
   [
     [prefix + 'MaxFret', maxFretVal, MAX_FRET_MIN, MAX_FRET_MAX],
@@ -1074,7 +1061,7 @@ function syncFretSpanControls(prefix, maxFretVal, maxSpanVal){
   });
 }
 function syncVoicingModalControls(){
-  syncFretSpanControls('voicingModal', chooserMaxFretValue, chooserMaxSpanValue);
+  syncFretSpanControls('voicingModal', maxFretValue, maxSpanValue);
 }
 
 // same bin-packing as layoutCards; equal-width flex columns mean heights can
@@ -1106,7 +1093,7 @@ function renderVoicingTiles(card, result){
   const highlightRoot = document.getElementById('rootToggle').checked;
   const masonry = document.getElementById('voicingModalMasonry').checked;
   const allowMuted = document.getElementById('voicingModalMuted').checked;
-  const voicings = findVoicings(result.requiredPCs, result.bassPC, tuning, chooserMaxFretValue, chooserMaxSpanValue, MAX_VOICINGS, allowMuted);
+  const voicings = findVoicings(result.requiredPCs, result.bassPC, tuning, maxFretValue, maxSpanValue, MAX_VOICINGS, allowMuted);
   voicingModalTitleEl.textContent = `${result.label} — ${voicings.length} voicing${voicings.length === 1 ? '' : 's'}`;
   const currentFrets = result.voicings[result.altIndex];
   const scrollTop = voicingModalGridEl.scrollTop;
@@ -1114,7 +1101,7 @@ function renderVoicingTiles(card, result){
   voicingModalGridEl.classList.toggle('masonry', masonry);
 
   if(!voicings.length){
-    voicingModalGridEl.innerHTML = `<p class="empty-hint">No voicings found up to fret ${chooserMaxFretValue} — raise “Search up to fret” or “Max stretch” above.</p>`;
+    voicingModalGridEl.innerHTML = `<p class="empty-hint">No voicings found up to fret ${maxFretValue} — raise “Search up to fret” or “Max stretch” above.</p>`;
     return;
   }
 
@@ -1133,22 +1120,9 @@ function renderVoicingTiles(card, result){
     tile.innerHTML = `<span class="voicing-choice-index">${i+1}</span>` + chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, undefined, startFret);
     tile.addEventListener('click', ()=>{
       const prevIndex = result.altIndex;
-      // the pick may not exist in the card's list (chooser searched deeper) —
-      // append it there so the card can show and cycle to it
+      // same search settings as the sheet, so the pick always exists in the card's list
       const idx = result.voicings.findIndex(v => v.every((f,j)=> f === frets[j]));
-      if(idx >= 0){
-        result.altIndex = idx;
-      } else {
-        // one custom entry at a time, and never beyond MAX_VOICINGS in total
-        if(result.customFrets){
-          const prevIdx = result.voicings.findIndex(v => v.every((f,j)=> f === result.customFrets[j]));
-          if(prevIdx >= 0) result.voicings.splice(prevIdx, 1);
-        }
-        if(result.voicings.length >= MAX_VOICINGS) result.voicings.length = MAX_VOICINGS - 1;
-        result.voicings.push(frets);
-        result.altIndex = result.voicings.length - 1;
-        result.customFrets = frets;
-      }
+      if(idx >= 0) result.altIndex = idx;
       updateCardDiagram(card, result, tuning, colors, highlightRoot, Math.sign(result.altIndex - prevIndex));
       playChord(chordAbsNotes(frets, tuning.openAbs));
       closeVoicingChooser();
@@ -1211,45 +1185,36 @@ function closeVoicingChooser(opts){
   voicingModal.close(opts);
 }
 document.getElementById('voicingModalClose').addEventListener('click', ()=> closeVoicingChooser());
+function updateChooserMasonryLabel(animate){
+  setLabelText(document.getElementById('voicingModalMasonryLabel'),
+    document.getElementById('voicingModalMasonry').checked ? 'Masonry layout' : 'Table layout', animate);
+}
 document.getElementById('voicingModalMasonry').addEventListener('change', ()=>{
+  updateChooserMasonryLabel(true);
   if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
   saveSettings();
 });
-document.getElementById('voicingModalMuted').addEventListener('change', ()=>{
-  if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
-  saveSettings();
-});
-// deferred like scheduleGenerate(), and re-checks chooser state at run time
-// because the modal may close before the callback fires
-let chooserRenderPending = false;
-function scheduleChooserRender(){
-  if(chooserRenderPending) return;
-  chooserRenderPending = true;
-  afterNextPaint(()=>{
-    if(!chooserRenderPending) return;
-    chooserRenderPending = false;
-    if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
-  });
-}
+// sheet-wide settings: regenerate the chart, which re-opens the chooser on the
+// rebuilt card (see generate()) and so re-renders the tiles too
+document.getElementById('voicingModalMuted').addEventListener('change', generate);
 
-function stepChooserMaxFret(delta){
-  chooserMaxFretValue = Math.min(MAX_FRET_MAX, Math.max(MAX_FRET_MIN, chooserMaxFretValue + delta));
+function stepMaxFret(delta){
+  maxFretValue = Math.min(MAX_FRET_MAX, Math.max(MAX_FRET_MIN, maxFretValue + delta));
   syncVoicingModalControls();
-  scheduleChooserRender();
-  saveSettings();
+  scheduleGenerate();
 }
-function stepChooserMaxSpan(delta){
-  chooserMaxSpanValue = Math.min(MAX_SPAN_MAX, Math.max(MAX_SPAN_MIN, chooserMaxSpanValue + delta));
+function stepMaxSpan(delta){
+  maxSpanValue = Math.min(MAX_SPAN_MAX, Math.max(MAX_SPAN_MIN, maxSpanValue + delta));
   syncVoicingModalControls();
-  scheduleChooserRender();
-  saveSettings();
+  scheduleGenerate();
 }
-initStepper('voicingModalMaxFret', stepChooserMaxFret);
-initStepper('voicingModalMaxSpan', stepChooserMaxSpan);
+initStepper('voicingModalMaxFret', stepMaxFret);
+initStepper('voicingModalMaxSpan', stepMaxSpan);
 
 // --- Custom chord diagram: search fingerings for a free-form set of notes,
-// not a named chord. Mirrors the voicing chooser above (own max-fret/max-span
-// search settings, same tile grid) but there's no sheet card to update, so
+// not a named chord. Mirrors the voicing chooser above (same tile grid) but
+// keeps its own max-fret/max-span search settings — a scratchpad search
+// shouldn't disturb the sheet — and there's no sheet card to update, so
 // every tile just plays — nothing to "select".
 const customChordModalEl = document.getElementById('customChordModal');
 const customChordNotesInputEl = document.getElementById('customChordNotesInput');
@@ -1590,7 +1555,7 @@ function renderFretboardIdCard(primary){
   const result = {
     label: primary.label, showAll: false,
     requiredPCs: [], bassPC: null,
-    voicings: [fretboardIdState.slice()], altIndex: 0, customFrets: null,
+    voicings: [fretboardIdState.slice()], altIndex: 0,
     rootPC: primary.root, omitted: null,
   };
   fretboardIdCardSlotEl.appendChild(buildCard(result, ctx));
@@ -1838,10 +1803,6 @@ function createTuningSelect(root){
 setupInfoPopover('aquilaInfoWrap', 'aquilaInfoBtn');
 setupInfoPopover('omitInfoWrap', 'omitInfoBtn');
 setupInfoPopover('thresholdInfoWrap', 'thresholdInfoBtn');
-setupInfoPopover('maxFretInfoWrap', 'maxFretInfoBtn');
-setupInfoPopover('maxSpanInfoWrap', 'maxSpanInfoBtn');
-setupInfoPopover('mutedInfoWrap', 'mutedInfoBtn');
-setupInfoPopover('masonryInfoWrap', 'masonryInfoBtn');
 setupInfoPopover('cardControlsInfoWrap', 'cardControlsInfoBtn');
 
 const savedSettings = loadSettings();
@@ -1897,20 +1858,12 @@ if(Number.isInteger(savedSettings.maxSpan) && savedSettings.maxSpan >= MAX_SPAN_
   maxSpanValue = savedSettings.maxSpan;
 }
 if(typeof savedSettings.allowMuted === 'boolean'){
-  document.getElementById('mutedToggle').checked = savedSettings.allowMuted;
+  document.getElementById('voicingModalMuted').checked = savedSettings.allowMuted;
 }
-// chooser settings are independent; seed them from the page settings on first use
-chooserMaxFretValue = (Number.isInteger(savedSettings.chooserMaxFret) && savedSettings.chooserMaxFret >= MAX_FRET_MIN && savedSettings.chooserMaxFret <= MAX_FRET_MAX)
-  ? savedSettings.chooserMaxFret : maxFretValue;
-chooserMaxSpanValue = (Number.isInteger(savedSettings.chooserMaxSpan) && savedSettings.chooserMaxSpan >= MAX_SPAN_MIN && savedSettings.chooserMaxSpan <= MAX_SPAN_MAX)
-  ? savedSettings.chooserMaxSpan : maxSpanValue;
 document.getElementById('voicingModalMasonry').checked = typeof savedSettings.chooserMasonry === 'boolean'
   ? savedSettings.chooserMasonry
   : document.getElementById('masonryToggle').checked;
-document.getElementById('voicingModalMuted').checked = typeof savedSettings.chooserAllowMuted === 'boolean'
-  ? savedSettings.chooserAllowMuted
-  : document.getElementById('mutedToggle').checked;
-// custom-chord modal settings are independent too, seeded the same way
+// custom-chord modal settings are independent, seeded from the sheet's on first use
 customChordMaxFretValue = (Number.isInteger(savedSettings.customChordMaxFret) && savedSettings.customChordMaxFret >= MAX_FRET_MIN && savedSettings.customChordMaxFret <= MAX_FRET_MAX)
   ? savedSettings.customChordMaxFret : maxFretValue;
 customChordMaxSpanValue = (Number.isInteger(savedSettings.customChordMaxSpan) && savedSettings.customChordMaxSpan >= MAX_SPAN_MIN && savedSettings.customChordMaxSpan <= MAX_SPAN_MAX)
@@ -1920,7 +1873,7 @@ document.getElementById('customChordModalMasonry').checked = typeof savedSetting
   : document.getElementById('masonryToggle').checked;
 document.getElementById('customChordModalMuted').checked = typeof savedSettings.customChordAllowMuted === 'boolean'
   ? savedSettings.customChordAllowMuted
-  : document.getElementById('mutedToggle').checked;
+  : document.getElementById('voicingModalMuted').checked;
 {
   const savedBoard = decodeFretboardState(savedSettings.fretboardId);
   if(savedBoard) fretboardIdState = savedBoard;
@@ -1951,11 +1904,11 @@ const TIPS = [
   { emoji:'🎼', text:'Use the Transpose buttons next to the Chords box to shift every chord up or down in semitones — no need to retype anything.' },
   { emoji:'📥', text:'Each chord card has a ⋯ menu — copy or download the diagram as PNG or SVG, or grab a link straight to that chord.' },
   { emoji:'📸', text:'Turn off “Show chord card controls” in Options to hide play buttons and arrows before you screenshot.' },
-  { emoji:'🖼️', text:'“Copy chart” combines all diagrams on the page into one image, ready to paste anywhere.' },
-  { emoji:'🧩', text:"Switch on “Masonry layout” in Options to pack chord cards together tightly instead of leaving gaps when they're different heights." },
-  { emoji:'🔍', text:'Raise “Search up to fret” in Options to unlock alternate voicings further up the neck.' },
-  { emoji:'📏', text:'Fingers too short? Lower “Max stretch” in Options to skip voicings that need a wide stretch.' },
-  { emoji:'🔇', text:'Power chords hard to finger? Switch on “Allow muted strings” in Options and two- and three-note chords can skip strings instead of doubling notes.' },
+  { emoji:'🖼️', text:'“Copy all charts” combines all diagrams on the page into one image, ready to paste anywhere.' },
+  { emoji:'🧩', text:"Switch on “Masonry layout” below the chart to pack chord cards together tightly instead of leaving gaps when they're different heights." },
+  { emoji:'🔍', text:'Raise “Search up to fret” in the voicing chooser — tap the number between a card\'s arrows — to unlock alternate voicings further up the neck.' },
+  { emoji:'📏', text:'Fingers too short? Lower “Max stretch” in the voicing chooser to skip voicings that need a wide stretch.' },
+  { emoji:'🔇', text:'Power chords hard to finger? Switch on “Allow muted strings” in the voicing chooser and two- and three-note chords can skip strings instead of doubling notes.' },
 ];
 
 // a shuffled bag (not plain Math.random each time) so every tip is seen before any repeat
@@ -2226,19 +2179,28 @@ document.getElementById('bwToggle').addEventListener('change', e=>{
 });
 document.getElementById('rootToggle').addEventListener('change', generate);
 document.getElementById('aquilaToggle').addEventListener('change', generate);
+document.getElementById('autoColumnsToggle').addEventListener('change', e=>{
+  columnsValue = e.target.checked ? 'auto' : currentRenderedColumns();
+  updateColumnsUI(true);
+  scheduleGenerate();
+});
 initStepper('columns', stepColumns);
-document.getElementById('masonryToggle').addEventListener('change', generate);
+function updateMasonryLabel(animate){
+  setLabelText(document.getElementById('masonryLabel'),
+    document.getElementById('masonryToggle').checked ? 'Masonry layout' : 'Table layout', animate);
+}
+document.getElementById('masonryToggle').addEventListener('change', ()=>{
+  updateMasonryLabel(true);
+  generate();
+});
 document.getElementById('omitToggle').addEventListener('change', generate);
-document.getElementById('mutedToggle').addEventListener('change', generate);
 initStepper('threshold', stepThreshold);
-initStepper('maxFret', stepMaxFret);
 initStepper('transpose', stepTranspose);
 document.getElementById('transposeValue').addEventListener('click', ()=>{
   setTransposeOffset(0);
   // the reset control disables itself at 0; keep focus inside the stepper
   document.getElementById('transposePlus').focus();
 });
-initStepper('maxSpan', stepMaxSpan);
 
 // --- song search (companion backend: chord-charts-song-backend) ---
 // The whole feature is optional: it appears only when the backend's /healthz
@@ -2755,9 +2717,9 @@ if(songParam) (async ()=>{
 })();
 
 updateColumnsUI();
+updateMasonryLabel();
+updateChooserMasonryLabel();
 updateThresholdUI();
-updateMaxFretUI();
-updateMaxSpanUI();
 resizeChordInput();
 let chordInputResizeTimer = null;
 window.addEventListener('resize', ()=>{
@@ -2765,24 +2727,30 @@ window.addEventListener('resize', ()=>{
   chordInputResizeTimer = setTimeout(resizeChordInput, 120);
 });
 // grid width can change without a window resize (scrollbar appearing, etc.).
-// Height alone isn't a signal to re-fit — it changes on every render (cards
-// added/removed) and on every fit pass itself (row height nudged by the new
-// font-size) — so the observer callback ignores height-only notifications.
-let titleFitTimer = null;
+// Height alone isn't a signal — it changes on every render (cards added or
+// removed) and on every re-layout itself — so the observer callback ignores
+// height-only notifications. A width change re-runs the column bin-packing
+// (masonry column count and the mobile column cap depend on grid width) and
+// then re-fits titles, whose available space depends on the column widths.
+let gridRefitTimer = null;
 let lastGridWidth = null;
-const scheduleTitleFit = ()=>{
-  clearTimeout(titleFitTimer);
-  titleFitTimer = setTimeout(fitCardTitles, 120);
+const scheduleGridRefit = ()=>{
+  clearTimeout(gridRefitTimer);
+  gridRefitTimer = setTimeout(()=>{
+    if(currentCardEls.length) layoutCards(currentCardEls);
+    updateMasonryToggleVisibility(currentCardEls.length);
+    fitCardTitles();
+  }, 120);
 };
 if(typeof ResizeObserver === 'function'){
   new ResizeObserver(entries=>{
     const width = entries[0].contentRect.width;
     if(width === lastGridWidth) return;
     lastGridWidth = width;
-    scheduleTitleFit();
+    scheduleGridRefit();
   }).observe(document.getElementById('grid'));
 } else {
-  window.addEventListener('resize', scheduleTitleFit);
+  window.addEventListener('resize', scheduleGridRefit);
 }
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=> fitCardTitles());
 generate();

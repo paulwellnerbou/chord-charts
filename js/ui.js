@@ -145,6 +145,42 @@ function bumpValue(el){
   el.classList.add('bump');
 }
 
+// Swaps a label's text while animating its width (text content itself can't
+// transition), so neighbouring controls slide instead of jumping. Measures
+// both widths, then transitions between them via the .label-swap class. The
+// element must be a flex item or inline-block for width to apply.
+function setLabelText(el, text, animate){
+  if(el.textContent === text) return;
+  clearTimeout(el._labelSwapTimer);
+  if(!animate){
+    el.classList.remove('label-swap');
+    el.style.width = '';
+    el.textContent = text;
+    return;
+  }
+  const from = el.getBoundingClientRect().width;
+  el.textContent = text;
+  el.classList.remove('label-swap');
+  el.style.width = '';
+  const to = el.getBoundingClientRect().width;
+  el.style.width = from + 'px';
+  void el.offsetWidth;
+  el.classList.add('label-swap');
+  el.style.width = to + 'px';
+  const done = ()=>{
+    clearTimeout(el._labelSwapTimer);
+    el.classList.remove('label-swap');
+    el.style.width = '';
+  };
+  el.addEventListener('transitionend', function h(e){
+    if(e.target !== el || e.propertyName !== 'width') return;
+    el.removeEventListener('transitionend', h);
+    done();
+  });
+  // hidden tabs get no transition events; sweep eventually
+  el._labelSwapTimer = setTimeout(done, 400);
+}
+
 function setupInfoPopover(wrapId, btnId){
   const wrap = document.getElementById(wrapId);
   const btn = document.getElementById(btnId);
@@ -172,5 +208,5 @@ function setupInfoPopover(wrapId, btnId){
 
 export {
   afterNextPaint, flashButton, flashButtonText,
-  createModal, createMenu, initStepper, bumpValue, setupInfoPopover,
+  createModal, createMenu, initStepper, bumpValue, setLabelText, setupInfoPopover,
 };
