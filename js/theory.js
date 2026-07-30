@@ -45,8 +45,9 @@ const TUNINGS = [
   { id:'mandola',     name:'Mandola',             tuningLabel:'CGDA', labels:['C','G','D','A'], openAbs:[48,55,62,69], icon:'mandolin' },
   { id:'tenor_banjo', name:'Tenor banjo',         tuningLabel:'CGDA', labels:['C','G','D','A'], openAbs:[48,55,62,69], icon:'banjo' },
   { id:'plectrum_banjo', name:'Plectrum banjo',   tuningLabel:'CGBD', labels:['C','G','B','D'], openAbs:[48,55,59,62], icon:'banjo' },
-  // also covers the U-Bass style bass ukulele, tuned to the same pitches
-  { id:'bass',        name:'Bass guitar',         tuningLabel:'EADG', labels:['E','A','D','G'], openAbs:[28,33,38,43], icon:'bass' },
+  // also covers the U-Bass style bass ukulele, tuned to the same pitches.
+  // arpeggio: strummed chords blur into a rumble this low — always play broken
+  { id:'bass',        name:'Bass guitar',         tuningLabel:'EADG', labels:['E','A','D','G'], openAbs:[28,33,38,43], icon:'bass', arpeggio:true },
 ];
 TUNINGS.forEach(t => t.openPCs = t.openAbs.map(a => ((a%12)+12)%12));
 

@@ -66,15 +66,24 @@ function scheduleNote(ctx, midi, opts){
   osc.stop(t0+1.5);
 }
 
-// resolves once every note has actually been scheduled (see playNote)
-function playChord(midiNotes){
-  return Promise.all(midiNotes.map((m,i)=> playNote(m, { delay:i*0.025, gain:0.18 })));
+// per-note stagger in seconds: a quick strum, or a broken chord slow enough
+// that each note registers on its own
+const STRUM_GAP = 0.025, ARPEGGIO_GAP = 0.25;
+
+function noteGap(opts){
+  return (opts && opts.arpeggio) ? ARPEGGIO_GAP : STRUM_GAP;
 }
 
-// matches scheduleNote's envelope: last-triggered note starts at (n-1)*25ms
-// and rings for 1.5s before its oscillator stops
-function chordPlayDuration(midiNotes){
-  return midiNotes.length ? (midiNotes.length-1)*25 + 1500 : 0;
+// resolves once every note has actually been scheduled (see playNote)
+function playChord(midiNotes, opts){
+  const gap = noteGap(opts);
+  return Promise.all(midiNotes.map((m,i)=> playNote(m, { delay:i*gap, gain:0.18 })));
+}
+
+// matches scheduleNote's envelope: the last-triggered note starts after
+// (n-1) gaps and rings for 1.5s before its oscillator stops
+function chordPlayDuration(midiNotes, opts){
+  return midiNotes.length ? (midiNotes.length-1)*noteGap(opts)*1000 + 1500 : 0;
 }
 
 // swaps a play button's icon to a "now playing" indicator while the sound
@@ -98,8 +107,8 @@ function flashPlayButton(btn, started, durationMs){
   });
 }
 
-function playChordAndFlash(btn, midiNotes){
-  flashPlayButton(btn, playChord(midiNotes), chordPlayDuration(midiNotes));
+function playChordAndFlash(btn, midiNotes, opts){
+  flashPlayButton(btn, playChord(midiNotes, opts), chordPlayDuration(midiNotes, opts));
 }
 
 export { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash };
