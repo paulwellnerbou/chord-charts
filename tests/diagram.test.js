@@ -33,14 +33,14 @@ test('chordSVG marks muted strings without a playable dot', () => {
 
 test('chordSVG omits note names by default and adds them only for fretted strings when requested', () => {
   const plain = chordSVG('C5', [null, 0, 3, 3], 3, UKE.labels, NICE_COLORS, UKE.openPCs, 0, false, UKE.openAbs, 0);
-  assert.ok(!/font-size="8"/.test(plain), 'no note-name labels without the toggle');
+  assert.ok(!plain.includes('class="note-name"'), 'no note-name labels without the toggle');
 
   // open strings already show their name in the tuning label above the nut, so
   // only the two fretted notes (C and G) get one — the muted string gets none
   const named = chordSVG('C5', [null, 0, 3, 3], 3, UKE.labels, NICE_COLORS, UKE.openPCs, 0, false, UKE.openAbs, 0, true);
-  assert.equal((named.match(/font-size="8"/g) || []).length, 2);
-  assert.match(named, /font-size="8"[^>]*>C<\/text>/);
-  assert.match(named, /font-size="8"[^>]*>G<\/text>/);
+  assert.equal((named.match(/class="note-name"/g) || []).length, 2);
+  assert.match(named, /class="note-name"[^>]*>C<\/text>/);
+  assert.match(named, /class="note-name"[^>]*>G<\/text>/);
 });
 
 test('string colors override the plain string lines when provided', () => {

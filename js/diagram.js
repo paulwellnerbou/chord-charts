@@ -73,7 +73,7 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
     } else {
       const y = rowCenter(fret-startFret);
       s += `<circle cx="${x}" cy="${y}" r="9" fill="${colors.dotFill}" stroke="${colors.dotStroke}" stroke-width="1"${noteAttrs}/>`;
-      if(name) s += `<text x="${x}" y="${y+3}" text-anchor="middle" font-size="8" font-weight="700" fill="${colors.cardBg}" font-family="Arial,sans-serif" pointer-events="none">${name}</text>`;
+      if(name) s += `<text class="note-name" x="${x}" y="${y+3}" text-anchor="middle" font-size="8" font-weight="700" fill="${colors.cardBg}" font-family="Arial,sans-serif" pointer-events="none">${name}</text>`;
       if(isRoot){
         s += `<circle cx="${x}" cy="${y}" r="12" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
       }
