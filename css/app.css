@@ -123,7 +123,7 @@
 
   .results-toolbar{
     display:flex; align-items:center; justify-content:space-between; gap:12px 18px; flex-wrap:wrap;
-    margin:2px 0 14px; padding-bottom:14px; border-bottom:1px solid var(--card-border);
+    margin:2px 0 0;
   }
   .results-summary{ display:flex; align-items:baseline; gap:8px; min-width:max-content; }
   .results-count{ font-family:var(--heading-font); font-size:19px; font-weight:600; color:var(--ink); }
@@ -170,7 +170,12 @@
   .options-toggle .chev, #shareBtn .chev{ width:13px; height:13px; margin-left:-2px; transition:transform .25s cubic-bezier(.4,0,.2,1); }
   .options-toggle[aria-expanded="true"] .chev, #shareBtn[aria-expanded="true"] .chev{ transform:rotate(180deg); }
 
-  .options-panel{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .28s cubic-bezier(.4,0,.2,1); }
+  /* carries the toolbar's divider so the expanded panel stays above the line,
+     visually attached to the Options button */
+  .options-panel{
+    display:grid; grid-template-rows:0fr; transition:grid-template-rows .28s cubic-bezier(.4,0,.2,1);
+    border-bottom:1px solid var(--card-border); padding-bottom:14px; margin-bottom:14px;
+  }
   .options-panel.open{ grid-template-rows:1fr; }
   .options-panel-inner{ min-height:0; overflow:hidden; visibility:hidden; transition:visibility .28s; }
   .options-panel.open .options-panel-inner{ visibility:visible; transition:visibility 0s; }
@@ -178,12 +183,13 @@
   .options-card{
     display:flex; flex-wrap:wrap; gap:18px 44px;
     background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px;
-    padding:15px 18px 17px; margin:2px 0 16px;
+    padding:15px 18px 17px; margin:12px 0 4px;
   }
   .options-group{ flex:1 1 240px; min-width:0; }
   .options-group .settings-section-title{ margin-bottom:2px; }
   .options-group-desc{ font-size:13.5px; color:var(--ink-soft); margin:0 0 10px; }
-  .options-group .controls{ margin-bottom:0; row-gap:12px; }
+  /* one option per line, however wide the group gets */
+  .options-group .controls{ flex-direction:column; align-items:flex-start; margin-bottom:0; gap:12px; }
   .input-clear-wrap{ position:relative; }
   #chordInput{
     display:block; width:100%; height:var(--builder-control-h); min-height:var(--builder-control-h); max-height:150px; padding:10px 38px 10px 12px; font-size:15px; line-height:1.45;
@@ -253,7 +259,7 @@
   /* --- cross-promo card for the sibling harmonica app --- */
   .harp-promo{
     display:flex; align-items:center; gap:16px;
-    margin-top:40px; padding:16px 18px;
+    margin-top:20px; padding:16px 18px;
     background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px;
     text-decoration:none; color:inherit;
     transition:border-color var(--hover-fade), background var(--hover-fade);
@@ -430,6 +436,15 @@
   .switch-side-icon{ width:16px; height:16px; flex-shrink:0; opacity:.4; transition:opacity .2s ease; }
   .switch input:not(:checked) ~ .icon-layout-grid,
   .switch input:checked ~ .icon-layout-masonry{ opacity:1; color:var(--accent); }
+  /* compact variant for the slim page-arrangement rows */
+  .switch-sm{ font-size:11.5px; gap:6px; }
+  .switch-sm .switch-track{ width:28px; height:16px; border-radius:8px; }
+  .switch-sm .switch-thumb{ width:12px; height:12px; }
+  .switch-sm input:checked ~ .switch-track .switch-thumb{ transform:translateX(12px); }
+  .switch-sm .switch-side-icon{ width:13px; height:13px; }
+  /* applied by setLabelText() while a label's width animates between texts */
+  .label-swap{ overflow:hidden; white-space:nowrap; transition:width .28s cubic-bezier(.4,0,.2,1); }
+  @media (prefers-reduced-motion:reduce){ .label-swap{ transition:none; } }
 
   .switch-wrap{ position:relative; display:inline-flex; align-items:center; gap:6px; }
   .info-btn{
@@ -667,6 +682,33 @@
   .error{ font-size:13px; font-weight:600; color:#9e2a20; margin:9px 0 0; }
   .error:empty{ display:none; }
   .empty-hint{ font-size:14.5px; font-style:italic; color:var(--ink-soft); margin:6px 0; }
+  /* slim page-arrangement controls under the grid; carries the chart section's
+     closing divider like the options panel carries the header's */
+  .grid-arrange{
+    display:flex; justify-content:flex-end; align-items:center; gap:8px 20px; flex-wrap:wrap;
+    margin:18px 0 0; padding-bottom:12px; border-bottom:1px solid var(--card-border);
+  }
+  .grid-arrange .switch-wrap[hidden]{ display:none; }
+  /* switch and stepper share one flex cell: a collapsed sibling would still
+     get the row's gap, leaving a dangling indent in the right-aligned row */
+  .columns-ctl{ display:inline-flex; align-items:center; }
+  .columns-reveal{ display:grid; grid-template-columns:0fr; transition:grid-template-columns .28s cubic-bezier(.4,0,.2,1); }
+  .columns-reveal.open{ grid-template-columns:1fr; }
+  .columns-reveal-inner{ min-width:0; overflow:hidden; visibility:hidden; transition:visibility .28s; }
+  .columns-reveal.open .columns-reveal-inner{ visibility:visible; transition:visibility 0s; }
+  .columns-reveal .stepper{ margin-left:10px; }
+  /* The masonry explanation shows on plain hover, like a title tooltip, but
+     rendered by the page — native title bubbles never appear on touch or in
+     embedded views. Opens up and right-aligned to stay inside the viewport. */
+  .grid-arrange .info-popover{ top:auto; bottom:calc(100% + 8px); left:auto; right:0; transform:translateY(4px); pointer-events:none; }
+  .grid-arrange .switch-wrap:hover .info-popover{ opacity:1; visibility:visible; transform:translateY(0); transition-delay:.4s; }
+  .grid-arrange .switch-wrap:has(input:focus-visible) .info-popover{ opacity:1; visibility:visible; transform:translateY(0); }
+  /* touch has neither hover nor focus-visible heuristics — there, a tap that
+     lands focus shows the tooltip instead. It lingers until blur, which is
+     the native idiom on touch but would annoy with a mouse, hence the split. */
+  @media (hover:none){
+    .grid-arrange .switch-wrap:focus-within .info-popover{ opacity:1; visibility:visible; transform:translateY(0); }
+  }
   .single-chord-tip{ margin:16px 0 0; text-align:center; font-size:13.5px; color:var(--ink-soft); }
   .single-chord-tip a{ color:var(--accent); font-weight:650; text-decoration:none; }
   .single-chord-tip a:hover{ text-decoration:underline; text-underline-offset:2px; }
@@ -838,6 +880,9 @@
   .voicing-modal-grid.masonry{ display:flex; align-items:flex-start; gap:10px; }
   .voicing-modal-grid .masonry-col{ gap:10px; }
   .voicing-modal-grid .empty-hint{ grid-column:1/-1; }
+  /* mirrors the page's .grid-arrange: the tile-layout switch sits below the
+     chords, above the footer's dividing border */
+  .voicing-modal-arrange{ display:flex; justify-content:flex-end; padding:0 18px 10px; }
   .voicing-choice-wrap{ position:relative; }
   .voicing-choice{
     display:block; width:100%;
@@ -854,13 +899,14 @@
   .voicing-choice:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   .voicing-choice.selected{ border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent); }
   .voicing-choice svg{ display:block; width:100%; height:auto; }
+  /* play top-left, index top-right — same corner language as the sheet's cards */
   .voicing-choice-index{
-    position:absolute; top:6px; left:10px; height:32px; display:inline-flex; align-items:center;
+    position:absolute; top:6px; right:10px; height:32px; display:inline-flex; align-items:center;
     font-size:10.5px; font-weight:700; color:var(--ink-soft);
   }
   .voicing-choice.selected .voicing-choice-index{ color:var(--accent); }
   .voicing-choice-play{
-    position:absolute; top:6px; right:6px; min-height:32px; width:32px; height:32px; padding:0;
+    position:absolute; top:6px; left:6px; min-height:32px; width:32px; height:32px; padding:0;
     display:flex; align-items:center; justify-content:center;
     border:none; border-radius:50%; background:var(--accent-soft); color:var(--accent);
     cursor:pointer; transition:background-color var(--hover-fade) ease,color var(--hover-fade) ease,opacity .18s ease,transform .18s ease;

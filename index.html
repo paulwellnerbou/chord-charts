@@ -154,7 +154,7 @@
       </div>
       <button type="button" id="copyAllBtn" class="secondary btn-iconic" title="Copy one image of all displayed chord diagrams">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        <span class="btn-label"><span class="btn-label-default">Copy chart</span><span class="btn-label-flash" aria-hidden="true"></span></span>
+        <span class="btn-label"><span class="btn-label-default">Copy all charts</span><span class="btn-label-flash" aria-hidden="true"></span></span>
       </button>
       <button type="button" id="printBtn" class="btn-iconic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
@@ -166,6 +166,31 @@
   <div class="options-panel no-print" id="optionsPanel">
     <div class="options-panel-inner">
       <div class="options-card">
+        <div class="options-group" role="group" aria-label="Style and color options">
+          <h3 class="settings-section-title">Style &amp; color</h3>
+          <p class="options-group-desc">Borders, card controls and color scheme</p>
+          <div class="controls">
+            <label class="switch">
+              <input type="checkbox" id="borderToggle" checked>
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span>Show border</span>
+            </label>
+            <div class="switch-wrap" id="cardControlsInfoWrap">
+              <label class="switch">
+                <input type="checkbox" id="cardControlsToggle" checked>
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <span>Show chord card controls</span>
+              </label>
+              <button type="button" class="info-btn" id="cardControlsInfoBtn" aria-label="About chord card controls" aria-expanded="false">i</button>
+              <div class="info-popover" id="cardControlsInfoPopover" role="tooltip">Turn this off to remove the play button, the actions menu, and alternative-voicing arrows from chord cards for clean screenshots.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="bwToggle">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span>Black &amp; white</span>
+            </label>
+          </div>
+        </div>
         <div class="options-group" role="group" aria-label="Chord diagram options">
           <h3 class="settings-section-title">Chord diagrams</h3>
           <p class="options-group-desc">How each diagram is drawn and annotated</p>
@@ -213,83 +238,6 @@
             </div>
           </div>
         </div>
-        <div class="options-group" role="group" aria-label="Alternative voicing options">
-          <h3 class="settings-section-title">Alternative voicings</h3>
-          <p class="options-group-desc">How far up the neck voicings are searched, how wide a stretch they may need, and whether strings may be muted</p>
-          <div class="controls">
-            <div class="switch-wrap" id="maxFretInfoWrap">
-              <div class="stepper" id="maxFretStepper" title="Highest fret considered when searching for a chord voicing. Raise it to unlock higher positions and more alternative voicings; lower it to keep chords near the nut.">
-                <span class="stepper-label">Search up to fret</span>
-                <button type="button" class="stepper-btn" id="maxFretMinus" aria-label="Lower the fret search limit">−</button>
-                <span class="stepper-value" id="maxFretValue" aria-live="polite">15</span>
-                <button type="button" class="stepper-btn" id="maxFretPlus" aria-label="Raise the fret search limit">+</button>
-              </div>
-              <button type="button" class="info-btn" id="maxFretInfoBtn" aria-label="About the fret search limit" aria-expanded="false">i</button>
-              <div class="info-popover" id="maxFretInfoPopover" role="tooltip">Highest fret considered when searching for a chord voicing. Raise it to unlock higher positions and more alternative voicings; lower it to keep chords near the nut.</div>
-            </div>
-            <div class="switch-wrap" id="maxSpanInfoWrap">
-              <div class="stepper" id="maxSpanStepper" title="Widest stretch a fingering may cover, in frets. Voicings needing a wider reach are discarded.">
-                <span class="stepper-label">Max stretch</span>
-                <button type="button" class="stepper-btn" id="maxSpanMinus" aria-label="Allow a narrower stretch">−</button>
-                <span class="stepper-value" id="maxSpanValue" aria-live="polite">7</span>
-                <button type="button" class="stepper-btn" id="maxSpanPlus" aria-label="Allow a wider stretch">+</button>
-              </div>
-              <button type="button" class="info-btn" id="maxSpanInfoBtn" aria-label="About the max stretch control" aria-expanded="false">i</button>
-              <div class="info-popover" id="maxSpanInfoPopover" role="tooltip">The widest stretch a fingering may cover, counted in frets from its lowest to its highest fretted note — open strings don't count. Voicings needing a wider reach are discarded: at 7, a voicing using frets 2 and 8 (seven frets) is kept, one using frets 2 and 9 is dropped.</div>
-            </div>
-            <div class="switch-wrap" id="mutedInfoWrap">
-              <label class="switch" title="Let chords with only two notes (power chords) or three notes use voicings that mute strings (marked ×) instead of doubling notes across all four.">
-                <input type="checkbox" id="mutedToggle">
-                <span class="switch-track"><span class="switch-thumb"></span></span>
-                <span>Allow muted strings</span>
-              </label>
-              <button type="button" class="info-btn" id="mutedInfoBtn" aria-label="About allowing muted strings" aria-expanded="false">i</button>
-              <div class="info-popover" id="mutedInfoPopover" role="tooltip">Voicings normally sound all four strings, so chords with only two notes (power chords) or three notes double some of them. When on, such chords may also skip strings — a muted string is marked × — like the classic two-string power chord shape. Chords with four different notes always need every string.</div>
-            </div>
-          </div>
-        </div>
-        <div class="options-group" role="group" aria-label="Layout and color options">
-          <h3 class="settings-section-title">Layout &amp; color</h3>
-          <p class="options-group-desc">Page arrangement and color scheme</p>
-          <div class="controls">
-            <label class="switch">
-              <input type="checkbox" id="borderToggle" checked>
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-              <span>Show border</span>
-            </label>
-            <div class="switch-wrap" id="cardControlsInfoWrap">
-              <label class="switch">
-                <input type="checkbox" id="cardControlsToggle" checked>
-                <span class="switch-track"><span class="switch-thumb"></span></span>
-                <span>Show chord card controls</span>
-              </label>
-              <button type="button" class="info-btn" id="cardControlsInfoBtn" aria-label="About chord card controls" aria-expanded="false">i</button>
-              <div class="info-popover" id="cardControlsInfoPopover" role="tooltip">Turn this off to remove the play button, the actions menu, and alternative-voicing arrows from chord cards for clean screenshots.</div>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="bwToggle">
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-              <span>Black &amp; white</span>
-            </label>
-            <div class="switch-wrap" id="masonryInfoWrap">
-              <label class="switch" title="Off: cards align in even rows. On: cards pack into columns by height (masonry).">
-                <input type="checkbox" id="masonryToggle" checked>
-                <svg class="switch-side-icon icon-layout-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
-                <span class="switch-track"><span class="switch-thumb"></span></span>
-                <svg class="switch-side-icon icon-layout-masonry" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="10.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="6.5" rx="1"/><rect x="13.5" y="12.5" width="7.5" height="8.5" rx="1"/><rect x="3" y="16.5" width="7.5" height="4.5" rx="1"/></svg>
-                <span>Masonry layout</span>
-              </label>
-              <button type="button" class="info-btn" id="masonryInfoBtn" aria-label="About the masonry layout" aria-expanded="false">i</button>
-              <div class="info-popover" id="masonryInfoPopover" role="tooltip">Packs tiles into columns by height instead of aligning them in even rows. This only makes a visible difference when tiles have different heights — with equal-height tiles both layouts look the same.</div>
-            </div>
-            <div class="stepper" id="columnsStepper">
-              <span class="stepper-label">Columns</span>
-              <button type="button" class="stepper-btn" id="columnsMinus" aria-label="Fewer columns">−</button>
-              <span class="stepper-value" id="columnsValue" aria-live="polite">Auto</span>
-              <button type="button" class="stepper-btn" id="columnsPlus" aria-label="More columns">+</button>
-            </div>
-          </div>
-        </div>
         <div class="options-group" role="group" aria-label="Playback options">
           <h3 class="settings-section-title">Playback</h3>
           <p class="options-group-desc">How chords sound when you hit ▶</p>
@@ -311,6 +259,35 @@
 
   <div class="grid" id="grid"></div>
   <p class="single-chord-tip no-print" id="singleChordTip" hidden></p>
+
+  <div class="grid-arrange no-print" role="group" aria-label="Page arrangement">
+    <div class="columns-ctl">
+      <label class="switch switch-sm">
+        <input type="checkbox" id="autoColumnsToggle" checked>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <span id="autoColumnsLabel">Auto columns</span>
+      </label>
+      <div class="columns-reveal" id="columnsReveal">
+        <div class="columns-reveal-inner">
+          <div class="stepper stepper-sm" id="columnsStepper">
+            <button type="button" class="stepper-btn" id="columnsMinus" aria-label="Fewer columns">−</button>
+            <span class="stepper-value" id="columnsValue" aria-live="polite"></span>
+            <button type="button" class="stepper-btn" id="columnsPlus" aria-label="More columns">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="switch-wrap" id="masonryWrap">
+      <label class="switch switch-sm">
+        <input type="checkbox" id="masonryToggle" checked aria-describedby="masonryTip">
+        <svg class="switch-side-icon icon-layout-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <svg class="switch-side-icon icon-layout-masonry" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="10.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="6.5" rx="1"/><rect x="13.5" y="12.5" width="7.5" height="8.5" rx="1"/><rect x="3" y="16.5" width="7.5" height="4.5" rx="1"/></svg>
+        <span id="masonryLabel">Masonry layout</span>
+      </label>
+      <div class="info-popover" id="masonryTip" role="tooltip">Packs tiles into columns by height instead of aligning them in even rows. This only makes a visible difference when tiles have different heights — with equal-height tiles both layouts look the same.</div>
+    </div>
+  </div>
 
   <a class="harp-promo no-print" href="https://harmonica.wbou.de/" target="_blank" rel="noopener">
     <span class="harp-promo-mark" aria-hidden="true">
@@ -375,32 +352,34 @@
       <button type="button" class="voicing-modal-close" id="voicingModalClose" aria-label="Close voicing chooser">&times;</button>
     </div>
     <div class="voicing-modal-controls">
-      <label class="switch" title="Pack the tiles in this chooser into columns by height (masonry). Doesn't change the main page layout.">
-        <input type="checkbox" id="voicingModalMasonry">
-        <svg class="switch-side-icon icon-layout-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
-        <span class="switch-track"><span class="switch-thumb"></span></span>
-        <svg class="switch-side-icon icon-layout-masonry" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="10.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="6.5" rx="1"/><rect x="13.5" y="12.5" width="7.5" height="8.5" rx="1"/><rect x="3" y="16.5" width="7.5" height="4.5" rx="1"/></svg>
-        <span>Masonry layout</span>
-      </label>
-      <div class="stepper" id="voicingModalMaxFretStepper" title="Highest fret searched for voicings in this chooser — raise it to reveal more alternatives. Doesn't change the main page's search limit.">
+      <div class="stepper" id="voicingModalMaxFretStepper" title="Highest fret considered when searching for voicings. Raise it to unlock higher positions and more alternatives — applies to every chord on the sheet.">
         <span class="stepper-label">Search up to fret</span>
         <button type="button" class="stepper-btn" id="voicingModalMaxFretMinus" aria-label="Lower the fret search limit">−</button>
         <span class="stepper-value" id="voicingModalMaxFretValue" aria-live="polite"></span>
         <button type="button" class="stepper-btn" id="voicingModalMaxFretPlus" aria-label="Raise the fret search limit">+</button>
       </div>
-      <div class="stepper" id="voicingModalMaxSpanStepper" title="Widest stretch a fingering may cover in this chooser, in frets — voicings needing a wider reach are discarded. Doesn't change the main page's limit.">
+      <div class="stepper" id="voicingModalMaxSpanStepper" title="Widest stretch a fingering may cover, counted in frets from its lowest to its highest fretted note — voicings needing a wider reach are discarded. Applies to every chord on the sheet.">
         <span class="stepper-label">Max stretch</span>
         <button type="button" class="stepper-btn" id="voicingModalMaxSpanMinus" aria-label="Allow a narrower stretch">−</button>
         <span class="stepper-value" id="voicingModalMaxSpanValue" aria-live="polite"></span>
         <button type="button" class="stepper-btn" id="voicingModalMaxSpanPlus" aria-label="Allow a wider stretch">+</button>
       </div>
-      <label class="switch" title="Let chords with only two notes (power chords) or three notes use voicings that mute strings (marked ×) in this chooser. Doesn't change the main page's setting.">
+      <label class="switch" title="Let chords with only two notes (power chords) or three notes use voicings that mute strings (marked ×) instead of doubling notes. Applies to every chord on the sheet.">
         <input type="checkbox" id="voicingModalMuted">
         <span class="switch-track"><span class="switch-thumb"></span></span>
         <span>Allow muted strings</span>
       </label>
     </div>
     <div class="voicing-modal-grid" id="voicingModalGrid"></div>
+    <div class="voicing-modal-arrange">
+      <label class="switch switch-sm" title="Pack the tiles in this chooser into columns by height (masonry). Doesn't change the main page layout.">
+        <input type="checkbox" id="voicingModalMasonry">
+        <svg class="switch-side-icon icon-layout-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <svg class="switch-side-icon icon-layout-masonry" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="10.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="6.5" rx="1"/><rect x="13.5" y="12.5" width="7.5" height="8.5" rx="1"/><rect x="3" y="16.5" width="7.5" height="4.5" rx="1"/></svg>
+        <span id="voicingModalMasonryLabel">Masonry layout</span>
+      </label>
+    </div>
     <div class="voicing-modal-footer">
       <span class="voicing-modal-hint">Hit ▶ to hear a voicing — click the diagram to use it on the sheet.</span>
       <a class="voicing-modal-open-all" id="voicingModalOpenAll" target="_blank" rel="noopener">

@@ -170,6 +170,48 @@ function bumpValue(el){
   el.classList.add('bump');
 }
 
+// Swaps a label's text while animating its width (text content itself can't
+// transition), so neighbouring controls slide instead of jumping. Measures
+// both widths, then transitions between them via the .label-swap class. The
+// element must be a flex item or inline-block for width to apply.
+function setLabelText(el, text, animate){
+  if(el.textContent === text) return;
+  // tear down any in-flight swap first — interrupted transitions never fire
+  // transitionend, so a leftover handler would otherwise accumulate
+  clearTimeout(el._labelSwapTimer);
+  if(el._labelSwapEnd){
+    el.removeEventListener('transitionend', el._labelSwapEnd);
+    el._labelSwapEnd = null;
+  }
+  if(!animate){
+    el.classList.remove('label-swap');
+    el.style.width = '';
+    el.textContent = text;
+    return;
+  }
+  const from = el.getBoundingClientRect().width;
+  el.textContent = text;
+  el.classList.remove('label-swap');
+  el.style.width = '';
+  const to = el.getBoundingClientRect().width;
+  el.style.width = from + 'px';
+  void el.offsetWidth;
+  el.classList.add('label-swap');
+  el.style.width = to + 'px';
+  const done = ()=>{
+    clearTimeout(el._labelSwapTimer);
+    el.removeEventListener('transitionend', onEnd);
+    el._labelSwapEnd = null;
+    el.classList.remove('label-swap');
+    el.style.width = '';
+  };
+  const onEnd = e=>{ if(e.target === el && e.propertyName === 'width') done(); };
+  el._labelSwapEnd = onEnd;
+  el.addEventListener('transitionend', onEnd);
+  // hidden tabs get no transition events; sweep eventually
+  el._labelSwapTimer = setTimeout(done, 400);
+}
+
 function setupInfoPopover(wrapId, btnId){
   const wrap = document.getElementById(wrapId);
   const btn = document.getElementById(btnId);
@@ -197,5 +239,5 @@ function setupInfoPopover(wrapId, btnId){
 
 export {
   afterNextPaint, animateHeightSwap, flashButton, flashButtonText,
-  createModal, createMenu, initStepper, bumpValue, setupInfoPopover,
+  createModal, createMenu, initStepper, bumpValue, setLabelText, setupInfoPopover,
 };
