@@ -18,15 +18,18 @@ function afterNextPaint(fn){
 // Everything is border-box, so offsetHeight is directly the animatable height.
 // No fill needed: the last frame already equals the element's natural height.
 function animateHeightSwap(el, mutate){
-  if(!el.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-    mutate();
-    return;
-  }
+  const animated = el.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // read before cancelling, so an interrupted animation continues from where it
   // currently sits instead of snapping to its target
   const from = el.offsetHeight;
-  if(el._heightAnim) el._heightAnim.cancel();
+  // unconditional: an animation left running would keep forcing heights meant
+  // for the layout we're about to replace
+  if(el._heightAnim){
+    el._heightAnim.cancel();
+    el._heightAnim = null;
+  }
   mutate();
+  if(!animated) return;
   const to = el.offsetHeight;
   if(from === to) return;
   const anim = el.animate([{ height:`${from}px` }, { height:`${to}px` }],
