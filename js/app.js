@@ -513,6 +513,11 @@ function currentTuning(){
   return TUNINGS.find(t=>t.id===selectedTuningId) || TUNINGS[0];
 }
 
+// bass always plays broken chords (see TUNINGS); elsewhere it's the user's call
+function chordPlayOpts(tuning){
+  return { arpeggio: !!tuning.arpeggio || document.getElementById('arpeggioToggle').checked };
+}
+
 const COLUMNS_MIN = 1, COLUMNS_MAX = 8;
 let columnsValue = 'auto';
 
@@ -538,6 +543,7 @@ function saveSettings(){
     aquilaStrings: document.getElementById('aquilaToggle').checked,
     columns: columnsValue,
     masonry: document.getElementById('masonryToggle').checked,
+    arpeggio: document.getElementById('arpeggioToggle').checked,
     shortenThreshold: shortenThreshold,
     showOmitted: document.getElementById('omitToggle').checked,
     maxFret: maxFretValue,
@@ -869,7 +875,7 @@ function buildCard(result, ctx){
   card.appendChild(menuBtn);
 
   const playBtnEl = card.querySelector('.play-chord-btn');
-  const playChordHere = ()=> playChordAndFlash(playBtnEl, chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs));
+  const playChordHere = ()=> playChordAndFlash(playBtnEl, chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs), chordPlayOpts(tuning));
   const heading = card.querySelector('h2');
   heading.addEventListener('click', playChordHere);
   heading.addEventListener('keydown', e=>{
@@ -1150,7 +1156,7 @@ function renderVoicingTiles(card, result){
         result.customFrets = frets;
       }
       updateCardDiagram(card, result, tuning, colors, highlightRoot, Math.sign(result.altIndex - prevIndex));
-      playChord(chordAbsNotes(frets, tuning.openAbs));
+      playChord(chordAbsNotes(frets, tuning.openAbs), chordPlayOpts(tuning));
       closeVoicingChooser();
     });
     const playBtn = document.createElement('button');
@@ -1159,7 +1165,7 @@ function renderVoicingTiles(card, result){
     playBtn.title = 'Play this voicing';
     playBtn.setAttribute('aria-label', `Play voicing ${i+1} of ${voicings.length} for ${result.label}`);
     playBtn.innerHTML = PLAY_ICON;
-    playBtn.addEventListener('click', ()=> playChordAndFlash(playBtn, chordAbsNotes(frets, tuning.openAbs)));
+    playBtn.addEventListener('click', ()=> playChordAndFlash(playBtn, chordAbsNotes(frets, tuning.openAbs), chordPlayOpts(tuning)));
     wrap.appendChild(tile);
     wrap.appendChild(playBtn);
     return wrap;
@@ -1331,7 +1337,7 @@ function renderCustomChordTiles(){
     playBtn.innerHTML = PLAY_ICON;
     // both the tile and its corner button flash the same small icon — never the
     // tile's own diagram, which would just blank out mid-swap
-    const playThis = ()=> playChordAndFlash(playBtn, chordAbsNotes(frets, tuning.openAbs));
+    const playThis = ()=> playChordAndFlash(playBtn, chordAbsNotes(frets, tuning.openAbs), chordPlayOpts(tuning));
     tile.addEventListener('click', playThis);
     playBtn.addEventListener('click', e=>{ e.stopPropagation(); playThis(); });
     wrap.appendChild(tile);
@@ -1698,7 +1704,7 @@ fretboardIdBoardEl.addEventListener('click', e=>{
 
 fretboardIdPlayEl.addEventListener('click', ()=>{
   const abs = chordAbsNotes(fretboardIdState, currentTuning().openAbs);
-  if(abs.length) playChordAndFlash(fretboardIdPlayEl, abs);
+  if(abs.length) playChordAndFlash(fretboardIdPlayEl, abs, chordPlayOpts(currentTuning()));
 });
 
 // Brief inline "Copied"/"Shown" feedback on the copy-link button's own label.
@@ -1843,6 +1849,7 @@ setupInfoPopover('maxSpanInfoWrap', 'maxSpanInfoBtn');
 setupInfoPopover('mutedInfoWrap', 'mutedInfoBtn');
 setupInfoPopover('masonryInfoWrap', 'masonryInfoBtn');
 setupInfoPopover('cardControlsInfoWrap', 'cardControlsInfoBtn');
+setupInfoPopover('arpeggioInfoWrap', 'arpeggioInfoBtn');
 
 const savedSettings = loadSettings();
 
@@ -1880,6 +1887,9 @@ if(typeof savedSettings.aquilaStrings === 'boolean'){
 }
 if(typeof savedSettings.masonry === 'boolean'){
   document.getElementById('masonryToggle').checked = savedSettings.masonry;
+}
+if(typeof savedSettings.arpeggio === 'boolean'){
+  document.getElementById('arpeggioToggle').checked = savedSettings.arpeggio;
 }
 if(typeof savedSettings.showOmitted === 'boolean'){
   document.getElementById('omitToggle').checked = savedSettings.showOmitted;
@@ -2226,6 +2236,8 @@ document.getElementById('bwToggle').addEventListener('change', e=>{
 });
 document.getElementById('rootToggle').addEventListener('change', generate);
 document.getElementById('aquilaToggle').addEventListener('change', generate);
+// playback-only setting: nothing on the page needs re-rendering
+document.getElementById('arpeggioToggle').addEventListener('change', saveSettings);
 initStepper('columns', stepColumns);
 document.getElementById('masonryToggle').addEventListener('change', generate);
 document.getElementById('omitToggle').addEventListener('change', generate);
