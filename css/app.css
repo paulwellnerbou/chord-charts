@@ -703,6 +703,12 @@
   .grid-arrange .info-popover{ top:auto; bottom:calc(100% + 8px); left:auto; right:0; transform:translateY(4px); pointer-events:none; }
   .grid-arrange .switch-wrap:hover .info-popover{ opacity:1; visibility:visible; transform:translateY(0); transition-delay:.4s; }
   .grid-arrange .switch-wrap:has(input:focus-visible) .info-popover{ opacity:1; visibility:visible; transform:translateY(0); }
+  /* touch has neither hover nor focus-visible heuristics — there, a tap that
+     lands focus shows the tooltip instead. It lingers until blur, which is
+     the native idiom on touch but would annoy with a mouse, hence the split. */
+  @media (hover:none){
+    .grid-arrange .switch-wrap:focus-within .info-popover{ opacity:1; visibility:visible; transform:translateY(0); }
+  }
   .single-chord-tip{ margin:16px 0 0; text-align:center; font-size:13.5px; color:var(--ink-soft); }
   .single-chord-tip a{ color:var(--accent); font-weight:650; text-decoration:none; }
   .single-chord-tip a:hover{ text-decoration:underline; text-underline-offset:2px; }
