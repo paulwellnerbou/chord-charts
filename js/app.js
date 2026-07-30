@@ -7,7 +7,7 @@ import {
 import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG } from './diagram.js';
 import { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash } from './audio.js';
 import {
-  afterNextPaint, flashButton, flashButtonText,
+  afterNextPaint, animateHeightSwap, flashButton, flashButtonText,
   createModal, createMenu, initStepper, bumpValue, setupInfoPopover,
 } from './ui.js';
 
@@ -1217,7 +1217,12 @@ function closeVoicingChooser(opts){
 }
 document.getElementById('voicingModalClose').addEventListener('click', ()=> closeVoicingChooser());
 document.getElementById('voicingModalMasonry').addEventListener('change', ()=>{
-  if(voicingChooserState) renderVoicingTiles(voicingChooserState.card, voicingChooserState.result);
+  // the two layouts pack the same tiles to different heights; ease the dialog
+  // between them instead of letting it jump under the pointer
+  if(voicingChooserState){
+    animateHeightSwap(voicingModalGridEl, ()=>
+      renderVoicingTiles(voicingChooserState.card, voicingChooserState.result));
+  }
   saveSettings();
 });
 document.getElementById('voicingModalMuted').addEventListener('change', ()=>{

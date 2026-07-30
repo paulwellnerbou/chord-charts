@@ -14,6 +14,28 @@ function afterNextPaint(fn){
   requestAnimationFrame(()=> setTimeout(run, 0));
 }
 
+// Eases an element between the heights it has before and after a content swap.
+// Everything is border-box, so offsetHeight is directly the animatable height.
+// No fill needed: the last frame already equals the element's natural height.
+function animateHeightSwap(el, mutate){
+  if(!el.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    mutate();
+    return;
+  }
+  // read before cancelling, so an interrupted animation continues from where it
+  // currently sits instead of snapping to its target
+  const from = el.offsetHeight;
+  if(el._heightAnim) el._heightAnim.cancel();
+  mutate();
+  const to = el.offsetHeight;
+  if(from === to) return;
+  const anim = el.animate([{ height:`${from}px` }, { height:`${to}px` }],
+    { duration:220, easing:'cubic-bezier(.4,0,.2,1)' });
+  el._heightAnim = anim;
+  const clear = ()=>{ if(el._heightAnim === anim) el._heightAnim = null; };
+  anim.finished.then(clear, clear);
+}
+
 function flashButton(btnEl, text){
   if(btnEl._flashTimeout) clearTimeout(btnEl._flashTimeout);
   btnEl.querySelector('.card-menu-btn-label').textContent = text;
@@ -171,6 +193,6 @@ function setupInfoPopover(wrapId, btnId){
 }
 
 export {
-  afterNextPaint, flashButton, flashButtonText,
+  afterNextPaint, animateHeightSwap, flashButton, flashButtonText,
   createModal, createMenu, initStepper, bumpValue, setupInfoPopover,
 };
