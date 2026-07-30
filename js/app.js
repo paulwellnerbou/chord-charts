@@ -99,7 +99,8 @@ function chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, sta
   const sourceURL = new URL(chordPageURL(label, false), window.location.href).href;
   const showBorder = document.getElementById('borderToggle').checked;
   const highlightRoot = document.getElementById('rootToggle').checked;
-  return exportTileSVG(formatAccidentals(label), frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL);
+  const showNoteNames = document.getElementById('noteNamesToggle').checked;
+  return exportTileSVG(formatAccidentals(label), frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames);
 }
 
 async function chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){
@@ -180,6 +181,7 @@ async function copyAllChordsAsImage(btnEl){
   const colors = currentColors();
   const showBorder = document.getElementById('borderToggle').checked;
   const highlightRoot = document.getElementById('rootToggle').checked;
+  const showNoteNames = document.getElementById('noteNamesToggle').checked;
   const showOmitted = document.getElementById('omitToggle').checked;
   const scale = 3;
 
@@ -189,7 +191,7 @@ async function copyAllChordsAsImage(btnEl){
       const result = cardEl._chordResult;
       const frets = result.voicings[result.altIndex];
       const { fretMax, startFret } = computeFretWindow(frets, shortenThreshold);
-      const svgStr = exportTileSVG(formatAccidentals(result.label), frets, fretMax, tuning.labels, colors, showBorder, tuning.openPCs, result.rootPC, highlightRoot, startFret, showOmitted ? result.omitted : null, new URL(chordPageURL(result.label, false), window.location.href).href);
+      const svgStr = exportTileSVG(formatAccidentals(result.label), frets, fretMax, tuning.labels, colors, showBorder, tuning.openPCs, result.rootPC, highlightRoot, startFret, showOmitted ? result.omitted : null, new URL(chordPageURL(result.label, false), window.location.href).href, showNoteNames);
       const rect = cardEl.getBoundingClientRect();
       return { svgStr, x: rect.left-gridRect.left, y: rect.top-gridRect.top, w: rect.width, h: rect.height };
     });
@@ -440,11 +442,11 @@ function updateNavCount(card, result){
   if(countEl) countEl.textContent = `${result.altIndex+1} / ${result.voicings.length}`;
 }
 
-function updateCardDiagram(card, result, tuning, colors, highlightRoot, slideDir){
+function updateCardDiagram(card, result, tuning, colors, highlightRoot, slideDir, showNoteNames){
   const frets = result.voicings[result.altIndex];
   const { fretMax, startFret } = computeFretWindow(frets, shortenThreshold);
   const diagramSlot = card.querySelector('.diagram-slot');
-  const html = chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret);
+  const html = chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret, showNoteNames);
   const curSVG = diagramSlot.querySelector('svg');
   const animate = slideDir && diagramSlot.animate && curSVG && curSVG.animate
     && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -535,6 +537,7 @@ function saveSettings(){
     showCardControls: document.getElementById('cardControlsToggle').checked,
     bwMode: document.getElementById('bwToggle').checked,
     highlightRoot: document.getElementById('rootToggle').checked,
+    showNoteNames: document.getElementById('noteNamesToggle').checked,
     aquilaStrings: document.getElementById('aquilaToggle').checked,
     columns: columnsValue,
     masonry: document.getElementById('masonryToggle').checked,
@@ -846,14 +849,14 @@ function setTransposeOffset(offset){
 function stepTranspose(delta){ setTransposeOffset(currentTransposeOffset() + delta); }
 
 function buildCard(result, ctx){
-  const { tuning, colors, highlightRoot, showOmitted } = ctx;
+  const { tuning, colors, highlightRoot, showOmitted, showNoteNames } = ctx;
   const { fretMax, startFret } = computeFretWindow(result.voicings[result.altIndex], shortenThreshold);
 
   const omitHTML = (showOmitted && result.omitted) ? `<p class="omit-note">${escapeXML(result.omitted.label)} (${escapeXML(result.omitted.note)}) omitted</p>` : '';
   const card = document.createElement('div');
   card.className = 'card';
   card._chordResult = result;
-  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${accidentalsHTML(result.label)}</h2></div><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret)}</div>${omitHTML}`;
+  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${accidentalsHTML(result.label)}</h2></div><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret, showNoteNames)}</div>${omitHTML}`;
 
   bindNoteDotHandlers(card.querySelector('.diagram-slot'));
 
@@ -892,7 +895,7 @@ function buildCard(result, ctx){
     const cycleVoicing = delta=>{
       const n = result.voicings.length;
       result.altIndex = (result.altIndex + delta + n) % n;
-      updateCardDiagram(card, result, tuning, colors, highlightRoot, delta);
+      updateCardDiagram(card, result, tuning, colors, highlightRoot, delta, showNoteNames);
     };
     nav.querySelector('.voicing-prev').addEventListener('click', ()=> cycleVoicing(-1));
     nav.querySelector('.voicing-next').addEventListener('click', ()=> cycleVoicing(1));
@@ -969,6 +972,7 @@ function generate(){
     : 'ready to hear, share or print';
   const colors = currentColors();
   const highlightRoot = document.getElementById('rootToggle').checked;
+  const showNoteNames = document.getElementById('noteNamesToggle').checked;
   const showOmitted = document.getElementById('omitToggle').checked;
 
   // live example in the crop-above-fret popover, re-rendered here so it always
@@ -981,7 +985,7 @@ function generate(){
       `<figure><figcaption>set to 4</figcaption>${chordSVG('Example: cropped', exFrets, 5, tuning.labels, colors, tuning.openPCs, null, false, undefined, 3)}</figure>`;
   }
 
-  const ctx = { tuning, colors, highlightRoot, showOmitted };
+  const ctx = { tuning, colors, highlightRoot, showOmitted, showNoteNames };
   results.forEach(result=>{
     if(result.showAll){
       // one tile per voicing; each clone carries its own altIndex so the
@@ -1104,6 +1108,7 @@ function renderVoicingTiles(card, result){
   const tuning = currentTuning();
   const colors = currentColors();
   const highlightRoot = document.getElementById('rootToggle').checked;
+  const showNoteNames = document.getElementById('noteNamesToggle').checked;
   const masonry = document.getElementById('voicingModalMasonry').checked;
   const allowMuted = document.getElementById('voicingModalMuted').checked;
   const voicings = findVoicings(result.requiredPCs, result.bassPC, tuning, chooserMaxFretValue, chooserMaxSpanValue, MAX_VOICINGS, allowMuted);
@@ -1130,7 +1135,7 @@ function renderVoicingTiles(card, result){
     tile.className = 'voicing-choice' + (isCurrent ? ' selected' : '');
     tile.setAttribute('aria-label', `Use voicing ${i+1} of ${voicings.length} for ${result.label}${isCurrent ? ' (current)' : ''}`);
     // no openAbs: per-note dots would nest interactive elements inside the button
-    tile.innerHTML = `<span class="voicing-choice-index">${i+1}</span>` + chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, undefined, startFret);
+    tile.innerHTML = `<span class="voicing-choice-index">${i+1}</span>` + chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, undefined, startFret, showNoteNames);
     tile.addEventListener('click', ()=>{
       const prevIndex = result.altIndex;
       // the pick may not exist in the card's list (chooser searched deeper) —
@@ -1149,7 +1154,7 @@ function renderVoicingTiles(card, result){
         result.altIndex = result.voicings.length - 1;
         result.customFrets = frets;
       }
-      updateCardDiagram(card, result, tuning, colors, highlightRoot, Math.sign(result.altIndex - prevIndex));
+      updateCardDiagram(card, result, tuning, colors, highlightRoot, Math.sign(result.altIndex - prevIndex), showNoteNames);
       playChord(chordAbsNotes(frets, tuning.openAbs));
       closeVoicingChooser();
     });
@@ -1302,6 +1307,7 @@ function renderCustomChordTiles(){
   const tuning = currentTuning();
   const colors = currentColors();
   const highlightRoot = document.getElementById('rootToggle').checked;
+  const showNoteNames = document.getElementById('noteNamesToggle').checked;
   const masonry = document.getElementById('customChordModalMasonry').checked;
   const allowMuted = document.getElementById('customChordModalMuted').checked;
   const voicings = findVoicings(parsed.requiredPCs, null, tuning, customChordMaxFretValue, customChordMaxSpanValue, MAX_VOICINGS, allowMuted);
@@ -1322,7 +1328,7 @@ function renderCustomChordTiles(){
     tile.className = 'voicing-choice';
     tile.setAttribute('aria-label', `Play voicing ${i+1} of ${voicings.length} for ${label}`);
     // no openAbs: per-note dots would nest interactive elements inside the button
-    tile.innerHTML = `<span class="voicing-choice-index">${i+1}</span>` + chordSVG(label, frets, fretMax, tuning.labels, colors, tuning.openPCs, null, highlightRoot, undefined, startFret);
+    tile.innerHTML = `<span class="voicing-choice-index">${i+1}</span>` + chordSVG(label, frets, fretMax, tuning.labels, colors, tuning.openPCs, null, highlightRoot, undefined, startFret, showNoteNames);
     const playBtn = document.createElement('button');
     playBtn.type = 'button';
     playBtn.className = 'voicing-choice-play';
@@ -1586,6 +1592,7 @@ function renderFretboardIdCard(primary){
     colors: currentColors(),
     highlightRoot: document.getElementById('rootToggle').checked,
     showOmitted: document.getElementById('omitToggle').checked,
+    showNoteNames: document.getElementById('noteNamesToggle').checked,
   };
   const result = {
     label: primary.label, showAll: false,
@@ -1874,6 +1881,9 @@ if(typeof savedSettings.bwMode === 'boolean'){
 }
 if(typeof savedSettings.highlightRoot === 'boolean'){
   document.getElementById('rootToggle').checked = savedSettings.highlightRoot;
+}
+if(typeof savedSettings.showNoteNames === 'boolean'){
+  document.getElementById('noteNamesToggle').checked = savedSettings.showNoteNames;
 }
 if(typeof savedSettings.aquilaStrings === 'boolean'){
   document.getElementById('aquilaToggle').checked = savedSettings.aquilaStrings;
@@ -2225,6 +2235,7 @@ document.getElementById('bwToggle').addEventListener('change', e=>{
   generate();
 });
 document.getElementById('rootToggle').addEventListener('change', generate);
+document.getElementById('noteNamesToggle').addEventListener('change', generate);
 document.getElementById('aquilaToggle').addEventListener('change', generate);
 initStepper('columns', stepColumns);
 document.getElementById('masonryToggle').addEventListener('change', generate);

@@ -1,5 +1,7 @@
 // Fretboard diagrams as SVG strings, plus the color palettes.
 
+import { spellNote, formatAccidentals } from './theory.js';
+
 const EXPORT_HEADING_FONT = "Georgia, 'Times New Roman', serif";
 const NICE_COLORS = {
   ink:'#292621', dotFill:'#554f49', dotStroke:'#37332f',
@@ -24,7 +26,7 @@ function escapeXML(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret){
+function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames){
   startFret = startFret || 0;
   const numRows = Math.max(3, numFrets - startFret);
   const bottomY = NUT_Y + numRows*FRET_H;
@@ -58,6 +60,8 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
     const isRoot = highlightRoot && pc!==null && pc===rootPC;
     const abs = (fret!==null && openAbs) ? openAbs[i]+fret : null;
     const noteAttrs = abs!==null ? ` class="note-dot" data-abs="${abs}" tabindex="0" role="button" aria-label="Play ${escapeXML(labels[i])} string, ${escapeXML(String(fret))}${fret===0?' open':''}"` : '';
+    // open strings sound their name already, in the tuning label above the nut
+    const name = (showNoteNames && fret>0) ? escapeXML(formatAccidentals(spellNote(pc))) : null;
     if(fret===null){
       s += `<line x1="${x-6}" y1="18" x2="${x+6}" y2="30" stroke="${colors.ink}" stroke-width="1.5"/>`;
       s += `<line x1="${x-6}" y1="30" x2="${x+6}" y2="18" stroke="${colors.ink}" stroke-width="1.5"/>`;
@@ -69,6 +73,7 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
     } else {
       const y = rowCenter(fret-startFret);
       s += `<circle cx="${x}" cy="${y}" r="9" fill="${colors.dotFill}" stroke="${colors.dotStroke}" stroke-width="1"${noteAttrs}/>`;
+      if(name) s += `<text x="${x}" y="${y+3}" text-anchor="middle" font-size="8" font-weight="700" fill="${colors.cardBg}" font-family="Arial,sans-serif" pointer-events="none">${name}</text>`;
       if(isRoot){
         s += `<circle cx="${x}" cy="${y}" r="12" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
       }
@@ -77,16 +82,16 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
   return s;
 }
 
-function chordSVG(name, frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret){
+function chordSVG(name, frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames){
   const numRows = Math.max(3, numFrets - (startFret||0));
   const bottomY = NUT_Y + numRows*FRET_H;
   let s = `<svg viewBox="0 0 188 ${bottomY+12}" width="164" role="img" aria-label="${escapeXML(name)} chord diagram">`;
-  s += diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret);
+  s += diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames);
   s += '</svg>';
   return s;
 }
 
-function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL){
+function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames){
   const PAD = 14, headerH = 32;
   const diagW = 188;
   const numRows = Math.max(3, numFrets - (startFret||0));
@@ -100,7 +105,7 @@ function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openP
   if(sourceURL) s += `<metadata>Chord diagram from ${escapeXML(sourceURL)}</metadata>`;
   s += `<rect x="1" y="1" width="${tileW-2}" height="${tileH-2}" rx="12" fill="${colors.cardBg}" ${strokeAttr}/>`;
   s += `<text x="${tileW/2}" y="${PAD+headerH*0.7}" text-anchor="middle" font-size="21" font-weight="700" fill="${colors.heading}" font-family="${colors.exportHeadingFont}">${escapeXML(label)}</text>`;
-  s += `<g transform="translate(${PAD},${PAD+headerH})">${diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret)}</g>`;
+  s += `<g transform="translate(${PAD},${PAD+headerH})">${diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret, showNoteNames)}</g>`;
   if(omitted){
     s += `<text x="${tileW/2}" y="${PAD+headerH+diagH+11}" text-anchor="middle" font-size="9" font-style="italic" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${escapeXML(omitted.label)} (${escapeXML(omitted.note)}) omitted</text>`;
   }
