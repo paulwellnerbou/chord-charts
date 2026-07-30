@@ -162,6 +162,7 @@
     min-height:0; width:100%; padding:7px 10px; border:none; border-radius:8px;
     background:transparent; color:var(--ink); font-size:14px; text-align:left; cursor:pointer;
   }
+  .share-menu-item[hidden]{ display:none; }
   .share-menu-item:hover{ background:var(--page-bg); border-color:transparent; color:var(--ink); }
   .share-menu-item:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
   .share-menu-label{ font-weight:700; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
