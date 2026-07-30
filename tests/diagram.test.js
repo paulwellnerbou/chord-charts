@@ -31,6 +31,18 @@ test('chordSVG marks muted strings without a playable dot', () => {
   assert.equal((svg.match(/class="note-dot"/g) || []).length, 3);
 });
 
+test('chordSVG omits note names by default and adds them only for fretted strings when requested', () => {
+  const plain = chordSVG('C5', [null, 0, 3, 3], 3, UKE.labels, NICE_COLORS, UKE.openPCs, 0, false, UKE.openAbs, 0);
+  assert.ok(!plain.includes('class="note-name"'), 'no note-name labels without the toggle');
+
+  // open strings already show their name in the tuning label above the nut, so
+  // only the two fretted notes (C and G) get one — the muted string gets none
+  const named = chordSVG('C5', [null, 0, 3, 3], 3, UKE.labels, NICE_COLORS, UKE.openPCs, 0, false, UKE.openAbs, 0, true);
+  assert.equal((named.match(/class="note-name"/g) || []).length, 2);
+  assert.match(named, /class="note-name"[^>]*>C<\/text>/);
+  assert.match(named, /class="note-name"[^>]*>G<\/text>/);
+});
+
 test('string colors override the plain string lines when provided', () => {
   const colors = Object.assign({}, BW_COLORS, { stringColors: AQUILA_KIDS_STRING_COLORS });
   const svg = chordSVG('C', [0, 0, 0, 3], 3, UKE.labels, colors, UKE.openPCs, 0, false, undefined, 0);
@@ -43,9 +55,15 @@ test('exportTileSVG renders border, omitted footer and source metadata on demand
   assert.match(full, /<metadata>Chord diagram from https:\/\/chords\.example\/\?chords=C9<\/metadata>/);
   assert.match(full, /5th \(G\) omitted/);
   assert.match(full, /stroke="#ddd3c5"/);
+  assert.ok(!full.includes('class="note-name"'), 'no note-name labels without the toggle');
 
   const bare = exportTileSVG('C', [0, 0, 0, 3], 3, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, 0, null);
   assert.ok(!bare.includes('<metadata>'));
   assert.ok(!bare.includes('omitted'));
   assert.match(bare, /stroke="none"/);
+
+  const named = exportTileSVG('C9', [0, 0, 0, 1], 3, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+    { label: '5th', note: 'G' }, 'https://chords.example/?chords=C9', true);
+  assert.equal((named.match(/class="note-name"/g) || []).length, 1);
+  assert.match(named, /class="note-name"[^>]*>B♭<\/text>/);
 });
