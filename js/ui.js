@@ -176,7 +176,13 @@ function bumpValue(el){
 // element must be a flex item or inline-block for width to apply.
 function setLabelText(el, text, animate){
   if(el.textContent === text) return;
+  // tear down any in-flight swap first — interrupted transitions never fire
+  // transitionend, so a leftover handler would otherwise accumulate
   clearTimeout(el._labelSwapTimer);
+  if(el._labelSwapEnd){
+    el.removeEventListener('transitionend', el._labelSwapEnd);
+    el._labelSwapEnd = null;
+  }
   if(!animate){
     el.classList.remove('label-swap');
     el.style.width = '';
@@ -194,14 +200,14 @@ function setLabelText(el, text, animate){
   el.style.width = to + 'px';
   const done = ()=>{
     clearTimeout(el._labelSwapTimer);
+    el.removeEventListener('transitionend', onEnd);
+    el._labelSwapEnd = null;
     el.classList.remove('label-swap');
     el.style.width = '';
   };
-  el.addEventListener('transitionend', function h(e){
-    if(e.target !== el || e.propertyName !== 'width') return;
-    el.removeEventListener('transitionend', h);
-    done();
-  });
+  const onEnd = e=>{ if(e.target === el && e.propertyName === 'width') done(); };
+  el._labelSwapEnd = onEnd;
+  el.addEventListener('transitionend', onEnd);
   // hidden tabs get no transition events; sweep eventually
   el._labelSwapTimer = setTimeout(done, 400);
 }
