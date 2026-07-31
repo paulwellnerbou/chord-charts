@@ -5,7 +5,7 @@ import {
   identifyChord, spellNote, formatAccidentals,
 } from './theory.js';
 import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG } from './diagram.js';
-import { parseScale, scaleCompletions, spellScale, scaleNoteNames, scalePositions, positionPlaybackMidis, positionStartFret } from './scales.js';
+import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, scalePositions, positionPlaybackMidis, positionStartFret } from './scales.js';
 import { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash } from './audio.js';
 import {
   afterNextPaint, animateHeightSwap, flashButton, flashButtonText,
@@ -951,15 +951,15 @@ function updateTransposeUI(){
 }
 
 // Announced via a separate always-enabled region: live updates on the disabled
-// value button are unreliable in some screen readers.
-let transposeStatusTimer = null;
-function announceTranspose(text){
-  const statusEl = document.getElementById('transposeStatus');
+// value button are unreliable in some screen readers. One region per stepper
+// (chords and scales), so the timer lives on the element.
+function announceTranspose(statusId, text){
+  const statusEl = document.getElementById(statusId);
   statusEl.textContent = text;
-  clearTimeout(transposeStatusTimer);
+  clearTimeout(statusEl._clearTimer);
   // emptying afterwards resets the region's change detection, so repeating the
   // same sentence later (after an edit re-baselined in between) still announces
-  transposeStatusTimer = setTimeout(()=>{ statusEl.textContent = ''; }, 1500);
+  statusEl._clearTimer = setTimeout(()=>{ statusEl.textContent = ''; }, 1500);
 }
 
 function setTransposeOffset(offset){
@@ -983,7 +983,7 @@ function setTransposeOffset(offset){
   updateTransposeUI();
   bumpValue(document.getElementById('transposeValue'));
   resizeChordInput();
-  announceTranspose(transposeState.offset === 0
+  announceTranspose('transposeStatus', transposeState.offset === 0
     ? 'Restored the original chords'
     : `Transposed ${transposeState.offset > 0 ? 'up' : 'down'} ${Math.abs(transposeState.offset)} semitone${Math.abs(transposeState.offset) === 1 ? '' : 's'}`);
   // a pending debounced generate from typing would only duplicate this one
@@ -1391,6 +1391,59 @@ function updateScaleInputClearUI(){
   document.getElementById('scaleInputWrap').classList.toggle('has-value', scaleInputEl.value.trim() !== '');
 }
 
+// The chords transpose control's twin: rewrites the scale's root in the input,
+// baselining and re-baselining the same way. Unlike chords — where non-chord
+// tokens pass through — a text that doesn't parse as a scale has no root to
+// shift, so the buttons disable instead.
+let scaleTransposeState = null; // { baseText, offset, lastValue }
+
+function currentScaleTransposeOffset(){
+  return (scaleTransposeState && scaleTransposeState.lastValue === scaleInputEl.value)
+    ? scaleTransposeState.offset : 0;
+}
+
+function updateScaleTransposeUI(){
+  const offset = currentScaleTransposeOffset();
+  const valueEl = document.getElementById('scaleTransposeValue');
+  valueEl.textContent = offset > 0 ? `+${offset}` : offset < 0 ? `−${-offset}` : '0';
+  valueEl.disabled = offset === 0;
+  valueEl.title = offset === 0 ? '' : 'Back to the original scale';
+  valueEl.setAttribute('aria-label', offset === 0
+    ? 'Not transposed'
+    : `Transposed ${offset > 0 ? 'up' : 'down'} ${Math.abs(offset)} semitone${Math.abs(offset) === 1 ? '' : 's'} — restore the original scale`);
+  const unusable = !parseScale(scaleInputEl.value);
+  document.getElementById('scaleTransposeMinus').disabled = unusable || offset === TRANSPOSE_MIN;
+  document.getElementById('scaleTransposePlus').disabled = unusable || offset === TRANSPOSE_MAX;
+}
+
+function setScaleTransposeOffset(offset){
+  if(!parseScale(scaleInputEl.value)) return;
+  if(!scaleTransposeState || scaleTransposeState.lastValue !== scaleInputEl.value){
+    scaleTransposeState = { baseText: scaleInputEl.value, offset: 0, lastValue: scaleInputEl.value };
+  }
+  const clamped = Math.min(TRANSPOSE_MAX, Math.max(TRANSPOSE_MIN, offset));
+  // arrow keys on the stepper bypass the disabled ± buttons at the ±11 bound;
+  // a no-op must not re-announce or rebuild
+  if(clamped === scaleTransposeState.offset) return;
+  scaleTransposeState.offset = clamped;
+  const next = scaleTransposeState.offset === 0
+    ? scaleTransposeState.baseText
+    : transposeScaleText(scaleTransposeState.baseText, scaleTransposeState.offset);
+  scaleInputEl.value = next;
+  scaleTransposeState.lastValue = next;
+  scaleInputIsDefault = false;
+  updateScaleTransposeUI();
+  bumpValue(document.getElementById('scaleTransposeValue'));
+  announceTranspose('scaleTransposeStatus', scaleTransposeState.offset === 0
+    ? 'Restored the original scale'
+    : `Transposed ${scaleTransposeState.offset > 0 ? 'up' : 'down'} ${Math.abs(scaleTransposeState.offset)} semitone${Math.abs(scaleTransposeState.offset) === 1 ? '' : 's'}`);
+  // a pending debounced generate from typing would only duplicate this one
+  clearTimeout(scaleInputDebounce);
+  generateScale();
+}
+
+function stepScaleTranspose(delta){ setScaleTransposeOffset(currentScaleTransposeOffset() + delta); }
+
 function packScaleInput(value){
   return String(value).trim().replace(/\s+/g, ' ');
 }
@@ -1568,6 +1621,7 @@ document.getElementById('positionModalClose').addEventListener('click', ()=> pos
 
 function generateScale(){
   updateScaleInputClearUI();
+  updateScaleTransposeUI();
   closeCardMenu();
   const tuning = currentTuning();
   document.getElementById('pageTitleMain').textContent = `${tuning.name} scales`;
@@ -1693,6 +1747,8 @@ function initScaleTypeahead(){
   input.addEventListener('input', ()=>{
     scaleInputIsDefault = false;
     updateScaleInputClearUI();
+    // manual edits re-baseline the transpose control; reflect that before the debounce
+    updateScaleTransposeUI();
     refresh();
     clearTimeout(scaleInputDebounce);
     scaleInputDebounce = setTimeout(generateScale, 300);
@@ -1735,6 +1791,13 @@ document.getElementById('scaleInputClear').addEventListener('click', ()=>{
   scaleInputIsDefault = false;
   scaleInputEl.focus();
   generateScale();
+});
+
+initStepper('scaleTranspose', stepScaleTranspose);
+document.getElementById('scaleTransposeValue').addEventListener('click', ()=>{
+  setScaleTransposeOffset(0);
+  // the reset control disables itself at 0; keep focus inside the stepper
+  document.getElementById('scaleTransposePlus').focus();
 });
 
 // --- Custom chord diagram: search fingerings for a free-form set of notes,
@@ -2470,7 +2533,7 @@ const TIPS = [
   { emoji:'📷', text:'Switch on “Black & white” in Options for crisp, high-contrast diagrams that print or screenshot cleanly.' },
   { emoji:'🎨', text:"Turn on “Use Aquila Kid's string colours” in Options to draw each string in its own colour — handy for teaching beginners." },
   { emoji:'🔗', chordsOnly:true, text:'Open the Share menu for a link to just the song, just these chords, or the whole app.' },
-  { emoji:'🎼', chordsOnly:true, text:'The + and − buttons beside the Chords box transpose: they shift every chord up or down in semitones, so you never retype a thing.' },
+  { emoji:'🎼', text:'The + and − buttons beside the input transpose: they shift every chord — or the scale — up or down in semitones, so you never retype a thing.' },
   { emoji:'📥', chordsOnly:true, text:'Each chord card has a ⋯ menu — copy or download the diagram as PNG or SVG, or grab a link straight to that chord.' },
   { emoji:'📸', text:'Turn off “Show chord card controls” in Options to hide play buttons and arrows before you screenshot.' },
   { emoji:'🖼️', chordsOnly:true, text:'“Copy all charts as one image” in the Share menu combines every diagram on the page into a single picture, ready to paste anywhere.' },
