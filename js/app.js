@@ -770,17 +770,24 @@ function renderChordSuggestions(labels){
         // the quality spelled out carries the pill for anyone who doesn't read the
         // shorthand, so it names the button rather than sitting in a tooltip alone
         const name = escapeXML(`Add ${s.chord} — ${s.hint}`);
-        const extra = i >= collapsed ? ' is-extra' : '';
-        return `<button type="button" class="chord-suggestion${extra}" data-chord="${escapeXML(s.chord)}"`
+        // --i staggers the reveal, so the extras fan out instead of snapping in
+        const cls = i < collapsed ? 'chord-suggestion' : 'chord-suggestion is-extra';
+        const style = i < collapsed ? '' : ` style="--i:${i - collapsed}"`;
+        return `<button type="button" class="${cls}"${style} data-chord="${escapeXML(s.chord)}"`
           + ` title="${name}" aria-label="${name}">${escapeXML(formatAccidentals(s.chord))}</button>`;
       }).join('')
     + (hidden > 0 ? moreToggleHTML(hidden) : '');
 }
 
+// The count is the part a narrow screen drops — "more" alone still reads as a
+// control, where a bare caret barely registers.
 function moreToggleHTML(hidden){
   const name = suggestionsExpanded ? 'Show fewer chord suggestions' : 'Show more chord suggestions';
+  const text = suggestionsExpanded
+    ? '<span class="btn-text-long">Show </span>fewer'
+    : `<span class="btn-text-long">${hidden} </span>more`;
   return `<button type="button" class="chord-suggestions-more" aria-expanded="${suggestionsExpanded}" aria-label="${name}" title="${name}">`
-    + `<span class="btn-text-long">${suggestionsExpanded ? 'Show fewer' : `${hidden} more`}</span>`
+    + `<span>${text}</span>`
     + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`
     + `</button>`;
 }

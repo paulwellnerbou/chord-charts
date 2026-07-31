@@ -121,13 +121,27 @@
   /* the tail of the pill list is a long band of rarely-used qualities — kept one
      click away instead of spending the width by default */
   .chord-suggestions:not(.show-all) .chord-suggestion.is-extra{ display:none; }
+  /* display can't be transitioned, so the revealed pills animate themselves in,
+     staggered by their position in the tail */
+  .chord-suggestions.show-all .chord-suggestion.is-extra{
+    animation:pill-in .26s cubic-bezier(.34,1.4,.64,1) both;
+    animation-delay:calc(var(--i, 0) * 22ms);
+  }
+  @keyframes pill-in{
+    from{ opacity:0; transform:translateY(-4px) scale(.9); }
+    to{ opacity:1; transform:none; }
+  }
   .chord-suggestions-more{
     display:inline-flex; align-items:center; gap:3px;
     min-height:0; padding:4px 4px; border:0; border-radius:6px;
     background:transparent; color:var(--accent); font-size:12.5px; font-weight:650;
   }
-  .chord-suggestions-more svg{ width:11px; height:11px; transition:transform .2s ease; }
+  .chord-suggestions-more svg{ width:12px; height:12px; transition:transform .2s ease; }
   .chord-suggestions-more[aria-expanded="true"] svg{ transform:rotate(180deg); }
+  @media (prefers-reduced-motion:reduce){
+    .chord-suggestions.show-all .chord-suggestion.is-extra{ animation:none; }
+    .chord-suggestions-more svg{ transition:none; }
+  }
   .chord-suggestions-more:hover{ background:transparent; border-color:transparent; color:var(--accent-strong); text-decoration:underline; }
   .chord-suggestions-more:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   /* Boxed and marked so it reads as help at a glance, rather than as one more
