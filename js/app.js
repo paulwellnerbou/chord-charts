@@ -201,7 +201,9 @@ async function copyAllChordsAsImage(btnEl){
     canvas.height = Math.round(gridRect.height*scale);
     const ctx = canvas.getContext('2d');
     if(!ctx) throw new Error('canvas 2d context unavailable');
-    ctx.fillStyle = getComputedStyle(document.body).backgroundColor;
+    // the tiles' own paper (or bw white), never the themed stage behind them —
+    // exports must match what prints
+    ctx.fillStyle = colors.cardBg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     await Promise.all(items.map(item=> new Promise((resolve,reject)=>{
@@ -281,7 +283,7 @@ function chordPageURL(label, allVoicings){
   // params (notes/fretboard/findsongs) so the link lands cleanly on the chart
   ['song','transpose','notes','fretboard','findsongs'].forEach(p=>params.delete(p));
   params.set('tuning', selectedTuningId);
-  return window.location.pathname + '?' + params.toString();
+  return window.location.pathname + '?' + readableQuery(params);
 }
 
 async function copyChordLink(label, btnEl){
@@ -566,11 +568,28 @@ function saveSettings(){
   // up future default changes. While it is still default (or emptied for a
   // pending ?song= load) any previously stored chords are carried forward.
   if(!chordInputIsDefault){
-    settings.chordInput = document.getElementById('chordInput').value;
+    settings.chordInput = packChordInput(document.getElementById('chordInput').value);
   } else if(typeof savedSettings.chordInput === 'string'){
-    settings.chordInput = savedSettings.chordInput;
+    settings.chordInput = packChordInput(savedSettings.chordInput);
   }
   try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(err){}
+}
+
+// The chord list travels compact — separators only, no whitespace — through
+// localStorage and share links, and comes back onto the page with a space
+// after each comma. Newlines count as separators, so packing never glues two
+// chords together.
+function packChordInput(value){
+  return value.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean).join(',');
+}
+function formatChordInput(value){
+  return value.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean).join(', ');
+}
+
+// Every link the app writes or copies serializes its params through this:
+// commas are legal in a query string, so unescaping them keeps links readable.
+function readableQuery(params){
+  return params.toString().replace(/%2C/gi, ',');
 }
 
 const MASONRY_GAP = 16, MASONRY_MIN_COL_WIDTH = 190;
@@ -1541,7 +1560,7 @@ function fretboardShareURL(){
   ['notes','chords','song','transpose','findsongs'].forEach(p=>params.delete(p));
   params.set('fretboard', encodeFretboardState(fretboardIdState));
   params.set('tuning', selectedTuningId);
-  return new URL(window.location.pathname + '?' + params.toString(), window.location.href).href;
+  return new URL(window.location.pathname + '?' + readableQuery(params), window.location.href).href;
 }
 
 // Absolute link into the main sheet for the "See all fingerings" action: every
@@ -1561,7 +1580,7 @@ function fretboardMainPageURL(){
     const distinct = [...new Set(sounding.map(a=>((a%12)+12)%12))];
     params.set('notes', distinct.map(spellNote).join(','));
   }
-  return new URL(window.location.pathname + '?' + params.toString(), window.location.href).href;
+  return new URL(window.location.pathname + '?' + readableQuery(params), window.location.href).href;
 }
 
 function syncFretboardIdShareLink(){
@@ -1795,11 +1814,12 @@ function updateURLParam(chordInputValue){
   } else {
     params.delete('song');
     params.delete('transpose');
-    if(chordInputValue){ params.set('chords', chordInputValue); }
+    const packed = packChordInput(chordInputValue);
+    if(packed){ params.set('chords', packed); }
     else { params.delete('chords'); }
   }
   params.set('tuning', selectedTuningId);
-  const query = params.toString();
+  const query = readableQuery(params);
   const newURL = window.location.pathname + (query ? `?${query}` : '') + window.location.hash;
   history.replaceState(null, '', newURL);
 }
@@ -1889,12 +1909,12 @@ const savedSettings = loadSettings();
 // showcase default reappears instead of a blank input.
 const savedChordInputExists = typeof savedSettings.chordInput === 'string' && savedSettings.chordInput.trim() !== '';
 if(savedChordInputExists){
-  document.getElementById('chordInput').value = savedSettings.chordInput;
+  document.getElementById('chordInput').value = formatChordInput(savedSettings.chordInput);
 }
 const chordsParam = new URLSearchParams(window.location.search).get('chords');
 const chordsParamExists = chordsParam !== null && chordsParam.trim() !== '';
 if(chordsParamExists){
-  document.getElementById('chordInput').value = chordsParam;
+  document.getElementById('chordInput').value = formatChordInput(chordsParam);
 }
 // True only while the input still holds the built-in default (untouched by the
 // user, localStorage, or a ?chords= link) — gates whether saveSettings persists it.
@@ -2148,7 +2168,7 @@ const shareBtn = document.getElementById('shareBtn');
 document.getElementById('shareAppSub').textContent = window.location.host;
 
 function shareLinkFor(params){
-  const query = params.toString();
+  const query = readableQuery(params);
   return window.location.origin + window.location.pathname + (query ? `?${query}` : '');
 }
 
@@ -2193,7 +2213,7 @@ document.getElementById('shareSongItem').addEventListener('click', ()=> copyShar
 }));
 document.getElementById('shareChordsItem').addEventListener('click', ()=> copyShareOption(()=>{
   const params = new URLSearchParams();
-  params.set('chords', document.getElementById('chordInput').value);
+  params.set('chords', packChordInput(document.getElementById('chordInput').value));
   params.set('tuning', selectedTuningId);
   return params;
 }));
@@ -2286,7 +2306,30 @@ document.getElementById('cardControlsToggle').addEventListener('change', e=>{
 });
 document.getElementById('bwToggle').addEventListener('change', e=>{
   document.body.classList.toggle('bw-mode', e.target.checked);
+  syncThemeUI();
   generate();
+});
+// Theme switches the page chrome only — the sheet keeps its paper palette.
+// The pre-paint script in index.html applies the saved theme before first render.
+const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+function syncThemeUI(){
+  const light = document.documentElement.dataset.theme === 'light';
+  if(themeColorMeta){
+    themeColorMeta.content = document.body.classList.contains('bw-mode') ? '#ffffff'
+      : light ? '#f0e4cf' : '#191009';
+  }
+  // names the state it switches TO, matching the sun/moon icon shown
+  const label = light ? 'Switch to dark theme' : 'Switch to light theme';
+  themeToggleBtn.setAttribute('aria-label', label);
+  themeToggleBtn.title = label;
+}
+syncThemeUI();
+themeToggleBtn.addEventListener('click', ()=>{
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  try{ localStorage.setItem('chords-theme', next); }catch(err){}
+  syncThemeUI();
 });
 document.getElementById('rootToggle').addEventListener('change', generate);
 document.getElementById('noteNamesToggle').addEventListener('change', generate);
@@ -2913,7 +2956,8 @@ if(typeof ResizeObserver === 'function'){
 } else {
   window.addEventListener('resize', scheduleGridRefit);
 }
-if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=> fitCardTitles());
+// both measure text, so both must re-run once the webfonts' metrics land
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ fitCardTitles(); fitChordSuggestions(); });
 generate();
 
 // Opens the custom-chord modal pre-filled and already searched when linked
