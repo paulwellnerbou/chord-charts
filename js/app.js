@@ -2861,8 +2861,17 @@ if(songParam) (async ()=>{
     if(err.name === 'AbortError') return; // superseded — the newer action owns the UI
     if(ctrl === songLoadInflight) songLoadInflight = null;
     if(activeSong && activeSong.id === songParam){
-      setSongSearchExpanded(true); // the note has nowhere else to appear
-      setSongNote('Could not load the linked song — please try again.');
+      // A dead backend fails this fetch and the healthz check alike, and that
+      // check gates the field's opener away — so expanding it here would strand
+      // it open with nothing to close it. Then the builder's own error line
+      // carries the message, which is on screen either way.
+      const note = 'Could not load the linked song — please try again.';
+      if(songBackendReady){
+        setSongSearchExpanded(true);
+        setSongNote(note);
+      } else {
+        document.getElementById('errorBox').textContent = note;
+      }
     }
   }
 })();
