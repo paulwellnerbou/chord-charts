@@ -113,13 +113,18 @@
     color:var(--ink-soft); margin:0 0 8px;
   }
   .controls{ display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin-bottom:10px; }
-  .chord-suggestions{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:9px 0 0; }
+  /* Label, pills, toggle. flex-start plus a pill-height box on the two outer
+     items lines them up with the first row of pills and leaves them there when
+     the pills grow downwards. */
+  .chord-suggestions{ --pill-h:22px; display:flex; align-items:flex-start; gap:6px; margin:9px 0 0; }
   .chord-suggestions[hidden]{ display:none; }
+  .chord-suggestions-label, .chord-suggestions-more{ display:inline-flex; align-items:center; min-height:var(--pill-h); }
+  .chord-suggestions-pills{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; }
   .chord-suggestions-label{ margin-right:2px; color:var(--ink-soft); font-size:12.5px; }
   .chord-suggestion{
-    min-height:0; padding:4px 11px; border-radius:999px;
+    min-height:0; padding:3px 9px; border-radius:999px;
     background:var(--card-bg); color:var(--ink); border:1px solid var(--control-border);
-    font-size:12.5px; font-weight:650;
+    font-size:12px; font-weight:650;
   }
   .chord-suggestion:hover{ background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent); }
   /* the tail of the pill list is a long band of rarely-used qualities — kept one
@@ -135,9 +140,11 @@
     from{ opacity:0; transform:translateY(-4px) scale(.9); }
     to{ opacity:1; transform:none; }
   }
+  /* Pinned to the row's right edge, so it grows leftwards as the wording
+     changes and the caret never leaves the spot you just clicked. */
   .chord-suggestions-more{
-    display:inline-flex; align-items:center; gap:3px;
-    min-height:0; padding:4px 4px; border:0; border-radius:6px;
+    flex:0 0 auto; margin-left:auto; gap:3px;
+    padding:0 4px; border:0; border-radius:6px;
     background:transparent; color:var(--accent); font-size:12.5px; font-weight:650;
   }
   .chord-suggestions-more svg{ width:12px; height:12px; transition:transform .2s ease; }
@@ -1187,17 +1194,17 @@
     #songSearchInput{ font-size:16px; }
     .custom-chord-notes-input{ font-size:16px; }
     /* a thumb needs a taller target than a pointer does */
-    .chord-suggestion{ padding:7px 12px; }
-    /* One line, whatever the root spells out to: half as many pills, a toggle
-       shrunk to its caret, and the label as the one part that may give way. */
-    .chord-suggestions{ flex-wrap:nowrap; }
-    .chord-suggestions > *{ flex:0 0 auto; }
+    .chord-suggestion{ padding:5px 10px; font-size:12.5px; }
+    /* One line, whatever the root spells out to: half as many pills, and the
+       label as the one part that may give way. Expanding is an explicit ask, so
+       the pills wrap to as many lines as they need — the toggle stays put. */
+    .chord-suggestions{ --pill-h:27px; }
+    .chord-suggestions-pills{ flex:0 0 auto; flex-wrap:nowrap; }
+    /* shrinkable again once it may wrap, or its max-content width would shove
+       the toggle off the edge instead of folding the pills onto a second line */
+    .chord-suggestions.show-all .chord-suggestions-pills{ flex:0 1 auto; flex-wrap:wrap; }
     .chord-suggestions-label{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .chord-suggestions-more{ padding:4px 6px; }
-    /* asked for the rest, so the rest gets its lines — the one-line rule is
-       about what you land on, not about what you opened yourself */
-    .chord-suggestions.show-all{ flex-wrap:wrap; }
-    .chord-suggestions.show-all .chord-suggestions-label{ flex:0 0 auto; }
+    .chord-suggestions-more{ padding:0 2px; }
     /* keep long titles readable on narrow dropdowns */
     .song-result-meta{ display:none; }
     .results-toolbar{ align-items:stretch; }

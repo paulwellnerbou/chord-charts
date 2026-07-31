@@ -765,7 +765,10 @@ function renderChordSuggestions(labels){
   const collapsed = collapsedSuggestions();
   const hidden = pills.length - collapsed;
   row.classList.toggle('show-all', suggestionsExpanded);
+  // pills in their own box: the toggle beyond it keeps the row's right edge
+  // whatever the pills do, instead of being shoved along as they appear
   row.innerHTML = `<span class="chord-suggestions-label">${escapeXML(label)}</span>`
+    + '<div class="chord-suggestions-pills">'
     + pills.map((s,i) => {
         // the quality spelled out carries the pill for anyone who doesn't read the
         // shorthand, so it names the button rather than sitting in a tooltip alone
@@ -776,6 +779,7 @@ function renderChordSuggestions(labels){
         return `<button type="button" class="${cls}"${style} data-chord="${escapeXML(s.chord)}"`
           + ` title="${name}" aria-label="${name}">${escapeXML(formatAccidentals(s.chord))}</button>`;
       }).join('')
+    + '</div>'
     + (hidden > 0 ? moreToggleHTML(hidden) : '');
 }
 
