@@ -91,6 +91,26 @@ function parseScale(input){
   return null;
 }
 
+// Rewrites the root of a scale query, keeping everything after it as typed —
+// the counterpart of theory.js's transposeChordText. Text that doesn't name a
+// scale comes back unchanged; a rootless query ("dorian") gains an explicit
+// root, since its implied C would otherwise shift invisibly.
+function transposeScaleText(text, delta){
+  const raw = String(text);
+  const parsed = parseScale(raw);
+  if(!parsed) return raw;
+  const pc = ((parsed.rootPC + delta) % 12 + 12) % 12;
+  const lead = raw.match(/^\s*/)[0];
+  const rest = raw.slice(lead.length);
+  // normalizeAccidentals is length-preserving, so head.len indexes `rest` too
+  const head = parseNoteHead(normalizeAccidentals(rest));
+  if(!head || !parsed.hadRoot) return `${lead}${pcName(pc, false)} ${rest}`;
+  const preferFlat = normalizeAccidentals(rest).slice(1, head.len).includes('b');
+  const name = pcName(pc, preferFlat);
+  const root = rest[0] === rest[0].toLowerCase() ? name[0].toLowerCase() + name.slice(1) : name;
+  return lead + root + rest.slice(head.len);
+}
+
 // --- Completions ------------------------------------------------------------
 // What can follow a root note, roughly in the order a player wants it.
 const COMPLETION_CATALOGUE = [
@@ -283,7 +303,7 @@ function positionStartFret(position){
 }
 
 export {
-  SCALE_TYPES, scaleDisplayName, parseScale, scaleCompletions,
+  SCALE_TYPES, scaleDisplayName, parseScale, scaleCompletions, transposeScaleText,
   spellScale, scaleNoteNames,
   windowSize, scalePositions, positionPlaybackMidis, positionStartFret,
 };

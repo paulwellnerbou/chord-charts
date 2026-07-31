@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  SCALE_TYPES, scaleDisplayName, parseScale, scaleCompletions,
+  SCALE_TYPES, scaleDisplayName, parseScale, scaleCompletions, transposeScaleText,
   spellScale, scaleNoteNames,
   windowSize, scalePositions, positionPlaybackMidis,
 } from '../js/scales.js';
@@ -39,6 +39,37 @@ test('parseScale rejects what is not a scale', () => {
   assert.equal(parseScale('H major'), null);
   assert.equal(parseScale('C major, D minor'), null);
   assert.equal(parseScale(''), null);
+});
+
+test('transposeScaleText shifts the root and keeps the rest of the text as typed', () => {
+  assert.equal(transposeScaleText('C major pentatonic', 2), 'D major pentatonic');
+  assert.equal(transposeScaleText('A minor', -1), 'G# minor');
+  assert.equal(transposeScaleText('G blues scale', 5), 'C blues scale');
+  // accidental family and letter case follow the typed root
+  assert.equal(transposeScaleText('Bb blues', 2), 'C blues');
+  assert.equal(transposeScaleText('Eb dorian', 1), 'E dorian');
+  assert.equal(transposeScaleText('Ab MINOR', -2), 'Gb MINOR');
+  assert.equal(transposeScaleText('c# lydian', -1), 'c lydian');
+  assert.equal(transposeScaleText('F♯ dorian', 1), 'G dorian');
+});
+
+test('transposeScaleText spells out the implied C root of a bare mode name', () => {
+  assert.equal(transposeScaleText('Dorian', 2), 'D Dorian');
+  assert.equal(transposeScaleText('aeolian', -3), 'A aeolian');
+});
+
+test('transposeScaleText leaves what is not a scale untouched', () => {
+  assert.equal(transposeScaleText('Cmaj7', 3), 'Cmaj7');
+  assert.equal(transposeScaleText('C major, D minor', 3), 'C major, D minor');
+  assert.equal(transposeScaleText('', 3), '');
+});
+
+test('transposeScaleText round-trips through the parser at the shifted root', () => {
+  for(const delta of [-11, -5, 1, 6, 11]){
+    const parsed = parseScale(transposeScaleText('F# minor pentatonic', delta));
+    assert.equal(parsed.rootPC, ((6 + delta) % 12 + 12) % 12);
+    assert.equal(parsed.type, 'minor pentatonic');
+  }
 });
 
 test('every completion in the catalogue parses back as a scale', () => {
