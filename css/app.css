@@ -79,11 +79,11 @@
     border:1px solid var(--card-border); border-radius:16px;
     box-shadow:0 12px 32px -30px rgba(41,38,33,.7);
   }
-  .builder-title{ margin:0 0 10px; font-family:var(--heading-font); font-size:21px; font-weight:600; }
+  .builder-head{ display:flex; align-items:center; justify-content:space-between; gap:10px 18px; flex-wrap:wrap; margin:0 0 10px; }
+  .builder-title{ margin:0; font-family:var(--heading-font); font-size:21px; font-weight:600; }
   /* the heading labels the field below it; a text cursor would promise an edit
      point the heading itself isn't */
   .builder-title label{ cursor:default; }
-  .builder-grid{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:start; }
   .chord-field{ min-width:0; }
   /* stretch, so the transpose column tracks the field as it grows with the text.
      Tighter than the grid gap on its right: proximity is what says which of the
@@ -1159,11 +1159,13 @@
     .page-title-main{ font-size:15px; }
     .page-title-sub{ font-size:9.5px; letter-spacing:.1em; }
     .settings-section{ padding:14px; border-radius:14px; }
-    .builder-title{ font-size:19px; margin-bottom:9px; }
-    /* the button sits right under the field it refers to, so the short name is
-       still unambiguous — and it keeps the row beside Transpose */
+    .builder-head{ margin-bottom:10px; }
+    .builder-title{ font-size:19px; }
+    /* the heading takes the line, so the picker takes the next one whole */
+    .builder-head .instrument-field{ flex:1 1 100%; }
+    /* drops what the width can't carry and the reader can do without: the count
+       on the pill toggle, the words beside the printer */
     .btn-text-long{ display:none; }
-    .builder-grid{ grid-template-columns:1fr; gap:11px; }
     .tuning-select-trigger{ width:100%; min-width:0; }
     .tuning-select-menu{ width:100%; }
     /* 16px stops iOS Safari from auto-zooming the page on focus */
