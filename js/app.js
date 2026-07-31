@@ -637,9 +637,11 @@ function readableQuery(params){
   return params.toString().replace(/%2C/gi, ',');
 }
 
-// The params that say what the sheet shows (one mode's worth at a time) and the
-// ones that deep-link a dialog open. A URL builder deletes the lot and re-sets
-// its own, so no link ever carries two modes at once.
+// What the sheet shows (one mode's worth at a time) vs. deep-links that open a
+// dialog. Copy-link builders delete both lists and re-set their own, so no
+// shared link carries two modes at once. The address-bar writers
+// (updateURLParam/updateScaleURLParam) swap only the chart params — a dialog
+// deep-link the page was loaded with stays in the bar, in both modes alike.
 const CHART_PARAMS = ['chords','song','transpose','scale'];
 const MODAL_PARAMS = ['notes','fretboard','findsongs'];
 
