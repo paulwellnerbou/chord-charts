@@ -94,11 +94,10 @@
      draws itself — native title bubbles never appear on touch. Below the
      control, right-aligned, so it never covers the field being described. */
   .chord-input-row .transpose-tip{ top:calc(100% + 8px); left:auto; right:0; }
+  /* The tip is the stepper's next sibling, so plain combinators reach it — no
+     parent selector, and one rule covers keyboard and touch alike. */
   #transposeStepper:hover ~ .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); transition-delay:.4s; }
-  .chord-input-row:has(#transposeStepper :focus-visible) .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); }
-  @media (hover:none){
-    .chord-input-row:has(#transposeStepper :focus) .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); }
-  }
+  #transposeStepper:focus-within ~ .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); }
   /* flex-start, never centred: expanding the help grows it downwards, and a
      centred neighbour would be shoved down and back on every toggle */
   .chord-hint-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin:8px 0 0; }

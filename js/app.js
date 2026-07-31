@@ -747,7 +747,11 @@ const SUGGESTIONS_NARROW = window.matchMedia('(max-width:600px)');
 const collapsedSuggestions = ()=> SUGGESTIONS_NARROW.matches ? 3 : 6;
 let suggestionsExpanded = false;
 let lastSuggestionLabels = [];
-SUGGESTIONS_NARROW.addEventListener('change', ()=> renderChordSuggestions(lastSuggestionLabels));
+// pre-2020 Safari only has the deprecated addListener, and an unguarded call
+// would throw here and take the rest of this module's setup with it
+const onNarrowChange = ()=> renderChordSuggestions(lastSuggestionLabels);
+if(SUGGESTIONS_NARROW.addEventListener) SUGGESTIONS_NARROW.addEventListener('change', onNarrowChange);
+else if(SUGGESTIONS_NARROW.addListener) SUGGESTIONS_NARROW.addListener(onNarrowChange);
 
 function renderChordSuggestions(labels){
   lastSuggestionLabels = labels;
