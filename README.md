@@ -12,6 +12,7 @@ Live at [chords.wbou.de](https://chords.wbou.de/).
 - Print the chart, export a chord as an image, or share it via URL.
 - Black & white print mode, and an "Aquila Kids" colored-string mode for teaching.
 - Reverse lookup, both directions: give a set of notes to get fingerings for them, or click the notes onto an interactive fretboard and let the app name the chord (with `×`/`○` for muted/open strings).
+- **Scales mode**: type any scale name (with autocompletion — modes, pentatonics, blues, harmonic/melodic minor and more) and get its position boxes along the neck, lowest first. Each position plays back up and down, spells its notes correctly per key (F♯ major reads E♯), and shares via `?scale=` links.
 - **Song search**: search a song title to load its chord progression straight into the chart builder, instead of typing chords by hand. Backed by a companion service — see below.
 
 ## Song search
@@ -33,6 +34,7 @@ then open `http://localhost:8000`.
 - `index.html` — markup only
 - `css/app.css` — styles
 - `js/theory.js` — chord parsing, voicing search, transposition (pure, tested)
+- `js/scales.js` — scale parsing, note spelling, position generation (pure, tested)
 - `js/diagram.js` — SVG diagram rendering (pure, tested)
 - `js/audio.js` — Web Audio playback
 - `js/ui.js` — shared modal/menu/stepper primitives

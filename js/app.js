@@ -4,7 +4,8 @@ import {
   findVoicings, computeFretWindow, chordAbsNotes, transposeChordText,
   identifyChord, spellNote, formatAccidentals,
 } from './theory.js';
-import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG } from './diagram.js';
+import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG } from './diagram.js';
+import { parseScale, scaleCompletions, spellScale, scaleNoteNames, scalePositions, positionPlaybackMidis, positionStartFret } from './scales.js';
 import { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash } from './audio.js';
 import {
   afterNextPaint, animateHeightSwap, flashButton, flashButtonText,
@@ -103,8 +104,7 @@ function chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, sta
   return exportTileSVG(formatAccidentals(label), frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames);
 }
 
-async function chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){
-  const svgStr = chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
+async function svgToPNGBlob(svgStr){
   const scale = 3;
   const vbMatch = svgStr.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
   if(!vbMatch) throw new Error('export SVG is missing its viewBox');
@@ -133,15 +133,18 @@ function downloadBlob(blob, filename){
   setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
 
-async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
+// Tile-export actions shared by the chord and scale card menus — the caller
+// supplies the rendered tile SVG and a filename, these own the clipboard /
+// download / flash choreography.
+async function copyTileImage(svgStr, filename, btnEl){
   try{
-    const blob = await chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
+    const blob = await svgToPNGBlob(svgStr);
     try{
       if(!navigator.clipboard || !window.ClipboardItem) throw new Error('no-clipboard-api');
       await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
       flashButton(btnEl, 'Copied');
     }catch(clipErr){
-      downloadBlob(blob, chordFileName(label, 'png'));
+      downloadBlob(blob, filename);
       flashButton(btnEl, 'Saved');
     }
   }catch(err){
@@ -150,10 +153,9 @@ async function copyChordAsImage(label, frets, numFrets, labels, openPCs, rootPC,
   }
 }
 
-async function downloadChordPNG(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
+async function downloadTilePNG(svgStr, filename, btnEl){
   try{
-    const blob = await chordPNGBlob(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
-    downloadBlob(blob, chordFileName(label, 'png'));
+    downloadBlob(await svgToPNGBlob(svgStr), filename);
     flashButton(btnEl, 'Saved');
   }catch(err){
     console.error(err);
@@ -161,10 +163,9 @@ async function downloadChordPNG(label, frets, numFrets, labels, openPCs, rootPC,
   }
 }
 
-function downloadChordSVG(label, frets, numFrets, labels, openPCs, rootPC, startFret, btnEl, omitted){
+function downloadTileSVG(svgStr, filename, btnEl){
   try{
-    const svgStr = chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted);
-    downloadBlob(new Blob([svgStr], { type:'image/svg+xml' }), chordFileName(label, 'svg'));
+    downloadBlob(new Blob([svgStr], { type:'image/svg+xml' }), filename);
     flashButton(btnEl, 'Saved');
   }catch(err){
     console.error(err);
@@ -278,10 +279,8 @@ async function copyLinkText(link){
 // Non-chart params (e.g. a songApi override) survive into per-chord links.
 function chordPageURL(label, allVoicings){
   const params = new URLSearchParams(window.location.search);
+  [...CHART_PARAMS, ...MODAL_PARAMS].forEach(p=>params.delete(p));
   params.set('chords', label + (allVoicings ? '*' : ''));
-  // an explicit chord list is its own mode: drop song and the modal-opening
-  // params (notes/fretboard/findsongs) so the link lands cleanly on the chart
-  ['song','transpose','notes','fretboard','findsongs'].forEach(p=>params.delete(p));
   params.set('tuning', selectedTuningId);
   return window.location.pathname + '?' + readableQuery(params);
 }
@@ -339,6 +338,12 @@ function cardMenuItem(icon, text, href){
   return el;
 }
 
+function addCardMenuAction(menu, icon, text, run){
+  const item = cardMenuItem(icon, text);
+  item.addEventListener('click', ()=>{ closeCardMenu({ restoreFocus:true }); run(); });
+  menu.appendChild(item);
+}
+
 function closeCardMenu(opts){
   if(!cardMenuEl || cardMenuEl.hidden) return;
   cardMenuEl.hidden = true;
@@ -362,22 +367,18 @@ function openCardMenu(card, btn){
 
   // settings and the shown voicing are read at click time, so the menu can
   // stay prebuilt while the flash feedback lands on the card's own button
-  const exportArgs = ()=>{
+  const tileSVG = ()=>{
     const tuning = currentTuning();
     const frets = result.voicings[result.altIndex];
     const win = computeFretWindow(frets, shortenThreshold);
     const omitted = document.getElementById('omitToggle').checked ? result.omitted : null;
-    return [result.label, frets, win.fretMax, tuning.labels, tuning.openPCs, result.rootPC, win.startFret, btn, omitted];
+    return chordTileSVGString(result.label, frets, win.fretMax, tuning.labels, tuning.openPCs, result.rootPC, win.startFret, omitted);
   };
-  const addAction = (icon, text, run)=>{
-    const item = cardMenuItem(icon, text);
-    item.addEventListener('click', ()=>{ closeCardMenu({ restoreFocus:true }); run(); });
-    menu.appendChild(item);
-  };
+  const addAction = addCardMenuAction.bind(null, menu);
 
-  addAction(COPY_ICON, 'Copy image', ()=> copyChordAsImage(...exportArgs()));
-  addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadChordPNG(...exportArgs()));
-  addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadChordSVG(...exportArgs()));
+  addAction(COPY_ICON, 'Copy image', ()=> copyTileImage(tileSVG(), chordFileName(result.label, 'png'), btn));
+  addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadTilePNG(tileSVG(), chordFileName(result.label, 'png'), btn));
+  addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadTileSVG(tileSVG(), chordFileName(result.label, 'svg'), btn));
   menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
   addAction(LINK_ICON, 'Copy link to this chord', ()=> copyChordLink(result.label, btn));
   const openItem = cardMenuItem(EXTERNAL_LINK_ICON, 'Open in new tab', chordPageURL(result.label, false));
@@ -389,6 +390,12 @@ function openCardMenu(card, btn){
     menu.appendChild(allItem);
   }
 
+  presentCardMenu(menu, btn);
+}
+
+// Positioning, outside-click dismissal and initial focus, shared by the chord
+// and scale card menus once their items are in place.
+function presentCardMenu(menu, btn){
   btn.setAttribute('aria-expanded', 'true');
   menu.style.visibility = 'hidden';
   menu.hidden = false;
@@ -418,7 +425,7 @@ function openCardMenu(card, btn){
 
 function toggleCardMenu(card, btn){
   if(cardMenuState && cardMenuState.btn === btn){ closeCardMenu(); return; }
-  openCardMenu(card, btn);
+  card._scaleResult ? openScaleCardMenu(card, btn) : openCardMenu(card, btn);
 }
 
 function bindNoteDotHandlers(container){
@@ -444,21 +451,26 @@ function updateNavCount(card, result){
   if(countEl) countEl.textContent = `${result.altIndex+1} / ${result.voicings.length}`;
 }
 
+// Replace a card's diagram, sliding it in when dir is signed and motion is
+// allowed, and rebind the per-note play dots.
+function swapDiagramHTML(slot, html, slideDir){
+  const curSVG = slot.querySelector('svg');
+  const animate = slideDir && slot.animate && curSVG && curSVG.animate
+    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(animate){
+    slideVoicingSwap(slot, html, slideDir);
+  }else{
+    if(slot._swapCleanup) slot._swapCleanup();
+    slot.innerHTML = html;
+  }
+  bindNoteDotHandlers(slot);
+}
+
 function updateCardDiagram(card, result, tuning, colors, highlightRoot, slideDir, showNoteNames){
   const frets = result.voicings[result.altIndex];
   const { fretMax, startFret } = computeFretWindow(frets, shortenThreshold);
-  const diagramSlot = card.querySelector('.diagram-slot');
   const html = chordSVG(result.label, frets, fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret, showNoteNames);
-  const curSVG = diagramSlot.querySelector('svg');
-  const animate = slideDir && diagramSlot.animate && curSVG && curSVG.animate
-    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(animate){
-    slideVoicingSwap(diagramSlot, html, slideDir);
-  }else{
-    if(diagramSlot._swapCleanup) diagramSlot._swapCleanup();
-    diagramSlot.innerHTML = html;
-  }
-  bindNoteDotHandlers(diagramSlot);
+  swapDiagramHTML(card.querySelector('.diagram-slot'), html, slideDir);
   updateNavCount(card, result);
 }
 
@@ -522,6 +534,32 @@ function chordPlayOpts(tuning){
   return { arpeggio: !!tuning.arpeggio || document.getElementById('arpeggioToggle').checked };
 }
 
+// --- chords/scales mode: two builders sharing one sheet ---
+let currentMode = 'chords';
+
+function setMode(mode, opts){
+  currentMode = mode;
+  const scales = mode === 'scales';
+  document.body.classList.toggle('scales-mode', scales);
+  const tabChords = document.getElementById('modeTabChords');
+  const tabScales = document.getElementById('modeTabScales');
+  tabChords.setAttribute('aria-selected', String(!scales));
+  tabScales.setAttribute('aria-selected', String(scales));
+  tabChords.tabIndex = scales ? -1 : 0;
+  tabScales.tabIndex = scales ? 0 : -1;
+  document.getElementById('chordsPanel').hidden = scales;
+  document.getElementById('scalesPanel').hidden = !scales;
+  document.getElementById('stage').setAttribute('aria-label', scales ? 'Scale sheet' : 'Chord chart sheet');
+  if(!opts || !opts.silent) regenerate();
+}
+
+// Everything that re-renders the sheet without being chord- or scale-specific
+// (tuning, colors, options toggles) routes through this dispatch.
+function regenerate(){
+  if(currentMode === 'scales') generateScale();
+  else generate();
+}
+
 const COLUMNS_MIN = 1, COLUMNS_MAX = 8;
 let columnsValue = 'auto';
 
@@ -539,6 +577,7 @@ function loadSettings(){
 
 function saveSettings(){
   const settings = {
+    mode: currentMode,
     tuningId: selectedTuningId,
     showBorder: document.getElementById('borderToggle').checked,
     showCardControls: document.getElementById('cardControlsToggle').checked,
@@ -572,6 +611,12 @@ function saveSettings(){
   } else if(typeof savedSettings.chordInput === 'string'){
     settings.chordInput = packChordInput(savedSettings.chordInput);
   }
+  // same default-gating for the scale input's showcase default
+  if(!scaleInputIsDefault){
+    settings.scaleInput = packScaleInput(document.getElementById('scaleInput').value);
+  } else if(typeof savedSettings.scaleInput === 'string'){
+    settings.scaleInput = packScaleInput(savedSettings.scaleInput);
+  }
   try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(err){}
 }
 
@@ -592,11 +637,26 @@ function readableQuery(params){
   return params.toString().replace(/%2C/gi, ',');
 }
 
+// The params that say what the sheet shows (one mode's worth at a time) and the
+// ones that deep-link a dialog open. A URL builder deletes the lot and re-sets
+// its own, so no link ever carries two modes at once.
+const CHART_PARAMS = ['chords','song','transpose','scale'];
+const MODAL_PARAMS = ['notes','fretboard','findsongs'];
+
 const MASONRY_GAP = 16, MASONRY_MIN_COL_WIDTH = 190;
 
 // cards from the last generate(), in chord order — a resize re-layout can't
 // recollect them from the DOM because masonry bin-packing scrambles DOM order
 let currentCardEls = [];
+
+// Undoes every mark layoutCards leaves on #grid — the scales pipeline renders
+// its single card without layoutCards and needs the grid back in a known state.
+function resetGridLayout(){
+  currentCardEls = [];
+  const grid = document.getElementById('grid');
+  grid.classList.remove('masonry');
+  grid.style.gridTemplateColumns = '';
+}
 
 // Native CSS column-count is a *maximum*: its balance algorithm often settles on
 // fewer, evenly-divisible columns for a handful of same-height cards. Distributing
@@ -689,7 +749,7 @@ function scheduleGenerate(){
   afterNextPaint(()=>{
     if(!generatePending) return;
     generatePending = false;
-    generate();
+    regenerate();
   });
 }
 
@@ -931,6 +991,30 @@ function setTransposeOffset(offset){
 
 function stepTranspose(delta){ setTransposeOffset(currentTransposeOffset() + delta); }
 
+// The ⋯ corner button and the three play triggers (corner ▶, heading click,
+// heading Enter/Space), shared by the chord and scale cards.
+function appendCardMenuButton(card, label){
+  const menuBtn = document.createElement('button');
+  menuBtn.type = 'button';
+  menuBtn.className = 'card-menu-btn no-print';
+  menuBtn.title = `Copy, download or share ${label}`;
+  menuBtn.setAttribute('aria-label', `Copy, download or share ${label}`);
+  menuBtn.setAttribute('aria-haspopup', 'menu');
+  menuBtn.setAttribute('aria-expanded', 'false');
+  menuBtn.innerHTML = `<span class="card-menu-btn-icon">${DOTS_ICON}</span><span class="card-menu-btn-label"></span>`;
+  menuBtn.addEventListener('click', ()=> toggleCardMenu(card, menuBtn));
+  card.appendChild(menuBtn);
+}
+
+function bindCardPlayHandlers(card, play){
+  const heading = card.querySelector('h2');
+  heading.addEventListener('click', play);
+  heading.addEventListener('keydown', e=>{
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); play(); }
+  });
+  card.querySelector('.play-chord-btn').addEventListener('click', e=>{ e.stopPropagation(); play(); });
+}
+
 function buildCard(result, ctx){
   const { tuning, colors, highlightRoot, showOmitted, showNoteNames } = ctx;
   const { fretMax, startFret } = computeFretWindow(result.voicings[result.altIndex], shortenThreshold);
@@ -942,26 +1026,8 @@ function buildCard(result, ctx){
   card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${accidentalsHTML(result.label)}</h2></div><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret, showNoteNames)}</div>${omitHTML}`;
 
   bindNoteDotHandlers(card.querySelector('.diagram-slot'));
-
-  const menuBtn = document.createElement('button');
-  menuBtn.type = 'button';
-  menuBtn.className = 'card-menu-btn no-print';
-  menuBtn.title = `Copy, download or share ${result.label}`;
-  menuBtn.setAttribute('aria-label', `Copy, download or share ${result.label}`);
-  menuBtn.setAttribute('aria-haspopup', 'menu');
-  menuBtn.setAttribute('aria-expanded', 'false');
-  menuBtn.innerHTML = `<span class="card-menu-btn-icon">${DOTS_ICON}</span><span class="card-menu-btn-label"></span>`;
-  menuBtn.addEventListener('click', ()=> toggleCardMenu(card, menuBtn));
-  card.appendChild(menuBtn);
-
-  const playBtnEl = card.querySelector('.play-chord-btn');
-  const playChordHere = ()=> playChordAndFlash(playBtnEl, chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs), chordPlayOpts(tuning));
-  const heading = card.querySelector('h2');
-  heading.addEventListener('click', playChordHere);
-  heading.addEventListener('keydown', e=>{
-    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); playChordHere(); }
-  });
-  playBtnEl.addEventListener('click', e=>{ e.stopPropagation(); playChordHere(); });
+  appendCardMenuButton(card, result.label);
+  bindCardPlayHandlers(card, ()=> playChordAndFlash(card.querySelector('.play-chord-btn'), chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs), chordPlayOpts(tuning)));
 
   if(result.expanded){
     card.classList.add('has-alt-voicings');
@@ -1305,6 +1371,370 @@ function stepMaxSpan(delta){
 initStepper('voicingModalMaxFret', stepMaxFret);
 initStepper('voicingModalMaxSpan', stepMaxSpan);
 
+// --- Scales mode: one scale at a time, drawn as a position box up the neck.
+// Mirrors the chord pipeline piece by piece: generateScale() is the render
+// loop, the scale card wears the chord card's clothes, the position nav is the
+// voicing nav, and the position chooser is the voicing chooser.
+const scaleInputEl = document.getElementById('scaleInput');
+const scaleSuggestMenuEl = document.getElementById('scaleSuggestMenu');
+const positionModalGridEl = document.getElementById('positionModalGrid');
+const positionModalTitleEl = document.getElementById('positionModalTitle');
+
+// The shown position survives re-renders (options toggles, note names) while
+// the scale and tuning stay the same — the chord cards' remembered voicings.
+let scaleState = null;
+let scaleInputDebounce = null;
+
+function updateScaleInputClearUI(){
+  document.getElementById('scaleInputWrap').classList.toggle('has-value', scaleInputEl.value.trim() !== '');
+}
+
+function packScaleInput(value){
+  return String(value).trim().replace(/\s+/g, ' ');
+}
+
+function scalePageParams(){
+  const params = new URLSearchParams(window.location.search);
+  [...CHART_PARAMS, ...MODAL_PARAMS].forEach(p=>params.delete(p));
+  params.set('scale', packScaleInput(scaleInputEl.value));
+  params.set('tuning', selectedTuningId);
+  return params;
+}
+
+function updateScaleURLParam(){
+  const params = new URLSearchParams(window.location.search);
+  CHART_PARAMS.forEach(p=>params.delete(p));
+  const packed = packScaleInput(scaleInputEl.value);
+  if(packed){ params.set('scale', packed); }
+  params.set('tuning', selectedTuningId);
+  const query = readableQuery(params);
+  history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : '') + window.location.hash);
+}
+
+function scaleDiagramHTML(parsed, pos, noteNames, tuning, colors, highlightRoot, showNoteNames, interactive){
+  return scaleSVG(parsed.label, pos.strings, pos.endFret, tuning.labels, colors, tuning.openPCs, parsed.rootPC,
+    highlightRoot, interactive ? tuning.openAbs : undefined, positionStartFret(pos), showNoteNames, noteNames);
+}
+
+function positionCaption(pos){
+  return pos.startFret === 0 ? 'Open position' : `Frets ${pos.startFret}–${pos.endFret}`;
+}
+
+function scaleNotesLine(parsed){
+  const spelled = spellScale(parsed.rootName, parsed.type);
+  return spelled ? spelled.map(formatAccidentals).join(' · ') : '';
+}
+
+function updateScaleNavCount(card){
+  const countEl = card.querySelector('.voicing-nav-count');
+  if(countEl) countEl.textContent = `${scaleState.posIndex+1} / ${card._scaleResult.positions.length}`;
+}
+
+function updateScaleCardDiagram(card, slideDir){
+  const { parsed, positions, noteNames } = card._scaleResult;
+  const pos = positions[scaleState.posIndex];
+  const html = scaleDiagramHTML(parsed, pos, noteNames, currentTuning(), currentColors(),
+    document.getElementById('rootToggle').checked, document.getElementById('noteNamesToggle').checked, true);
+  swapDiagramHTML(card.querySelector('.diagram-slot'), html, slideDir);
+  updateScaleNavCount(card);
+}
+
+function buildScaleCard(parsed, positions, noteNames){
+  const card = document.createElement('div');
+  card.className = 'card scale-card';
+  card._scaleResult = { parsed, positions, noteNames };
+  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play the ${escapeXML(parsed.label)} scale up and down" aria-label="Play the ${escapeXML(parsed.label)} scale up and down">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play the ${escapeXML(parsed.label)} scale up and down">${accidentalsHTML(parsed.label)}</h2></div><div class="diagram-slot"></div><p class="scale-notes"></p>`;
+  card.querySelector('.scale-notes').textContent = scaleNotesLine(parsed);
+
+  appendCardMenuButton(card, parsed.label);
+  // always the up-and-down practice run — a scale strummed at once says nothing
+  bindCardPlayHandlers(card, ()=> playChordAndFlash(card.querySelector('.play-chord-btn'), positionPlaybackMidis(positions[scaleState.posIndex]), { arpeggio:true }));
+
+  if(positions.length > 1){
+    card.classList.add('has-alt-voicings');
+    const nav = document.createElement('div');
+    nav.className = 'voicing-nav no-print';
+    nav.innerHTML = `<button type="button" class="voicing-nav-btn voicing-prev" title="Previous position" aria-label="Previous position of the ${escapeXML(parsed.label)} scale">${CHEVRON_LEFT}</button><button type="button" class="voicing-nav-count" title="See all positions and pick one" aria-label="See all positions of the ${escapeXML(parsed.label)} scale and pick one"></button><button type="button" class="voicing-nav-btn voicing-next" title="Next position (higher up the neck)" aria-label="Next position of the ${escapeXML(parsed.label)} scale">${CHEVRON_RIGHT}</button>`;
+    card.appendChild(nav);
+    const cyclePosition = delta=>{
+      const n = positions.length;
+      scaleState.posIndex = (scaleState.posIndex + delta + n) % n;
+      updateScaleCardDiagram(card, delta);
+    };
+    nav.querySelector('.voicing-prev').addEventListener('click', ()=> cyclePosition(-1));
+    nav.querySelector('.voicing-next').addEventListener('click', ()=> cyclePosition(1));
+    const countBtn = nav.querySelector('.voicing-nav-count');
+    countBtn.addEventListener('click', ()=> openPositionChooser(card, countBtn));
+  }
+
+  updateScaleCardDiagram(card);
+  return card;
+}
+
+function scaleTileSVGString(card){
+  const { parsed, positions, noteNames } = card._scaleResult;
+  const pos = positions[scaleState.posIndex];
+  const tuning = currentTuning();
+  const colors = currentColors();
+  const sourceURL = new URL(window.location.pathname + '?' + readableQuery(scalePageParams()), window.location.href).href;
+  const showBorder = document.getElementById('borderToggle').checked;
+  const highlightRoot = document.getElementById('rootToggle').checked;
+  const showNoteNames = document.getElementById('noteNamesToggle').checked;
+  return exportScaleTileSVG(formatAccidentals(parsed.label), pos.strings, pos.endFret, tuning.labels, colors,
+    showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, positionStartFret(pos), scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames);
+}
+
+function scaleFileName(card, ext){
+  const { parsed } = card._scaleResult;
+  return chordFileName(`${parsed.label} position ${scaleState.posIndex+1}`, ext);
+}
+
+function openScaleCardMenu(card, btn){
+  const menu = ensureCardMenu();
+  closeCardMenu();
+  const { parsed } = card._scaleResult;
+  menu.innerHTML = '';
+  menu.setAttribute('aria-label', `Actions for ${parsed.label}`);
+
+  const addAction = addCardMenuAction.bind(null, menu);
+
+  addAction(COPY_ICON, 'Copy image', ()=> copyTileImage(scaleTileSVGString(card), scaleFileName(card, 'png'), btn));
+  addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadTilePNG(scaleTileSVGString(card), scaleFileName(card, 'png'), btn));
+  addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadTileSVG(scaleTileSVGString(card), scaleFileName(card, 'svg'), btn));
+  menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
+  addAction(LINK_ICON, 'Copy link to this scale', async ()=>{
+    flashButton(btn, await copyLinkText(shareLinkFor(scalePageParams())));
+  });
+
+  presentCardMenu(menu, btn);
+}
+
+const positionModal = createModal(document.getElementById('positionModal'));
+
+function renderPositionTiles(card){
+  const { parsed, positions, noteNames } = card._scaleResult;
+  const tuning = currentTuning();
+  const colors = currentColors();
+  const highlightRoot = document.getElementById('rootToggle').checked;
+  const showNoteNames = document.getElementById('noteNamesToggle').checked;
+  positionModalTitleEl.textContent = `${formatAccidentals(parsed.label)} — ${positions.length} position${positions.length === 1 ? '' : 's'}`;
+  positionModalGridEl.innerHTML = '';
+
+  const tiles = positions.map((pos, i)=>{
+    const isCurrent = i === scaleState.posIndex;
+    const wrap = document.createElement('div');
+    wrap.className = 'voicing-choice-wrap';
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'voicing-choice' + (isCurrent ? ' selected' : '');
+    tile.setAttribute('aria-label', `Use position ${i+1} of ${positions.length} (${positionCaption(pos)})${isCurrent ? ' (current)' : ''}`);
+    // no openAbs: per-note dots would nest interactive elements inside the button
+    tile.innerHTML = `<span class="voicing-choice-index">${i+1}</span>`
+      + scaleDiagramHTML(parsed, pos, noteNames, tuning, colors, highlightRoot, showNoteNames, false)
+      + `<span class="position-caption">${positionCaption(pos)}</span>`;
+    tile.addEventListener('click', ()=>{
+      const prevIndex = scaleState.posIndex;
+      scaleState.posIndex = i;
+      updateScaleCardDiagram(card, Math.sign(i - prevIndex));
+      playChord(positionPlaybackMidis(pos), { arpeggio:true });
+      positionModal.close();
+    });
+    const playBtn = document.createElement('button');
+    playBtn.type = 'button';
+    playBtn.className = 'voicing-choice-play';
+    playBtn.title = 'Play this position';
+    playBtn.setAttribute('aria-label', `Play position ${i+1} of ${positions.length}`);
+    playBtn.innerHTML = PLAY_ICON;
+    playBtn.addEventListener('click', ()=> playChordAndFlash(playBtn, positionPlaybackMidis(pos), { arpeggio:true }));
+    wrap.appendChild(tile);
+    wrap.appendChild(playBtn);
+    return wrap;
+  });
+
+  tiles.forEach(t=> positionModalGridEl.appendChild(t));
+}
+
+function openPositionChooser(card, opener){
+  const fresh = positionModal.open(opener);
+  renderPositionTiles(card);
+  if(fresh){
+    const focusTarget = positionModalGridEl.querySelector('.voicing-choice.selected') || positionModalGridEl.querySelector('.voicing-choice');
+    if(focusTarget) focusTarget.focus();
+  }
+}
+document.getElementById('positionModalClose').addEventListener('click', ()=> positionModal.close());
+
+function generateScale(){
+  updateScaleInputClearUI();
+  closeCardMenu();
+  const tuning = currentTuning();
+  document.getElementById('pageTitleMain').textContent = `${tuning.name} scales`;
+  document.getElementById('pageTitleSub').textContent = `${formatAccidentals(tuning.tuningLabel)} tuning`;
+
+  const raw = scaleInputEl.value;
+  const errorBox = document.getElementById('errorBox');
+  const grid = document.getElementById('grid');
+  resetGridLayout();
+
+  const parsed = raw.trim() ? parseScale(raw) : null;
+  if(!parsed){
+    // an open completion menu means the name is still being typed — offering
+    // suggestions and calling the input unreadable at once would be noise
+    const midEntry = !scaleSuggestMenuEl.hidden;
+    errorBox.textContent = (raw.trim() && !midEntry)
+      ? `Could not read "${raw.trim()}" as a scale — try "A minor pentatonic"${/[,\n]/.test(raw) ? ', one scale at a time' : ''}.`
+      : '';
+    grid.innerHTML = '<p class="empty-hint">Type a scale above — its positions along the neck appear here.</p>';
+    document.getElementById('resultsCount').textContent = 'Scale chart';
+    document.getElementById('resultsContext').textContent = 'updates as you type';
+    positionModal.close({ restoreFocus:false });
+    saveSettings();
+    updateScaleURLParam();
+    return;
+  }
+  errorBox.textContent = '';
+
+  const positions = scalePositions(parsed.pcs, tuning);
+  const noteNames = scaleNoteNames(parsed.rootName, parsed.type);
+  // same scale on the same instrument: stay in the chosen position
+  const key = `${parsed.label}::${tuning.id}`;
+  const posIndex = (scaleState && scaleState.key === key)
+    ? Math.min(scaleState.posIndex, positions.length - 1) : 0;
+  scaleState = { key, posIndex };
+
+  const card = buildScaleCard(parsed, positions, noteNames);
+  grid.innerHTML = '';
+  grid.appendChild(card);
+  fitCardTitles();
+
+  document.getElementById('resultsCount').textContent = formatAccidentals(parsed.label);
+  document.getElementById('resultsContext').textContent =
+    `${positions.length} position${positions.length === 1 ? '' : 's'} up the neck`
+    + (parsed.hadRoot ? '' : ' — root defaulted to C');
+
+  // the chooser points at the card that was just replaced; re-bind it
+  if(positionModal.isOpen()) renderPositionTiles(card);
+  saveSettings();
+  updateScaleURLParam();
+}
+
+// Scale-name typeahead: the harmonica app's combobox pattern. activeIndex -1 is
+// the typed text itself, so arrowing through the list always leads back to it;
+// Enter only picks while a row is active, so it never rewrites free-form input.
+function initScaleTypeahead(){
+  const input = scaleInputEl;
+  const menu = scaleSuggestMenuEl;
+  let activeIndex = -1;
+  const isOpen = ()=> !menu.hidden;
+
+  function close(){
+    menu.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+    activeIndex = -1;
+  }
+  function setActive(i){
+    activeIndex = i;
+    [...menu.children].forEach((el, j)=>{
+      el.classList.toggle('active', j === i);
+      el.setAttribute('aria-selected', String(j === i));
+    });
+    if(i >= 0){
+      input.setAttribute('aria-activedescendant', menu.children[i].id);
+      menu.children[i].scrollIntoView({ block:'nearest' });
+    } else {
+      input.removeAttribute('aria-activedescendant');
+    }
+  }
+  function refresh(){
+    const items = scaleCompletions(input.value);
+    // the sole remaining suggestion being exactly what's typed is no suggestion
+    const only = items.length === 1 && items[0].text.toLowerCase() === input.value.trim().toLowerCase();
+    if(!items.length || only){ close(); return; }
+    menu.innerHTML = '';
+    items.forEach((c, i)=>{
+      const opt = document.createElement('div');
+      opt.className = 'typeahead-opt';
+      opt.setAttribute('role', 'option');
+      opt.id = `scaleSuggestOpt${i}`;
+      // the raw ASCII query, so picking it round-trips through the parser
+      opt.dataset.q = c.text;
+      const text = document.createElement('span');
+      text.className = 'typeahead-text';
+      text.textContent = formatAccidentals(c.text);
+      const desc = document.createElement('span');
+      desc.className = 'typeahead-desc';
+      desc.textContent = c.desc;
+      opt.append(text, desc);
+      menu.appendChild(opt);
+    });
+    menu.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    setActive(-1);
+  }
+  function pick(text){
+    input.value = text;
+    scaleInputIsDefault = false;
+    close();
+    clearTimeout(scaleInputDebounce);
+    generateScale();
+  }
+
+  // keep the input focused while clicking in the menu, else blur closes it
+  // before the click can land
+  menu.addEventListener('mousedown', e=> e.preventDefault());
+  menu.addEventListener('click', e=>{
+    const opt = e.target.closest('.typeahead-opt');
+    if(opt) pick(opt.dataset.q);
+  });
+  input.addEventListener('blur', ()=> close());
+  input.addEventListener('input', ()=>{
+    scaleInputIsDefault = false;
+    updateScaleInputClearUI();
+    refresh();
+    clearTimeout(scaleInputDebounce);
+    scaleInputDebounce = setTimeout(generateScale, 300);
+  });
+  input.addEventListener('keydown', e=>{
+    if(e.key === 'Escape'){
+      if(isOpen()){ e.stopPropagation(); close(); }
+      return;
+    }
+    if(e.key === 'Tab'){ close(); return; }
+    if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      e.preventDefault();
+      if(!isOpen()){
+        refresh();
+        if(isOpen()) setActive(e.key === 'ArrowDown' ? 0 : menu.children.length - 1);
+        return;
+      }
+      const n = menu.children.length;
+      setActive(e.key === 'ArrowDown'
+        ? (activeIndex + 2) % (n + 1) - 1
+        : (activeIndex + n + 1) % (n + 1) - 1);
+      return;
+    }
+    if(e.key === 'Enter'){
+      clearTimeout(scaleInputDebounce);
+      if(isOpen() && activeIndex >= 0){
+        pick(menu.children[activeIndex].dataset.q);
+      } else {
+        close();
+        generateScale();
+      }
+    }
+  });
+}
+initScaleTypeahead();
+
+document.getElementById('scaleInputClear').addEventListener('click', ()=>{
+  clearTimeout(scaleInputDebounce);
+  scaleInputEl.value = '';
+  scaleInputIsDefault = false;
+  scaleInputEl.focus();
+  generateScale();
+});
+
 // --- Custom chord diagram: search fingerings for a free-form set of notes,
 // not a named chord. Mirrors the voicing chooser above (same tile grid) but
 // keeps its own max-fret/max-span search settings — a scratchpad search
@@ -1557,7 +1987,7 @@ function fretboardIdSVG(){
 function fretboardShareURL(){
   if(!fretboardIdState.some(v=>v!==null)) return null;
   const params = new URLSearchParams(window.location.search);
-  ['notes','chords','song','transpose','findsongs'].forEach(p=>params.delete(p));
+  [...CHART_PARAMS, ...MODAL_PARAMS].forEach(p=>params.delete(p));
   params.set('fretboard', encodeFretboardState(fretboardIdState));
   params.set('tuning', selectedTuningId);
   return new URL(window.location.pathname + '?' + readableQuery(params), window.location.href).href;
@@ -1572,7 +2002,7 @@ function fretboardMainPageURL(){
   fretboardIdState.forEach((v,i)=>{ if(v!==null) sounding.push(t.openAbs[i]+v); });
   if(!sounding.length) return null;
   const params = new URLSearchParams(window.location.search);
-  ['notes','chords','song','transpose','findsongs','fretboard'].forEach(p=>params.delete(p));
+  [...CHART_PARAMS, ...MODAL_PARAMS].forEach(p=>params.delete(p));
   params.set('tuning', selectedTuningId);
   if(fretboardIdChordLabel){
     params.set('chords', fretboardIdChordLabel + '*'); // * lays out every voicing
@@ -1798,6 +2228,8 @@ document.getElementById('fretboardIdOpenBtn').addEventListener('click', e=> open
 
 function updateURLParam(chordInputValue){
   const params = new URLSearchParams(window.location.search);
+  // a chords-mode URL never carries the scales tab's param (and vice versa)
+  params.delete('scale');
   // The URL carries either the song identity or the literal chords, never both:
   // ?song= (plus ?transpose= when shifted as a whole) while the chart is still
   // the song, ?chords= once it diverged — so a link always reproduces what is
@@ -1834,7 +2266,7 @@ function selectTuning(id, opts){
   tuningSelects.forEach(sel=> sel.update(id));
   if(!opts || !opts.silent){
     tuningSelects.forEach(sel=> sel.close());
-    generate();
+    regenerate();
     // the create-chord board reads the live tuning, so re-render it if open
     if(!fretboardIdModalEl.hidden) renderFretboardIdBoard();
   }
@@ -1919,6 +2351,17 @@ if(chordsParamExists){
 // True only while the input still holds the built-in default (untouched by the
 // user, localStorage, or a ?chords= link) — gates whether saveSettings persists it.
 let chordInputIsDefault = !savedChordInputExists && !chordsParamExists;
+// same restore dance for the scale input
+const savedScaleInputExists = typeof savedSettings.scaleInput === 'string' && savedSettings.scaleInput.trim() !== '';
+if(savedScaleInputExists){
+  document.getElementById('scaleInput').value = savedSettings.scaleInput;
+}
+const scaleParam = new URLSearchParams(window.location.search).get('scale');
+const scaleParamExists = scaleParam !== null && scaleParam.trim() !== '';
+if(scaleParamExists){
+  document.getElementById('scaleInput').value = scaleParam.trim();
+}
+let scaleInputIsDefault = !savedScaleInputExists && !scaleParamExists;
 if(typeof savedSettings.showBorder === 'boolean'){
   document.getElementById('borderToggle').checked = savedSettings.showBorder;
   document.getElementById('grid').classList.toggle('no-border', !savedSettings.showBorder);
@@ -1992,32 +2435,57 @@ createTuningSelect(document.getElementById('tuningSelectWrap'));
 createTuningSelect(document.getElementById('fretboardIdTuningWrap'));
 selectTuning(initialTuningId, { silent:true });
 
+// The URL wins over the saved mode: a ?scale= link lands on the Scales tab, a
+// ?chords=/?song= link on Chords, and only a bare visit restores the last mode.
+const initialMode = scaleParamExists ? 'scales'
+  : (chordsParamExists || new URLSearchParams(window.location.search).get('song')) ? 'chords'
+    : savedSettings.mode === 'scales' ? 'scales' : 'chords';
+setMode(initialMode, { silent:true });
+
+document.getElementById('modeTabChords').addEventListener('click', ()=>{ if(currentMode !== 'chords') setMode('chords'); });
+document.getElementById('modeTabScales').addEventListener('click', ()=>{ if(currentMode !== 'scales') setMode('scales'); });
+// roving tabindex: with two tabs both arrows toggle, Home/End pin the ends
+document.querySelector('.mode-tabs').addEventListener('keydown', e=>{
+  let next = null;
+  if(e.key === 'ArrowLeft' || e.key === 'ArrowRight') next = currentMode === 'scales' ? 'chords' : 'scales';
+  else if(e.key === 'Home') next = 'chords';
+  else if(e.key === 'End') next = 'scales';
+  if(!next || next === currentMode) return;
+  e.preventDefault();
+  setMode(next);
+  document.getElementById(next === 'scales' ? 'modeTabScales' : 'modeTabChords').focus();
+});
+
 // --- tips toast: a rotating collection shown bottom-right, reachable via the bulb fab forever ---
 const TIPS_OPT_OUT_KEY = 'chordChartGenerator.tipsOptOut';
 const TIPS_REDUCED_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// chordsOnly tips describe controls the Scales tab hides — they stay out of the
+// rotation while that tab is up.
 const TIPS = [
-  { emoji:'🎧', pointerText:"Select a chord's name or a dot on its diagram to hear how it sounds.", touchText:"Tap a chord's name or a dot on its diagram to hear how it sounds." },
-  { emoji:'🎸', text:'Use the arrows on a chord card to browse alternate voicings, or tap the number between them to see every voicing at once.' },
+  { emoji:'🎧', chordsOnly:true, pointerText:"Select a chord's name or a dot on its diagram to hear how it sounds.", touchText:"Tap a chord's name or a dot on its diagram to hear how it sounds." },
+  { emoji:'🎸', chordsOnly:true, text:'Use the arrows on a chord card to browse alternate voicings, or tap the number between them to see every voicing at once.' },
   { emoji:'📷', text:'Switch on “Black & white” in Options for crisp, high-contrast diagrams that print or screenshot cleanly.' },
   { emoji:'🎨', text:"Turn on “Use Aquila Kid's string colours” in Options to draw each string in its own colour — handy for teaching beginners." },
-  { emoji:'🔗', text:'Open the Share menu for a link to just the song, just these chords, or the whole app.' },
-  { emoji:'🎼', text:'The + and − buttons beside the Chords box transpose: they shift every chord up or down in semitones, so you never retype a thing.' },
-  { emoji:'📥', text:'Each chord card has a ⋯ menu — copy or download the diagram as PNG or SVG, or grab a link straight to that chord.' },
+  { emoji:'🔗', chordsOnly:true, text:'Open the Share menu for a link to just the song, just these chords, or the whole app.' },
+  { emoji:'🎼', chordsOnly:true, text:'The + and − buttons beside the Chords box transpose: they shift every chord up or down in semitones, so you never retype a thing.' },
+  { emoji:'📥', chordsOnly:true, text:'Each chord card has a ⋯ menu — copy or download the diagram as PNG or SVG, or grab a link straight to that chord.' },
   { emoji:'📸', text:'Turn off “Show chord card controls” in Options to hide play buttons and arrows before you screenshot.' },
-  { emoji:'🖼️', text:'“Copy all charts as one image” in the Share menu combines every diagram on the page into a single picture, ready to paste anywhere.' },
-  { emoji:'🧩', text:"Switch on “Masonry layout” below the chart to pack chord cards together tightly instead of leaving gaps when they're different heights." },
-  { emoji:'🔍', text:'Raise “Search up to fret” in the voicing chooser — tap the number between a card\'s arrows — to unlock alternate voicings further up the neck.' },
-  { emoji:'📏', text:'Fingers too short? Lower “Max stretch” in the voicing chooser to skip voicings that need a wide stretch.' },
-  { emoji:'🔇', text:'Power chords hard to finger? Switch on “Allow muted strings” in the voicing chooser and two- and three-note chords can skip strings instead of doubling notes.' },
+  { emoji:'🖼️', chordsOnly:true, text:'“Copy all charts as one image” in the Share menu combines every diagram on the page into a single picture, ready to paste anywhere.' },
+  { emoji:'🧩', chordsOnly:true, text:"Switch on “Masonry layout” below the chart to pack chord cards together tightly instead of leaving gaps when they're different heights." },
+  { emoji:'🔍', chordsOnly:true, text:'Raise “Search up to fret” in the voicing chooser — tap the number between a card\'s arrows — to unlock alternate voicings further up the neck.' },
+  { emoji:'📏', chordsOnly:true, text:'Fingers too short? Lower “Max stretch” in the voicing chooser to skip voicings that need a wide stretch.' },
+  { emoji:'🔇', chordsOnly:true, text:'Power chords hard to finger? Switch on “Allow muted strings” in the voicing chooser and two- and three-note chords can skip strings instead of doubling notes.' },
 ];
 
 // a shuffled bag (not plain Math.random each time) so every tip is seen before any repeat
 let tipQueue = [];
 let tipLastIndex = -1;
 function nextTipIndex(){
+  const eligible = i => !(currentMode === 'scales' && TIPS[i].chordsOnly);
+  tipQueue = tipQueue.filter(eligible);
   if(!tipQueue.length){
-    tipQueue = TIPS.map((_, i)=>i);
+    tipQueue = TIPS.map((_, i)=>i).filter(eligible);
     for(let i = tipQueue.length - 1; i > 0; i--){
       const j = Math.floor(Math.random() * (i + 1));
       [tipQueue[i], tipQueue[j]] = [tipQueue[j], tipQueue[i]];
@@ -2173,19 +2641,24 @@ function shareLinkFor(params){
 }
 
 function buildShareMenu(){
+  const scalesMode = currentMode === 'scales';
   const songItem = document.getElementById('shareSongItem');
-  const withSong = !!(activeSong && activeSong.appliedText !== null);
+  const withSong = !scalesMode && !!(activeSong && activeSong.appliedText !== null);
   songItem.hidden = !withSong;
   if(withSong){
     // version suffixes ("Wonderwall - Remastered") only add noise, as in the sheet link
     document.getElementById('shareSongLabel').textContent = `Chords of song “${activeSong.title.replace(/\s-\s.*$/,'')}”`;
     document.getElementById('shareSongSub').textContent = activeSong.artist;
   }
-  // nothing drawn, nothing to put on the clipboard
-  document.getElementById('shareImageItem').hidden = !document.querySelector('#grid .card');
+  // nothing drawn, nothing to put on the clipboard; the scale card's own ⋯ menu
+  // covers single-tile images, so the all-charts item stays a chords affair
+  document.getElementById('shareImageItem').hidden = scalesMode || !document.querySelector('#grid .card');
   const trimmed = document.getElementById('chordInput').value.trim();
-  document.getElementById('shareChordsItem').hidden = trimmed === '';
+  document.getElementById('shareChordsItem').hidden = scalesMode || trimmed === '';
   document.getElementById('shareChordsSub').textContent = trimmed.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean).join(', ');
+  const scaleText = packScaleInput(document.getElementById('scaleInput').value);
+  document.getElementById('shareScaleItem').hidden = !scalesMode || scaleText === '';
+  document.getElementById('shareScaleSub').textContent = formatAccidentals(scaleText);
 }
 
 const shareMenuCtl = createMenu(shareWrap, shareBtn, { onOpen: buildShareMenu });
@@ -2214,6 +2687,12 @@ document.getElementById('shareSongItem').addEventListener('click', ()=> copyShar
 document.getElementById('shareChordsItem').addEventListener('click', ()=> copyShareOption(()=>{
   const params = new URLSearchParams();
   params.set('chords', packChordInput(document.getElementById('chordInput').value));
+  params.set('tuning', selectedTuningId);
+  return params;
+}));
+document.getElementById('shareScaleItem').addEventListener('click', ()=> copyShareOption(()=>{
+  const params = new URLSearchParams();
+  params.set('scale', packScaleInput(document.getElementById('scaleInput').value));
   params.set('tuning', selectedTuningId);
   return params;
 }));
@@ -2307,7 +2786,7 @@ document.getElementById('cardControlsToggle').addEventListener('change', e=>{
 document.getElementById('bwToggle').addEventListener('change', e=>{
   document.body.classList.toggle('bw-mode', e.target.checked);
   syncThemeUI();
-  generate();
+  regenerate();
 });
 // Theme switches the page chrome only — the sheet keeps its paper palette.
 // The pre-paint script in index.html applies the saved theme before first render.
@@ -2331,9 +2810,9 @@ themeToggleBtn.addEventListener('click', ()=>{
   try{ localStorage.setItem('chords-theme', next); }catch(err){}
   syncThemeUI();
 });
-document.getElementById('rootToggle').addEventListener('change', generate);
-document.getElementById('noteNamesToggle').addEventListener('change', generate);
-document.getElementById('aquilaToggle').addEventListener('change', generate);
+document.getElementById('rootToggle').addEventListener('change', regenerate);
+document.getElementById('noteNamesToggle').addEventListener('change', regenerate);
+document.getElementById('aquilaToggle').addEventListener('change', regenerate);
 document.getElementById('autoColumnsToggle').addEventListener('change', e=>{
   columnsValue = e.target.checked ? 'auto' : currentRenderedColumns();
   updateColumnsUI(true);
@@ -2958,7 +3437,7 @@ if(typeof ResizeObserver === 'function'){
 }
 // both measure text, so both must re-run once the webfonts' metrics land
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ fitCardTitles(); fitChordSuggestions(); });
-generate();
+regenerate();
 
 // Opens the custom-chord modal pre-filled and already searched when linked
 // directly, mirroring how ?chords= seeds the main sheet. The modal's grid
