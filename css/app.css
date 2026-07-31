@@ -79,20 +79,23 @@
     border:1px solid var(--card-border); border-radius:16px;
     box-shadow:0 12px 32px -30px rgba(41,38,33,.7);
   }
-  /* left-grouped, not spread: pushed to the card's right edge the stepper would
-     sit over the instrument column and read as belonging to it */
-  .builder-title-row{ display:flex; align-items:center; gap:8px 16px; flex-wrap:wrap; margin:0 0 10px; }
-  .builder-title{ margin:0; font-family:var(--heading-font); font-size:21px; font-weight:600; }
+  .builder-title{ margin:0 0 10px; font-family:var(--heading-font); font-size:21px; font-weight:600; }
   /* the heading labels the field below it; a text cursor would promise an edit
      point the heading itself isn't */
   .builder-title label{ cursor:default; }
-  /* start-aligned: the left column grows downwards with the actions under the
-     field, and the instrument trigger stays level with the field's top edge */
-  .builder-grid{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px; align-items:start; }
-  .chord-hint-row{ display:flex; align-items:center; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin:8px 0 0; }
-  /* expanding the help grows it downwards, so the button beside it stops
-     centring and holds the top edge instead of being dragged along */
-  .chord-hint-row:has(.syntax-panel.open){ align-items:flex-start; }
+  /* Named rows so transpose can sit above the chord field without dragging the
+     instrument trigger down with it — that one lines up with the field itself. */
+  .builder-grid{
+    display:grid; grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"head ." "chords instrument";
+    column-gap:14px; row-gap:6px; align-items:start;
+  }
+  .chord-field-head{ grid-area:head; display:flex; justify-content:flex-end; }
+  .chord-field{ grid-area:chords; min-width:0; }
+  .instrument-field{ grid-area:instrument; }
+  /* flex-start, never centred: expanding the help grows it downwards, and a
+     centred neighbour would be shoved down and back on every toggle */
+  .chord-hint-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin:8px 0 0; }
   .chord-hint-row .syntax-help{ flex:1 1 300px; }
   .field-label{ display:block; margin:0 0 6px; color:var(--ink); font-size:12px; font-weight:750; letter-spacing:.04em; }
   .settings-section-title{
@@ -1121,12 +1124,12 @@
     .page-title-main{ font-size:15px; }
     .page-title-sub{ font-size:9.5px; letter-spacing:.1em; }
     .settings-section{ padding:14px; border-radius:14px; }
-    .builder-title-row{ margin-bottom:9px; }
-    .builder-title{ font-size:19px; }
+    .builder-title{ font-size:19px; margin-bottom:9px; }
     /* the button sits right under the field it refers to, so the short name is
        still unambiguous — and it keeps the row beside Transpose */
     .btn-text-long{ display:none; }
-    .builder-grid{ grid-template-columns:1fr; gap:11px; }
+    .builder-grid{ grid-template-columns:1fr; grid-template-areas:"head" "chords" "instrument"; }
+    .instrument-field{ margin-top:5px; }
     .tuning-select-trigger{ width:100%; min-width:0; }
     .tuning-select-menu{ width:100%; }
     /* 16px stops iOS Safari from auto-zooming the page on focus */
