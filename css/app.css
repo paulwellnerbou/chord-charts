@@ -98,6 +98,15 @@
     font-size:12.5px; font-weight:650;
   }
   .chord-suggestion:hover{ background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent); }
+  /* the tail of the pill list is a long band of rarely-used qualities — kept one
+     click away instead of spending the width by default */
+  .chord-suggestions:not(.show-all) .chord-suggestion.is-extra{ display:none; }
+  .chord-suggestions-more{
+    min-height:0; padding:4px 4px; border:0; border-radius:6px;
+    background:transparent; color:var(--accent); font-size:12.5px; font-weight:650;
+  }
+  .chord-suggestions-more:hover{ background:transparent; border-color:transparent; color:var(--accent-strong); text-decoration:underline; }
+  .chord-suggestions-more:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .syntax-help{ margin:10px 0 0; font-size:12.5px; color:var(--ink-soft); line-height:1.55; max-width:760px; }
   .syntax-summary{
     display:block; min-height:0; width:100%; padding:0; border:0; border-radius:4px;
@@ -163,6 +172,12 @@
     background:transparent; color:var(--ink); font-size:14px; text-align:left; cursor:pointer;
   }
   .share-menu-item[hidden]{ display:none; }
+  .share-menu-heading{
+    padding:5px 10px 3px; color:var(--ink-soft);
+    font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  }
+  /* the image copy is not a link — the rule keeps it from reading as one more of them */
+  .share-menu-item-split{ margin-top:5px; padding-top:9px; border-top:1px solid var(--card-border); border-radius:0 0 8px 8px; }
   .share-menu-item:hover{ background:var(--page-bg); border-color:transparent; color:var(--ink); }
   .share-menu-item:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
   .share-menu-label{ font-weight:700; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -207,9 +222,20 @@
   .input-clear-wrap.has-value .input-clear-btn{ opacity:1; visibility:visible; }
   .input-clear-btn:hover{ color:var(--accent); background:var(--page-bg); }
   .input-clear-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  /* --- alternative ways into the chord field --- */
+  .builder-helpers{ display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin:12px 0 0; }
+  .builder-helpers-label{ margin-right:1px; color:var(--ink-soft); font-size:12.5px; }
+  /* the reverse lookup runs off the chords already in the field rather than
+     filling it, so it sits apart from the three that do */
+  .builder-helpers .helper-inverse{ margin-left:auto; }
+
   /* --- song search --- */
-  .song-search-field{ margin-bottom:13px; }
+  .song-search-field{ margin:11px 0 0; animation:field-reveal .22s ease; }
   .song-search{ position:relative; }
+  @keyframes field-reveal{ from{ opacity:0; transform:translateY(-5px); } }
+  @media (prefers-reduced-motion:reduce){
+    .song-search-field{ animation:none; }
+  }
   .song-search-icon{
     position:absolute; top:50%; left:12px; transform:translateY(-50%);
     width:16px; height:16px; color:var(--ink-soft); pointer-events:none;
@@ -586,13 +612,15 @@
     .tips-modal-backdrop, .tips-modal{ animation:none; }
   }
   /* --- reverse song search (find songs that use the current chords) --- */
-  .field-label-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .rsearch-open-btn{
     display:inline-flex; align-items:center; gap:6px;
     min-height:0; height:28px; padding:0 11px; border-radius:7px;
     font-size:12px; font-weight:650; line-height:1;
   }
   .rsearch-open-btn[hidden]{ display:none; }
+  /* the chip stays lit while the field it revealed is open, so it reads as the
+     field's heading rather than a button that did nothing */
+  .rsearch-open-btn[aria-expanded="true"]{ background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent); }
   .rsearch-open-btn svg{ width:12px; height:12px; flex-shrink:0; }
   .rsearch-backdrop{
     position:fixed; inset:0; z-index:60; padding:24px;
@@ -1051,6 +1079,12 @@
   .fb-footer-copy:disabled{ opacity:.45; cursor:default; text-decoration:none; }
   /* when the two footer actions wrap to two lines, keep them close together */
   #fretboardIdModal .voicing-modal-footer{ row-gap:4px; }
+  /* On a phone the instrument picker names the same instrument and tuning one
+     screen-width below the heading — two lines of pure repetition. Screen only:
+     the heading is what identifies a printed sheet. */
+  @media screen and (max-width:600px){
+    #pageTitle{ display:none; }
+  }
   @media (max-width:600px){
     /* stack the readout above the board; hide the extra card (the input board is
        right below), and no longer needing to pin the readout, drop the sticky */
@@ -1082,6 +1116,12 @@
     .results-summary{ width:100%; }
     .results-actions{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; gap:8px; }
     .results-actions button{ justify-content:center; padding-inline:10px; }
+    /* the odd one out of three — and the primary action, so it takes the full row */
+    #printBtn{ grid-column:1 / -1; }
+    .share-wrap .share-menu{ min-width:0; width:max-content; max-width:min(300px,calc(100vw - 28px)); }
+    /* the chips are thumb targets here, so the row reads better as one block
+       than as two groups pushed apart */
+    .builder-helpers .helper-inverse{ margin-left:0; }
     .tip-fab{ right:14px; bottom:14px; }
     .tip-toast{ right:14px; bottom:70px; width:272px; max-width:calc(100vw - 28px); }
     .options-card{ padding:13px 14px 15px; gap:16px 24px; }
