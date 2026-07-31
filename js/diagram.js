@@ -22,7 +22,7 @@ const AQUILA_KIDS_STRING_COLORS = ['#2f9e44','#d0342c','#e6b400','#2b6bd8'];
 
 const XS = [30,70,110,150];
 const NUT_Y = 37, FRET_H = 34;
-const FRET_MARKERS = [3,5,7,10,12];
+const FRET_MARKERS = [3,5,7,10,12,15];
 function rowCenter(fret){ return NUT_Y + (fret-0.5)*FRET_H; }
 function boardBottomY(numFrets, startFret){
   return NUT_Y + Math.max(3, numFrets - (startFret||0))*FRET_H;
@@ -86,26 +86,38 @@ function boardInner(numFrets, startFret, labels, colors){
   return s;
 }
 
-function dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name, isBlue){
-  const x = XS[i];
+// Dot sizes per board: the position box draws small dots in a narrow tile, the
+// whole neck larger ones across a wide one. `open` sizes are for the hollow
+// ring an open string gets off the board.
+const BOX_DOTS = { r:9, ring:12, name:8, acc:6, openR:6, openRing:9 };
+const NECK_DOTS = { r:11, ring:14.5, name:10, acc:7.5, openR:8, openRing:11.5 };
+
+// One note, wherever it sits: the filled dot carrying its name, or — for an
+// open string, drawn off the board before the nut — the hollow ring. `abs`
+// makes it playable; `name` must already be escaped.
+function noteDot(cx, cy, dots, labels, i, fret, colors, isRoot, abs, name, isBlue){
   const blueSuffix = isBlue ? ' (blue note)' : '';
   const blueTitle = isBlue ? '<title>Blue note</title>' : '';
   const noteAttrs = abs!==null ? ` class="note-dot" data-abs="${abs}" tabindex="0" role="button" aria-label="Play ${escapeXML(labels[i])} string, ${escapeXML(String(fret))}${fret===0?' open':''}${blueSuffix}"` : '';
   let s = '';
   if(fret===0){
-    s += `<circle cx="${x}" cy="24" r="6" fill="${colors.cardBg}" stroke="${isBlue ? colors.blueNoteFill : colors.ink}" stroke-width="1.5"${noteAttrs}>${blueTitle}</circle>`;
+    s += `<circle cx="${cx}" cy="${cy}" r="${dots.openR}" fill="${colors.cardBg}" stroke="${isBlue ? colors.blueNoteFill : colors.ink}" stroke-width="1.5"${noteAttrs}>${blueTitle}</circle>`;
     if(isRoot){
-      s += `<circle cx="${x}" cy="24" r="9" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
+      s += `<circle cx="${cx}" cy="${cy}" r="${dots.openRing}" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
     }
   } else {
-    const y = rowCenter(fret-startFret);
-    s += `<circle cx="${x}" cy="${y}" r="9" fill="${isBlue ? colors.blueNoteFill : colors.dotFill}" stroke="${isBlue ? colors.blueNoteStroke : colors.dotStroke}" stroke-width="1"${noteAttrs}>${blueTitle}</circle>`;
-    if(name) s += `<text class="note-name" x="${x}" y="${y+3}" text-anchor="middle" font-size="8" font-weight="700" fill="${colors.cardBg}" font-family="Arial,sans-serif" pointer-events="none">${accTspans(name, 6)}</text>`;
+    s += `<circle cx="${cx}" cy="${cy}" r="${dots.r}" fill="${isBlue ? colors.blueNoteFill : colors.dotFill}" stroke="${isBlue ? colors.blueNoteStroke : colors.dotStroke}" stroke-width="1"${noteAttrs}>${blueTitle}</circle>`;
+    if(name) s += `<text class="note-name" x="${cx}" y="${cy+dots.name*0.375}" text-anchor="middle" font-size="${dots.name}" font-weight="700" fill="${colors.cardBg}" font-family="Arial,sans-serif" pointer-events="none">${accTspans(name, dots.acc)}</text>`;
     if(isRoot){
-      s += `<circle cx="${x}" cy="${y}" r="12" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
+      s += `<circle cx="${cx}" cy="${cy}" r="${dots.ring}" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
     }
   }
   return s;
+}
+
+function dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name, isBlue){
+  const y = fret===0 ? 24 : rowCenter(fret-startFret);
+  return noteDot(XS[i], y, BOX_DOTS, labels, i, fret, colors, isRoot, abs, name, isBlue);
 }
 
 function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames){
@@ -146,6 +158,70 @@ function scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, high
   return s;
 }
 
+// --- The whole neck: the same fretboard laid on its side, nut at the left and
+// every fret out to the end of the neck. Its own geometry rather than a rotated
+// copy of the board above — note names and fret numbers have to stay upright,
+// and a span this wide wants tighter frets in a much wider picture. Strings run
+// as they would if you tipped the vertical board anticlockwise: string 0, the
+// leftmost there, is the bottom line here.
+const NECK_FRET_W = 30, NECK_STRING_GAP = 30;
+const NECK_TOP = 18, NECK_NUT_X = 48, NECK_OPEN_X = 32, NECK_LABEL_X = 11;
+const NECK_NUM_DY = 19, NECK_PAD_RIGHT = 12, NECK_PAD_BOTTOM = 8;
+
+function neckStringY(i, count){ return NECK_TOP + (count-1-i)*NECK_STRING_GAP; }
+function neckFretX(fret){ return NECK_NUT_X + (fret-0.5)*NECK_FRET_W; }
+function neckWidth(numFrets){ return NECK_NUT_X + numFrets*NECK_FRET_W + NECK_PAD_RIGHT; }
+function neckHeight(count){ return neckStringY(0, count) + NECK_NUM_DY + NECK_PAD_BOTTOM; }
+
+function neckBoard(numFrets, labels, colors){
+  const count = labels.length;
+  const topY = neckStringY(count-1, count);
+  const bottomY = neckStringY(0, count);
+  const rightX = NECK_NUT_X + numFrets*NECK_FRET_W;
+  let s = `<line x1="${NECK_NUT_X}" y1="${topY}" x2="${NECK_NUT_X}" y2="${bottomY}" stroke="${colors.ink}" stroke-width="3"/>`;
+  for(let f=1; f<=numFrets; f++){
+    const x = NECK_NUT_X + f*NECK_FRET_W;
+    s += `<line x1="${x}" y1="${topY}" x2="${x}" y2="${bottomY}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
+    s += `<text class="fret-num" x="${neckFretX(f)}" y="${bottomY+NECK_NUM_DY}" text-anchor="middle" font-size="12" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${f}</text>`;
+  }
+  // the position markers of the real instrument, between the middle strings
+  const markerY = (topY+bottomY)/2;
+  FRET_MARKERS.forEach(f=>{
+    if(f<=numFrets){
+      s += `<circle cx="${neckFretX(f)}" cy="${markerY}" r="4" fill="${colors.ink}" opacity="${colors.markerOpacity}"/>`;
+    }
+  });
+  labels.forEach((lab,i)=>{
+    const y = neckStringY(i, count);
+    const stringColor = colors.stringColors && colors.stringColors[i];
+    s += stringColor
+      ? `<line x1="${NECK_NUT_X}" y1="${y}" x2="${rightX}" y2="${y}" stroke="${stringColor}" stroke-width="3"/>`
+      : `<line x1="${NECK_NUT_X}" y1="${y}" x2="${rightX}" y2="${y}" stroke="${colors.ink}" stroke-width="1" opacity="${colors.lineOpacity}"/>`;
+    // tuning labels are stored ASCII (F#, Bb), so they need the glyph swap first
+    s += `<text x="${NECK_LABEL_X}" y="${y+4.5}" text-anchor="middle" font-size="13" fill="${colors.ink}" font-family="Arial,sans-serif" font-weight="700">${accTspans(escapeXML(formatAccidentals(lab)), 8.5)}</text>`;
+  });
+  return s;
+}
+
+function neckInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, showNoteNames, noteNames, blueNotePC){
+  const count = labels.length;
+  let s = neckBoard(numFrets, labels, colors);
+  stringFrets.forEach((frets,i)=>{
+    const y = neckStringY(i, count);
+    frets.forEach(fret=>{
+      const pc = (openPCs[i]+fret)%12;
+      const isRoot = highlightRoot && pc===rootPC;
+      const abs = openAbs ? openAbs[i]+fret : null;
+      const spelled = (noteNames && noteNames[pc]) || spellNote(pc);
+      // open strings sound their name already, in the label beside the nut
+      const name = (showNoteNames && fret>0) ? escapeXML(formatAccidentals(spelled)) : null;
+      const x = fret===0 ? NECK_OPEN_X : neckFretX(fret);
+      s += noteDot(x, y, NECK_DOTS, labels, i, fret, colors, isRoot, abs, name, blueNotePC!=null && pc===blueNotePC);
+    });
+  });
+  return s;
+}
+
 function chordSVG(name, frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames){
   const bottomY = boardBottomY(numFrets, startFret);
   let s = `<svg viewBox="0 0 188 ${bottomY+12}" width="164" role="img" aria-label="${escapeXML(name)} chord diagram">`;
@@ -162,12 +238,19 @@ function scaleSVG(name, stringFrets, numFrets, labels, colors, openPCs, rootPC, 
   return s;
 }
 
+function neckSVG(name, stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, showNoteNames, noteNames, blueNotePC){
+  const w = neckWidth(numFrets), h = neckHeight(labels.length);
+  let s = `<svg viewBox="0 0 ${w} ${h}" width="${w}" role="img" aria-label="${escapeXML(name)} scale neck diagram">`;
+  s += neckInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, showNoteNames, noteNames, blueNotePC);
+  s += '</svg>';
+  return s;
+}
+
 // Card chrome around a diagram for standalone export: rounded paper, heading,
-// optional italic footer line, optional <metadata> source note.
-function exportFrame(label, innerSVG, numFrets, startFret, colors, showBorder, footerText, metadataText){
+// optional italic footer line, optional <metadata> source note. The diagram's
+// own size comes in, since a position box and a whole neck share this frame.
+function exportFrame(label, innerSVG, diagW, diagH, colors, showBorder, footerText, metadataText){
   const PAD = 14, headerH = 32;
-  const diagW = 188;
-  const diagH = boardBottomY(numFrets, startFret) + 12;
   const footerH = footerText ? 16 : 0;
   const tileW = diagW + PAD*2;
   const tileH = PAD + headerH + diagH + footerH + PAD;
@@ -186,14 +269,21 @@ function exportFrame(label, innerSVG, numFrets, startFret, colors, showBorder, f
 
 function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames){
   const inner = diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret, showNoteNames);
-  return exportFrame(label, inner, numFrets, startFret, colors, showBorder,
+  return exportFrame(label, inner, 188, boardBottomY(numFrets, startFret) + 12, colors, showBorder,
     omitted ? `${omitted.label} (${omitted.note}) omitted` : null,
     sourceURL ? `Chord diagram from ${sourceURL}` : null);
 }
 
 function exportScaleTileSVG(label, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, notesLine, sourceURL, showNoteNames, noteNames, blueNotePC){
   const inner = scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret, showNoteNames, noteNames, blueNotePC);
-  return exportFrame(label, inner, numFrets, startFret, colors, showBorder,
+  return exportFrame(label, inner, 188, boardBottomY(numFrets, startFret) + 12, colors, showBorder,
+    notesLine || null,
+    sourceURL ? `Scale diagram from ${sourceURL}` : null);
+}
+
+function exportNeckTileSVG(label, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, notesLine, sourceURL, showNoteNames, noteNames, blueNotePC){
+  const inner = neckInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, showNoteNames, noteNames, blueNotePC);
+  return exportFrame(label, inner, neckWidth(numFrets), neckHeight(labels.length), colors, showBorder,
     notesLine || null,
     sourceURL ? `Scale diagram from ${sourceURL}` : null);
 }
@@ -201,4 +291,5 @@ function exportScaleTileSVG(label, stringFrets, numFrets, labels, colors, showBo
 export {
   NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS,
   escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG,
+  neckSVG, exportNeckTileSVG,
 };

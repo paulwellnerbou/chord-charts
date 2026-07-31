@@ -12,7 +12,7 @@ Live at [chords.wbou.de](https://chords.wbou.de/).
 - Print the chart, export a chord as an image, or share it via URL.
 - Black & white print mode, and an "Aquila Kids" colored-string mode for teaching.
 - Reverse lookup, both directions: give a set of notes to get fingerings for them, or click the notes onto an interactive fretboard and let the app name the chord (with `×`/`○` for muted/open strings).
-- **Scales mode**: type any scale name (with autocompletion — modes, pentatonics, blues, harmonic/melodic minor and more) and get its position boxes along the neck, lowest first. Each position plays back up and down, spells its notes correctly per key (F♯ major reads E♯), transposes in semitones like the chord chart, and shares via `?scale=` links.
+- **Scales mode**: type any scale name (with autocompletion — modes, pentatonics, blues, harmonic/melodic minor and more) and see it either as position boxes along the neck, lowest first, or as one horizontal whole-neck map from the nut to the 15th fret. Both views play back up and down, spell their notes correctly per key (F♯ major reads E♯), transpose in semitones like the chord chart, export as PNG/SVG and share via `?scale=` links.
 - **Song search**: search a song title to load its chord progression straight into the chart builder, instead of typing chords by hand. Backed by a companion service — see below.
 
 ## Song search

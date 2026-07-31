@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   SCALE_TYPES, scaleDisplayName, parseScale, scaleCompletions, transposeScaleText,
   spellScale, scaleNoteNames,
-  windowSize, scalePositions, positionPlaybackMidis,
+  windowSize, scalePositions, scaleNeck, positionPlaybackMidis,
 } from '../js/scales.js';
 import { TUNINGS } from '../js/theory.js';
 
@@ -254,6 +254,55 @@ test('scalePositions with a rootPC builds boxes that start and end on the root',
   }
   // far fewer boxes than the every-scale-tone anchoring
   assert.ok(positions.length < scalePositions(parsed.pcs, UKE).length);
+});
+
+test('scaleNeck maps every scale tone from the nut to the last fret', () => {
+  const parsed = parseScale('C major pentatonic');
+  const neck = scaleNeck(parsed.pcs, UKE);
+  assert.equal(neck.startFret, 0);
+  assert.equal(neck.endFret, 15);
+  // C string: C D E G A over two octaves, open string included
+  assert.deepEqual(neck.strings[1], [0, 2, 4, 7, 9, 12, 14]);
+  neck.strings.forEach((frets, i) => frets.forEach(f => {
+    assert.ok(f >= 0 && f <= 15);
+    assert.ok(parsed.pcs.includes((UKE.openPCs[i] + f) % 12));
+  }));
+  // unlike a position box, a pitch reachable on two strings is kept on both —
+  // the map is there to show every place to play it
+  const doubled = neck.strings.flatMap((frets, i) => frets.map(f => UKE.openAbs[i] + f));
+  assert.ok(doubled.length > new Set(doubled).size);
+  // playback still sounds each pitch once, ascending
+  assert.deepEqual(neck.midis, [...new Set(neck.midis)].sort((a, b) => a - b));
+});
+
+test('scaleNeck honours the fret limit and covers every tuning', () => {
+  assert.deepEqual(scaleNeck(parseScale('C major').pcs, UKE, 3).strings, [[0, 2], [0, 2], [0, 1, 3], [0, 2, 3]]);
+  for(const tuning of TUNINGS){
+    for(const type of ['major', 'blues', 'chromatic']){
+      const neck = scaleNeck(parseScale(type).pcs, tuning);
+      const sounded = new Set(neck.strings.flatMap((frets, i) => frets.map(f => (tuning.openPCs[i] + f) % 12)));
+      for(const pc of parseScale(type).pcs) assert.ok(sounded.has(pc), `${type} on ${tuning.id} misses pc ${pc}`);
+    }
+  }
+});
+
+test('scaleNeck with a rootPC trims the map to its lowest and highest root', () => {
+  const parsed = parseScale('A blues');
+  const full = scaleNeck(parsed.pcs, UKE);
+  const trimmed = scaleNeck(parsed.pcs, UKE, undefined, parsed.rootPC);
+  assert.equal(trimmed.midis[0] % 12, parsed.rootPC, 'run starts on the root');
+  assert.equal(trimmed.midis[trimmed.midis.length - 1] % 12, parsed.rootPC, 'run ends on the root');
+  assert.ok(trimmed.midis.length < full.midis.length);
+  // nothing outside the root-to-root window survives, on any string
+  const lo = trimmed.midis[0], hi = trimmed.midis[trimmed.midis.length - 1];
+  trimmed.strings.forEach((frets, i) => frets.forEach(f => {
+    assert.ok(UKE.openAbs[i] + f >= lo && UKE.openAbs[i] + f <= hi);
+  }));
+  // a root out of reach leaves an empty map rather than an untrimmed one: no Bb
+  // sounds on an open GCEA string, though the scale's Eb does
+  const bb = parseScale('Bb blues');
+  assert.deepEqual(scaleNeck(bb.pcs, UKE, 0).midis, [64]);
+  assert.deepEqual(scaleNeck(bb.pcs, UKE, 0, bb.rootPC).midis, []);
 });
 
 test('positionPlaybackMidis runs up the box and back down without repeating the top', () => {
