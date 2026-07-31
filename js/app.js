@@ -568,11 +568,22 @@ function saveSettings(){
   // up future default changes. While it is still default (or emptied for a
   // pending ?song= load) any previously stored chords are carried forward.
   if(!chordInputIsDefault){
-    settings.chordInput = document.getElementById('chordInput').value;
+    settings.chordInput = packChordInput(document.getElementById('chordInput').value);
   } else if(typeof savedSettings.chordInput === 'string'){
-    settings.chordInput = savedSettings.chordInput;
+    settings.chordInput = packChordInput(savedSettings.chordInput);
   }
   try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(err){}
+}
+
+// The chord list travels compact — separators only, no whitespace — through
+// localStorage and share links, and comes back onto the page with a space
+// after each comma. Newlines count as separators, so packing never glues two
+// chords together.
+function packChordInput(value){
+  return value.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean).join(',');
+}
+function formatChordInput(value){
+  return value.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean).join(', ');
 }
 
 const MASONRY_GAP = 16, MASONRY_MIN_COL_WIDTH = 190;
@@ -1797,11 +1808,13 @@ function updateURLParam(chordInputValue){
   } else {
     params.delete('song');
     params.delete('transpose');
-    if(chordInputValue){ params.set('chords', chordInputValue); }
+    const packed = packChordInput(chordInputValue);
+    if(packed){ params.set('chords', packed); }
     else { params.delete('chords'); }
   }
   params.set('tuning', selectedTuningId);
-  const query = params.toString();
+  // commas are legal in a query string — unescape them so the link stays readable
+  const query = params.toString().replace(/%2C/gi, ',');
   const newURL = window.location.pathname + (query ? `?${query}` : '') + window.location.hash;
   history.replaceState(null, '', newURL);
 }
@@ -1891,12 +1904,12 @@ const savedSettings = loadSettings();
 // showcase default reappears instead of a blank input.
 const savedChordInputExists = typeof savedSettings.chordInput === 'string' && savedSettings.chordInput.trim() !== '';
 if(savedChordInputExists){
-  document.getElementById('chordInput').value = savedSettings.chordInput;
+  document.getElementById('chordInput').value = formatChordInput(savedSettings.chordInput);
 }
 const chordsParam = new URLSearchParams(window.location.search).get('chords');
 const chordsParamExists = chordsParam !== null && chordsParam.trim() !== '';
 if(chordsParamExists){
-  document.getElementById('chordInput').value = chordsParam;
+  document.getElementById('chordInput').value = formatChordInput(chordsParam);
 }
 // True only while the input still holds the built-in default (untouched by the
 // user, localStorage, or a ?chords= link) — gates whether saveSettings persists it.
