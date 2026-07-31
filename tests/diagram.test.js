@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TUNINGS } from '../js/theory.js';
-import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG } from '../js/diagram.js';
+import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG } from '../js/diagram.js';
+import { parseScale, scalePositions, scaleNoteNames } from '../js/scales.js';
 
 const UKE = TUNINGS[0];
 
@@ -66,4 +67,59 @@ test('exportTileSVG renders border, omitted footer and source metadata on demand
     { label: '5th', note: 'G' }, 'https://chords.example/?chords=C9', true);
   assert.equal((named.match(/class="note-name"/g) || []).length, 1);
   assert.match(named, /class="note-name"[^>]*>B♭<\/text>/);
+});
+
+// C major pentatonic, nut box on the high-G uke — the C string's fret-4 E
+// (the open E refingered) is dropped: [[0,2],[0,2],[0,3],[0,3]]
+const PENTA_POS = scalePositions(parseScale('C major pentatonic').pcs, UKE)[0];
+
+test('scaleSVG draws one playable dot per note of the position', () => {
+  const svg = scaleSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, 0, false, UKE.openAbs, 0);
+  assert.match(svg, /aria-label="C Major Pentatonic scale position diagram"/);
+  assert.match(svg, /width="328"/);
+  assert.equal((svg.match(/class="note-dot"/g) || []).length, 8);
+  // the four open strings render as circles above the nut
+  assert.equal((svg.match(/cy="24" r="6"/g) || []).length, 4);
+  // the C string's fret-2 dot carries its MIDI note (D4)
+  assert.ok(svg.includes(`data-abs="${UKE.openAbs[1] + 2}"`));
+});
+
+test('scaleSVG crops boxes above the nut with fret numbers and no open circles', () => {
+  const second = scalePositions(parseScale('C major pentatonic').pcs, UKE)[1];
+  const svg = scaleSVG('C Major Pentatonic', second.strings, second.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, 0, false, UKE.openAbs, second.startFret - 1);
+  assert.ok(!svg.includes('cy="24"'), 'no open-string circles above the nut');
+  assert.match(svg, />2<\/text>/);
+  assert.ok(!/>1<\/text>/.test(svg), 'frets below the window are cropped away');
+});
+
+test('scaleSVG rings every occurrence of the root when highlighting is on', () => {
+  const svg = scaleSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, 0, true, UKE.openAbs, 0);
+  // open C string and the A string's fret-3 C — two roots in the nut box
+  assert.equal((svg.match(new RegExp(`fill="none" stroke="${NICE_COLORS.rootColor}"`, 'g')) || []).length, 2);
+});
+
+test('scaleSVG spells dot names through the scale map, not the chord-root table', () => {
+  const parsed = parseScale('F# major');
+  const pos = scalePositions(parsed.pcs, UKE)[0];
+  const svg = scaleSVG(parsed.label, pos.strings, pos.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, parsed.rootPC, false, UKE.openAbs, 0, true, scaleNoteNames(parsed.rootName, parsed.type));
+  assert.match(svg, /class="note-name"[^>]*>E♯<\/text>/);
+  assert.ok(!/class="note-name"[^>]*>F<\/text>/.test(svg), 'pc 5 must not read as a bare F');
+});
+
+test('scaleSVG passes string colors through to the board', () => {
+  const colors = Object.assign({}, BW_COLORS, { stringColors: AQUILA_KIDS_STRING_COLORS });
+  const svg = scaleSVG('C Major', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, colors, UKE.openPCs, 0, false, undefined, 0);
+  for (const c of AQUILA_KIDS_STRING_COLORS) assert.ok(svg.includes(`stroke="${c}"`));
+});
+
+test('exportScaleTileSVG renders heading, notes footer and source metadata', () => {
+  const svg = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+    'C · D · E · G · A', 'https://chords.example/?scale=C+major+pentatonic');
+  assert.match(svg, /<metadata>Scale diagram from https:\/\/chords\.example\/\?scale=C\+major\+pentatonic<\/metadata>/);
+  assert.match(svg, /C · D · E · G · A/);
+  assert.match(svg, /stroke="#ddd3c5"/);
+
+  const bare = exportScaleTileSVG('C Major', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, 0, null);
+  assert.ok(!bare.includes('<metadata>'));
+  assert.match(bare, /stroke="none"/);
 });

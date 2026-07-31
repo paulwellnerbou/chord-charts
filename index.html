@@ -60,12 +60,18 @@
     <p class="brand-tagline">Build, hear, share and print four-string chord diagrams.</p>
   </header>
 
-  <section class="settings-section no-print" aria-label="Chords">
+  <section class="settings-section no-print" aria-label="Chart builder">
+    <!-- Chords and scales are parallel worlds sharing the sheet below; the
+         switch reads as part of the builder, not as page navigation. -->
+    <div class="mode-tabs" role="tablist" aria-label="Chart type">
+      <button type="button" class="mode-tab" id="modeTabChords" role="tab" aria-selected="true" aria-controls="chordsPanel">Chords</button>
+      <button type="button" class="mode-tab" id="modeTabScales" role="tab" aria-selected="false" aria-controls="scalesPanel" tabindex="-1">Scales</button>
+    </div>
     <!-- The heading is the field's label: one line of text over the input, not
          three. The instrument rides the same row — it is the one setting here
          that isn't about the chord text, so it stays clear of that run. -->
     <div class="builder-head">
-      <h2 class="builder-title"><label for="chordInput">Which chords do you need?</label></h2>
+      <h2 class="builder-title"><label for="chordInput" class="chords-only">Which chords do you need?</label><label for="scaleInput" class="scales-only">Which scale do you want to learn?</label></h2>
       <div class="instrument-field">
         <span class="sr-only" id="instrumentLabel">Instrument and tuning</span>
         <div class="tuning-select" id="tuningSelectWrap">
@@ -81,6 +87,7 @@
         </div>
       </div>
     </div>
+    <div id="chordsPanel" role="tabpanel" aria-labelledby="modeTabChords">
     <div class="field chord-field">
       <!-- Wraps the field and its pills: the pills are an aid for typing here,
            so they keep to the moment of typing rather than standing in the card
@@ -153,6 +160,19 @@
       </div>
       <p class="song-search-note" id="songSearchNote" role="status" aria-live="polite"></p>
     </div>
+    </div>
+    <div id="scalesPanel" role="tabpanel" aria-labelledby="modeTabScales" hidden>
+      <div class="field scale-field">
+        <div class="input-clear-wrap" id="scaleInputWrap">
+          <input type="text" id="scaleInput" placeholder="e.g. A minor pentatonic" value="C major pentatonic"
+                 autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go"
+                 role="combobox" aria-expanded="false" aria-controls="scaleSuggestMenu" aria-autocomplete="list">
+          <button type="button" class="input-clear-btn" id="scaleInputClear" aria-label="Clear scale">&times;</button>
+          <div class="typeahead-menu" id="scaleSuggestMenu" role="listbox" aria-label="Scale completions" hidden></div>
+        </div>
+        <p class="scale-hint">One scale at a time — type a root and a name, like <code>G blues</code> or <code>D dorian</code>.</p>
+      </div>
+    </div>
     <div class="error" id="errorBox" role="status" aria-live="polite"></div>
   </section>
 
@@ -183,6 +203,10 @@
           <button type="button" class="share-menu-item" id="shareChordsItem">
             <span class="share-menu-label">Chords</span>
             <span class="share-menu-sub" id="shareChordsSub"></span>
+          </button>
+          <button type="button" class="share-menu-item" id="shareScaleItem" hidden>
+            <span class="share-menu-label">Scale</span>
+            <span class="share-menu-sub" id="shareScaleSub"></span>
           </button>
           <button type="button" class="share-menu-item" id="shareAppItem">
             <span class="share-menu-label">App</span>
@@ -229,8 +253,8 @@
             </label>
           </div>
         </div>
-        <div class="options-group" role="group" aria-label="Chord diagram options">
-          <h3 class="settings-section-title">Chord diagrams</h3>
+        <div class="options-group" role="group" aria-label="Diagram options">
+          <h3 class="settings-section-title"><span class="chords-only">Chord diagrams</span><span class="scales-only">Scale diagram</span></h3>
           <p class="options-group-desc">How each diagram is drawn and annotated</p>
           <div class="controls">
             <label class="switch">
@@ -252,7 +276,7 @@
               <button type="button" class="info-btn" id="aquilaInfoBtn" aria-label="About Aquila Kids string colours" aria-expanded="false">i</button>
               <div class="info-popover" id="aquilaInfoPopover" role="tooltip">Draws every string in the colours of the <a href="https://aquilacorde.com/en/negozio/modern-instrument-string-sets/ukulele-banjouke-en/kids/?v=4b8cc16d888f" target="_blank" rel="noopener">Aquila Kids</a> educational ukulele set — green (G), red (C), yellow (E) and blue (A). On other instruments and tunings the colours follow the string positions.</div>
             </div>
-            <div class="switch-wrap" id="omitInfoWrap">
+            <div class="switch-wrap chords-only" id="omitInfoWrap">
               <label class="switch" title="7add9, 6add9 and maj7add9 always drop their 5th to fit these 4-string instruments. A 7th, 6th or add9 chord drops its 5th too when a slash bass outside the chord (like E7/A) would otherwise push it to 5 notes. When on, affected chords show a note naming the dropped tone.">
                 <input type="checkbox" id="omitToggle" checked>
                 <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -261,7 +285,7 @@
               <button type="button" class="info-btn" id="omitInfoBtn" aria-label="About omitted-note labels" aria-expanded="false">i</button>
               <div class="info-popover" id="omitInfoPopover" role="tooltip">7add9, 6add9 and maj7add9 always drop their 5th to fit these 4-string instruments. A 7th, 6th or add9 chord drops its 5th too when a slash bass outside the chord (like E7/A) would otherwise push it to 5 notes. When on, affected chords show a note naming the dropped tone.</div>
             </div>
-            <div class="switch-wrap" id="thresholdInfoWrap">
+            <div class="switch-wrap chords-only" id="thresholdInfoWrap">
               <div class="stepper" id="thresholdStepper" title="Diagrams normally start at the nut. If a chord's lowest fretted note is above this fret, the diagram is cropped to a short window at the chord's position instead.">
                 <span class="stepper-label">Crop above fret</span>
                 <button type="button" class="stepper-btn" id="thresholdMinus" aria-label="Lower crop threshold">−</button>
@@ -276,7 +300,7 @@
             </div>
           </div>
         </div>
-        <div class="options-group" role="group" aria-label="Playback options">
+        <div class="options-group chords-only" role="group" aria-label="Playback options" id="playbackOptionsGroup">
           <h3 class="settings-section-title">Playback</h3>
           <p class="options-group-desc">How chords sound when you hit ▶</p>
           <div class="controls">
@@ -296,9 +320,9 @@
   </div>
 
   <div class="grid" id="grid"></div>
-  <p class="single-chord-tip no-print" id="singleChordTip" hidden></p>
+  <p class="single-chord-tip no-print chords-only" id="singleChordTip" hidden></p>
 
-  <div class="grid-arrange no-print" role="group" aria-label="Page arrangement">
+  <div class="grid-arrange no-print chords-only" role="group" aria-label="Page arrangement">
     <div class="columns-ctl">
       <label class="switch switch-sm">
         <input type="checkbox" id="autoColumnsToggle" checked>
@@ -425,6 +449,19 @@
         <span id="voicingModalOpenAllLabel"></span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       </a>
+    </div>
+  </div>
+</div>
+
+<div class="voicing-modal-backdrop no-print" id="positionModal" hidden>
+  <div class="voicing-modal position-modal" role="dialog" aria-modal="true" aria-labelledby="positionModalTitle">
+    <div class="voicing-modal-head">
+      <h2 id="positionModalTitle"></h2>
+      <button type="button" class="voicing-modal-close" id="positionModalClose" aria-label="Close position chooser">&times;</button>
+    </div>
+    <div class="voicing-modal-grid" id="positionModalGrid"></div>
+    <div class="voicing-modal-footer">
+      <span class="voicing-modal-hint">Hit ▶ to hear a position — click the diagram to use it on the sheet.</span>
     </div>
   </div>
 </div>
