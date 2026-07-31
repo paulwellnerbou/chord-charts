@@ -3,7 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#191009">
 <title>Chord chart generator</title>
+<!-- Set the theme before first paint to avoid a flash of the wrong mode. -->
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem('chords-theme');
+    var t = (saved === 'light' || saved === 'dark') ? saved
+      : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.dataset.theme = t;
+  } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+})();
+</script>
 <meta name="description" content="Generate printable chord diagrams for ukulele, cavaquinho, cuatro, mandolin, mandola, banjo and bass. Explore alternate voicings and shareable charts.">
 
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -24,27 +36,26 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&amp;family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+<div class="top-actions no-print">
+  <a class="icon-link" href="https://github.com/paulwellnerbou/chord-charts" target="_blank" rel="noopener" aria-label="View source on GitHub" title="View source on GitHub">
+    <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+  <button id="themeToggleBtn" class="theme-toggle" type="button" title="Toggle light / dark theme" aria-label="Switch theme">
+    <span class="ic ic-sun" aria-hidden="true">☀</span>
+    <span class="ic ic-moon" aria-hidden="true">☾</span>
+  </button>
+</div>
 <div class="wrap">
-  <header class="masthead">
-    <div class="brand-lockup">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7 4v20M12 4v20M17 4v20M22 4v20M5 8h19M5 14h19M5 20h19"/><circle cx="17" cy="11" r="2.5" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r="2.5" fill="currentColor" stroke="none"/><circle cx="22" cy="23" r="2.5" fill="currentColor" stroke="none"/></svg>
-      </span>
-      <div>
-        <h1 class="brand-title">Chord Charts</h1>
-        <p class="brand-tagline">Build, hear, share and print four-string chord diagrams.</p>
-      </div>
-    </div>
-    <div class="masthead-end">
-      <h2 id="pageTitle" aria-live="polite"><span class="page-title-main" id="pageTitleMain">Mandolin chords</span><span class="page-title-sub" id="pageTitleSub">GDAE tuning</span></h2>
-      <a class="gh-link no-print" href="https://github.com/paulwellnerbou/chord-charts" target="_blank" rel="noopener" aria-label="View source on GitHub" title="View source on GitHub">
-        <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-      </a>
-    </div>
+  <header class="topbar">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7 4v20M12 4v20M17 4v20M22 4v20M5 8h19M5 14h19M5 20h19"/><circle cx="17" cy="11" r="2.5" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r="2.5" fill="currentColor" stroke="none"/><circle cx="22" cy="23" r="2.5" fill="currentColor" stroke="none"/></svg>
+    </span>
+    <h1 class="brand-title">Chord Charts</h1>
+    <p class="brand-tagline">Build, hear, share and print four-string chord diagrams.</p>
   </header>
 
   <section class="settings-section no-print" aria-label="Chords">
@@ -143,9 +154,13 @@
     <div class="error" id="errorBox" role="status" aria-live="polite"></div>
   </section>
 
-  <div class="results-toolbar no-print">
-    <div class="results-summary"><span class="results-count" id="resultsCount">Chord chart</span><span class="results-context" id="resultsContext">updates as you type</span></div>
-    <div class="results-actions">
+  <section class="stage" id="stage" aria-label="Chord chart sheet">
+  <div class="stage-head">
+    <div class="stage-heading">
+      <h2 id="pageTitle" aria-live="polite"><span class="page-title-main" id="pageTitleMain">Mandolin chords</span><span class="page-title-sub" id="pageTitleSub">GDAE tuning</span></h2>
+      <p class="stage-meta no-print"><span class="results-count" id="resultsCount">Chord chart</span><span class="results-context" id="resultsContext">updates as you type</span></p>
+    </div>
+    <div class="results-actions no-print">
       <button type="button" id="optionsToggleBtn" class="secondary btn-iconic options-toggle" aria-expanded="false" aria-controls="optionsPanel">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg>
         Options
@@ -309,6 +324,7 @@
       <div class="info-popover" id="masonryTip" role="tooltip">Packs tiles into columns by height instead of aligning them in even rows. This only makes a visible difference when tiles have different heights — with equal-height tiles both layouts look the same.</div>
     </div>
   </div>
+  </section>
 
   <a class="harp-promo no-print" href="https://harmonica.wbou.de/" target="_blank" rel="noopener">
     <span class="harp-promo-mark" aria-hidden="true">

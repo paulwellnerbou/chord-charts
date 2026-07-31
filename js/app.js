@@ -201,7 +201,8 @@ async function copyAllChordsAsImage(btnEl){
     canvas.height = Math.round(gridRect.height*scale);
     const ctx = canvas.getContext('2d');
     if(!ctx) throw new Error('canvas 2d context unavailable');
-    ctx.fillStyle = getComputedStyle(document.body).backgroundColor;
+    // the sheet's paper, not the page chrome — exports must match what prints
+    ctx.fillStyle = getComputedStyle(document.getElementById('stage')).backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     await Promise.all(items.map(item=> new Promise((resolve,reject)=>{
@@ -2288,6 +2289,19 @@ document.getElementById('bwToggle').addEventListener('change', e=>{
   document.body.classList.toggle('bw-mode', e.target.checked);
   generate();
 });
+// Theme switches the page chrome only — the sheet keeps its paper palette.
+// The pre-paint script in index.html applies the saved theme before first render.
+const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+function syncThemeColor(){
+  if(themeColorMeta) themeColorMeta.content = document.documentElement.dataset.theme === 'light' ? '#f0e4cf' : '#191009';
+}
+syncThemeColor();
+document.getElementById('themeToggleBtn').addEventListener('click', ()=>{
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  try{ localStorage.setItem('chords-theme', next); }catch(err){}
+  syncThemeColor();
+});
 document.getElementById('rootToggle').addEventListener('change', generate);
 document.getElementById('noteNamesToggle').addEventListener('change', generate);
 document.getElementById('aquilaToggle').addEventListener('change', generate);
@@ -2913,7 +2927,8 @@ if(typeof ResizeObserver === 'function'){
 } else {
   window.addEventListener('resize', scheduleGridRefit);
 }
-if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=> fitCardTitles());
+// both measure text, so both must re-run once the webfonts' metrics land
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ fitCardTitles(); fitChordSuggestions(); });
 generate();
 
 // Opens the custom-chord modal pre-filled and already searched when linked

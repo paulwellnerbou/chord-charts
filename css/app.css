@@ -1,4 +1,105 @@
+  /* =========================================================================
+     Theme tokens. The PAGE CHROME switches light/dark; the SHEET — the stage
+     card, the chord tiles, every dialog — keeps its printed-paper palette in
+     both themes, so what you see on the sheet is what prints.
+     ========================================================================= */
   :root{
+    color-scheme:dark;
+
+    /* Warm workshop dark the sheet is lit against. */
+    --bg-0:#191009;
+    --bg-1:#251610;
+    --glow:rgba(224,122,80,.16);
+    --backdrop:
+      radial-gradient(115% 75% at 50% -8%, var(--glow), transparent 55%),
+      radial-gradient(80% 55% at 50% 4%, rgba(180,84,50,.10), transparent 60%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-0) 62%);
+    --grain-opacity:.05;
+    --grain-blend:overlay;
+
+    --page-bg:var(--bg-0);
+    --ink:#f4ecdd;
+    --ink-soft:#b3a28f;
+
+    /* Signature rust accent, lit for dark ground. */
+    --accent:#e0765a;
+    --accent-strong:#ef9078;   /* hover: brighter on dark, deeper on paper */
+    --accent-soft:rgba(224,118,90,.15);
+
+    --card-bg:rgba(255,255,255,.05);  /* raised fill: inputs, ghost buttons, pills */
+    --card-border:rgba(233,209,177,.16);
+    --control-border:rgba(233,209,177,.32);
+    --btn-bg:#bc4a31;
+    --btn-fg:#fff6ec;
+    --error:#f89d84;
+
+    --surface:#2d1e15;               /* popover menus and floating panels */
+    --shadow-pop:0 18px 44px rgba(0,0,0,.55);
+    --scrim:rgba(12,7,4,.62);
+
+    --panel-bg:linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.16));
+    --panel-border:var(--card-border);
+    --panel-shadow:0 20px 44px -28px rgba(0,0,0,.7);
+
+    --stage-border:rgba(233,209,177,.15);
+    --stage-shadow:0 44px 90px -40px rgba(0,0,0,.9), 0 12px 40px -20px rgba(0,0,0,.6);
+    --stage-bg-color:#fffcf7;
+    --stage-bg-image:
+      radial-gradient(120% 90% at 50% -12%, rgba(164,71,55,.06), transparent 55%),
+      linear-gradient(180deg, #fffdf8, #f5ecdd);
+
+    --heading-font:'Fraunces', Georgia, serif;
+    --body-font:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --control-h:48px;
+    --builder-control-h:66px;
+    --hover-fade:.35s;
+  }
+  :root[data-theme="light"]{
+    color-scheme:light;
+
+    /* Same spotlight, inverted: the lit core is the brightest point, so the
+       paper deepens into amber and shades off at the edges for it to read. */
+    --bg-0:#e4d3b7;
+    --bg-1:#f0e4cf;
+    --glow:rgba(255,253,247,1);
+    --backdrop:
+      radial-gradient(86% 55% at 50% -6%, var(--glow), transparent 66%),
+      radial-gradient(122% 82% at 50% -8%, rgba(219,124,78,.4), transparent 66%),
+      radial-gradient(140% 110% at 50% 22%, transparent 38%, rgba(118,82,42,.18)),
+      linear-gradient(180deg, var(--bg-1), var(--bg-0) 76%);
+    --grain-opacity:.035;
+    --grain-blend:multiply;
+
+    --page-bg:var(--bg-0);
+    --ink:#2d241a;
+    --ink-soft:#6f6250;
+
+    --accent:#a44737;
+    --accent-strong:#83382a;
+    --accent-soft:rgba(164,71,55,.13);
+
+    --card-bg:#fffaf0;
+    --card-border:rgba(74,54,26,.16);
+    --control-border:rgba(74,54,26,.34);
+    --btn-bg:#a44737;
+    --btn-fg:#ffffff;
+    --error:#9e2a20;
+
+    --surface:#fffaf0;
+    --shadow-pop:0 14px 34px -8px rgba(80,60,25,.28), 0 2px 8px rgba(80,60,25,.12);
+    --scrim:rgba(64,44,22,.42);
+
+    --panel-bg:linear-gradient(180deg, #fffaf0, #f6ecd9);
+    --panel-border:rgba(74,54,26,.14);
+    --panel-shadow:0 18px 40px -26px rgba(80,60,25,.35);
+
+    --stage-border:rgba(74,54,26,.16);
+    --stage-shadow:0 34px 64px -34px rgba(85,60,25,.55), 0 10px 30px -18px rgba(85,60,25,.35);
+  }
+  /* The sheet and everything that floats over it: printed-paper palette,
+     identical in both themes. Every component inside inherits these. */
+  .stage, .voicing-modal, .rsearch-modal, .tips-modal, .tip-toast, .card-menu{
+    color-scheme:light;   /* light scrollbars and form bits on paper */
     --page-bg:#f6f0e5;
     --ink:#292621;
     --ink-soft:#716a61;
@@ -10,13 +111,13 @@
     --control-border:#b9ac9d;
     --btn-bg:#a44737;
     --btn-fg:#ffffff;
-    --heading-font:'Fraunces', Georgia, serif;
-    --body-font:-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    --control-h:48px;
-    --builder-control-h:66px;
-    --hover-fade:.35s;
+    --error:#9e2a20;
+    --surface:#fffcf7;
+    --shadow-pop:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
   }
-  body.bw-mode{
+  /* B&W preview: a flat photocopy — glow, grain and paper warmth all switch off. */
+  body.bw-mode,
+  body.bw-mode :is(.stage, .voicing-modal, .rsearch-modal, .tips-modal, .tip-toast, .card-menu){
     --page-bg:#ffffff;
     --ink:#000000;
     --ink-soft:#333333;
@@ -28,56 +129,108 @@
     --control-border:#000000;
     --btn-bg:#000000;
     --btn-fg:#ffffff;
+    --error:#000000;
+    --surface:#ffffff;
+    --shadow-pop:0 10px 24px rgba(0,0,0,.18);
+    --scrim:rgba(0,0,0,.45);
     /* fonts intentionally unchanged in bw-mode — only colors switch */
+  }
+  body.bw-mode{
+    --glow:transparent;
+    --panel-bg:#ffffff;
+    --panel-border:#000000;
+    --panel-shadow:none;
+    --stage-border:transparent;
+    --stage-shadow:none;
+    --stage-bg-color:#ffffff;
+    --stage-bg-image:none;
   }
   * { box-sizing: border-box; }
   body {
-    margin:0; background-color:var(--page-bg); color:var(--ink);
-    /* faint paper grain — felt more than seen */
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.075 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    margin:0; background-color:var(--bg-0); color:var(--ink);
     font-family:var(--body-font); font-size:15px; line-height:1.45;
-    padding:28px 24px 48px;
+    padding:26px 24px 48px;
+    transition:background-color .4s ease, color .4s ease;
   }
-  body.bw-mode{ background-image:none; }
+  /* Layer 1: warm spotlight over the desk + vignette. */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:-2;
+    background:var(--backdrop);
+    transition:background .4s ease;
+  }
+  /* Layer 2: fine film grain — felt more than seen. */
+  body::after{
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    opacity:var(--grain-opacity); mix-blend-mode:var(--grain-blend);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  body.bw-mode{ background-color:#fff; }
+  body.bw-mode::before, body.bw-mode::after{ display:none; }
+  ::selection{ background:var(--accent); color:#fff6ec; }
   .wrap{ max-width:1040px; margin:0 auto; }
-  .masthead{
-    display:flex; align-items:center; justify-content:space-between; gap:20px;
-    border-bottom:1px solid var(--card-border); padding-bottom:18px; margin-bottom:20px;
+
+  /* --- top-right actions (GitHub link + theme toggle) --- */
+  .top-actions{
+    position:fixed; top:clamp(12px,2.4vw,20px); right:clamp(12px,2.4vw,20px); z-index:45;
+    display:flex; align-items:center; gap:8px;
   }
+  .theme-toggle, .icon-link{
+    width:44px; height:44px; min-height:0; display:grid; place-items:center; padding:0;
+    border-radius:50%; border:1px solid var(--card-border);
+    background:var(--card-bg); color:var(--accent); cursor:pointer; overflow:hidden;
+    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+    transition:background-color .18s ease, border-color .18s ease, transform .12s ease, box-shadow .18s ease;
+  }
+  .icon-link{ text-decoration:none; }
+  .icon-link svg{ width:20px; height:20px; display:block; }
+  .theme-toggle:hover, .icon-link:hover{ background:var(--accent-soft); color:var(--accent); border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+  .theme-toggle:active, .icon-link:active{ transform:scale(.94); }
+  .theme-toggle:focus-visible, .icon-link:focus-visible{ outline:none; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+  .theme-toggle .ic{
+    grid-area:1 / 1; font-size:1.15rem; line-height:1;
+    transition:opacity .28s ease, rotate .4s cubic-bezier(.2,.8,.2,1), scale .3s ease;
+  }
+  /* Show the icon for the theme you'd switch TO. */
+  :root[data-theme="dark"]  .ic-sun { opacity:1; rotate:0deg;   scale:1;  }
+  :root[data-theme="dark"]  .ic-moon{ opacity:0; rotate:-90deg; scale:.4; }
+  :root[data-theme="light"] .ic-sun { opacity:0; rotate:90deg;  scale:.4; }
+  :root[data-theme="light"] .ic-moon{ opacity:1; rotate:0deg;   scale:1;  }
+
+  /* --- centered brand header --- */
+  .topbar{ text-align:center; margin:4px 0 24px; }
   h1{ margin:0; }
-  .brand-lockup{ display:flex; align-items:center; gap:12px; min-width:0; }
   .brand-mark{
-    display:grid; place-items:center; width:42px; height:42px; flex:0 0 42px;
-    color:var(--accent); background:var(--accent-soft); border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);
-    border-radius:13px;
+    display:grid; place-items:center; width:52px; height:52px; margin:0 auto 12px;
+    color:var(--accent); background:var(--accent-soft);
+    border:1px solid color-mix(in srgb,var(--accent) 28%,transparent);
+    border-radius:15px;
   }
-  .brand-mark svg{ width:26px; height:26px; }
-  .brand-title{ font-family:var(--heading-font); font-size:28px; line-height:1; font-weight:650; }
-  .brand-tagline{ margin:5px 0 0; color:var(--ink-soft); font-size:12.5px; }
-  #pageTitle{ margin:0; text-align:right; }
-  .page-title-main{
-    display:block; font-family:var(--heading-font); font-weight:600;
-    font-size:19px; line-height:1.15; color:var(--ink);
+  .brand-mark svg{ width:32px; height:32px; }
+  .brand-title{
+    font-family:var(--heading-font); font-weight:600;
+    font-size:clamp(1.9rem, 4.6vw, 2.65rem); line-height:1.05; letter-spacing:-.015em;
+    background:linear-gradient(168deg, var(--ink) 30%, var(--accent) 115%);
+    -webkit-background-clip:text; background-clip:text;
+    color:transparent; -webkit-text-fill-color:transparent;
   }
-  .page-title-sub{
-    display:block; margin-top:4px;
-    font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-    color:var(--ink-soft);
+  .brand-tagline{ margin:8px auto 0; max-width:52ch; color:var(--ink-soft); font-size:.95rem; }
+  .topbar::after{
+    content:""; display:block; width:64px; height:3px; margin:14px auto 0;
+    border-radius:2px;
+    background:linear-gradient(90deg, transparent, var(--accent), transparent);
   }
-  .masthead-end{ display:flex; align-items:center; gap:14px; }
-  .gh-link{
-    display:grid; place-items:center; width:40px; height:40px; flex:0 0 40px;
-    color:var(--ink-soft); background:var(--card-bg);
-    border:1px solid var(--control-border); border-radius:12px;
-    transition:color .15s ease,background .15s ease,border-color .15s ease,transform .15s ease;
-  }
-  .gh-link:hover{ color:var(--accent-strong); background:var(--accent-soft); border-color:var(--accent); transform:translateY(-1px); }
-  .gh-link:focus-visible{ outline:3px solid color-mix(in srgb,var(--accent) 26%,transparent); outline-offset:2px; }
+  /* The console: a glass desk-panel above the lit sheet. Narrower than the
+     sheet, so the layout funnels the eye toward the stage below. */
   .settings-section{
-    margin-bottom:18px; padding:18px;
-    background:color-mix(in srgb,var(--card-bg) 93%,transparent);
-    border:1px solid var(--card-border); border-radius:16px;
-    box-shadow:0 12px 32px -30px rgba(41,38,33,.7);
+    /* z-index: the entrance animations make the console and the stage each a
+       stacking context, so the console's dropdowns need the console itself
+       lifted to reach over the sheet below */
+    position:relative; z-index:20;
+    max-width:880px; margin:0 auto 20px; padding:18px clamp(14px,2.4vw,22px) 20px;
+    background:var(--panel-bg);
+    border:1px solid var(--panel-border); border-radius:18px;
+    box-shadow:var(--panel-shadow);
+    transition:background .4s ease, border-color .4s ease;
   }
   .builder-head{ display:flex; align-items:center; justify-content:space-between; gap:10px 18px; flex-wrap:wrap; margin:0 0 10px; }
   .builder-title{ margin:0; font-family:var(--heading-font); font-size:21px; font-weight:600; }
@@ -205,13 +358,40 @@
     .syntax-panel,.syntax-toggle svg{ transition:none; }
   }
 
-  .results-toolbar{
-    display:flex; align-items:center; justify-content:space-between; gap:12px 18px; flex-wrap:wrap;
-    margin:2px 0 0;
+  /* --- the stage: the chord sheet, lit and raised off the desk --- */
+  .stage{
+    position:relative; margin:0 0 22px;
+    padding:clamp(14px,2.6vw,26px) clamp(10px,2.4vw,24px) clamp(12px,2vw,20px);
+    border-radius:22px;
+    background-color:var(--stage-bg-color);
+    background-image:var(--stage-bg-image);
+    border:1px solid var(--stage-border);
+    box-shadow:var(--stage-shadow);
+    transition:background-color .4s ease, border-color .4s ease, box-shadow .4s ease;
   }
-  .results-summary{ display:flex; align-items:baseline; gap:8px; min-width:max-content; }
-  .results-count{ font-family:var(--heading-font); font-size:19px; font-weight:600; color:var(--ink); }
-  .results-context{ color:var(--ink-soft); font-size:12.5px; }
+  /* The spotlight halo follows the sheet, not the top of the page. */
+  .stage::before{
+    content:""; position:absolute; inset:-46px -34px auto; height:240px; z-index:-1;
+    background:radial-gradient(58% 100% at 50% 20%, var(--glow), transparent 72%);
+    pointer-events:none;
+  }
+  .stage-head{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:10px 18px; flex-wrap:wrap;
+    padding-bottom:12px; margin-bottom:14px; border-bottom:1px solid var(--card-border);
+  }
+  .stage-heading{ min-width:0; }
+  #pageTitle{ margin:0; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .page-title-main{
+    font-family:var(--heading-font); font-weight:600;
+    font-size:22px; line-height:1.15; color:var(--ink);
+  }
+  .page-title-sub{
+    font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .stage-meta{ margin:3px 0 0; font-size:12.5px; color:var(--ink-soft); }
+  .results-count{ font-weight:650; color:var(--ink); }
+  .results-context::before{ content:" · "; }
   .results-actions{
     display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap;
     margin:0;
@@ -234,8 +414,8 @@
   .share-menu{
     position:absolute; top:calc(100% + 8px); right:0; z-index:40; min-width:240px; max-width:300px;
     display:flex; flex-direction:column; gap:2px; padding:6px;
-    background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-    box-shadow:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
+    background:var(--surface); border:1px solid var(--card-border); border-radius:12px;
+    box-shadow:var(--shadow-pop);
     transform-origin:top right;
     opacity:0; visibility:hidden; transform:translateY(-6px) scale(.96);
     transition:opacity .16s ease, transform .2s cubic-bezier(.34,1.56,.64,1), visibility .2s;
@@ -260,20 +440,20 @@
   .options-toggle .chev, #shareBtn .chev{ width:13px; height:13px; margin-left:-2px; transition:transform .25s cubic-bezier(.4,0,.2,1); }
   .options-toggle[aria-expanded="true"] .chev, #shareBtn[aria-expanded="true"] .chev{ transform:rotate(180deg); }
 
-  /* carries the toolbar's divider so the expanded panel stays above the line,
-     visually attached to the Options button */
+  /* expands between the sheet head and the charts; the head's divider stays
+     above it, visually attached to the Options button */
   .options-panel{
     display:grid; grid-template-rows:0fr; transition:grid-template-rows .28s cubic-bezier(.4,0,.2,1);
-    border-bottom:1px solid var(--card-border); padding-bottom:14px; margin-bottom:14px;
   }
   .options-panel.open{ grid-template-rows:1fr; }
   .options-panel-inner{ min-height:0; overflow:hidden; visibility:hidden; transition:visibility .28s; }
   .options-panel.open .options-panel-inner{ visibility:visible; transition:visibility 0s; }
   .options-panel.settled .options-panel-inner{ overflow:visible; }
+  /* a recessed tray on the sheet, so the open options read as a distinct band */
   .options-card{
     display:flex; flex-wrap:wrap; gap:18px 44px;
-    background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px;
-    padding:15px 18px 17px; margin:12px 0 4px;
+    background:var(--page-bg); border:1px solid var(--card-border); border-radius:14px;
+    padding:15px 18px 17px; margin:2px 0 18px;
   }
   .options-group{ flex:1 1 240px; min-width:0; }
   .options-group .settings-section-title{ margin-bottom:2px; }
@@ -324,8 +504,8 @@
   .song-search-results{
     position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:30;
     margin:0; padding:6px; list-style:none;
-    background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-    box-shadow:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
+    background:var(--surface); border:1px solid var(--card-border); border-radius:12px;
+    box-shadow:var(--shadow-pop);
     max-height:316px; overflow-y:auto;
   }
   .song-search-results li{
@@ -343,7 +523,7 @@
   .song-search-note a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
 
   .site-footer{
-    margin-top:44px; padding-top:14px; border-top:1px solid var(--card-border);
+    max-width:880px; margin:40px auto 0; padding-top:14px; border-top:1px solid var(--card-border);
     font-size:12px; color:var(--ink-soft);
   }
   .site-footer p{ margin:0; }
@@ -358,8 +538,9 @@
   /* --- cross-promo card for the sibling harmonica app --- */
   .harp-promo{
     display:flex; align-items:center; gap:16px;
-    margin-top:20px; padding:16px 18px;
-    background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px;
+    max-width:880px; margin:22px auto 0; padding:16px 18px;
+    background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:16px;
+    box-shadow:var(--panel-shadow);
     text-decoration:none; color:inherit;
     transition:border-color var(--hover-fade), background var(--hover-fade);
   }
@@ -420,8 +601,8 @@
   .tuning-select-menu{
     position:absolute; top:calc(100% + 8px); left:0; min-width:100%; z-index:20;
     list-style:none; margin:0; padding:6px;
-    background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-    box-shadow:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
+    background:var(--surface); border:1px solid var(--card-border); border-radius:12px;
+    box-shadow:var(--shadow-pop);
     transform-origin:top left;
     opacity:0; visibility:hidden; transform:translateY(-6px) scale(.96);
     transition:opacity .16s ease, transform .2s cubic-bezier(.34,1.56,.64,1), visibility .2s;
@@ -567,8 +748,8 @@
   .info-popover{
     position:absolute; top:calc(100% + 8px); left:0; z-index:20; width:240px;
     padding:10px 12px; font-size:14px; line-height:1.5; text-align:left; font-weight:400;
-    background:var(--card-bg); color:var(--ink); border:1px solid var(--card-border); border-radius:10px;
-    box-shadow:0 14px 30px -10px rgba(41,38,33,.28), 0 2px 8px rgba(41,38,33,.1);
+    background:var(--surface); color:var(--ink); border:1px solid var(--card-border); border-radius:10px;
+    box-shadow:var(--shadow-pop);
     opacity:0; visibility:hidden; transform:translateY(-4px);
     transition:opacity .16s ease, transform .16s ease, visibility .16s;
   }
@@ -656,7 +837,7 @@
   .tips-modal-backdrop{
     position:fixed; inset:0; z-index:60; padding:24px;
     display:flex; align-items:center; justify-content:center;
-    background:rgba(41,38,33,.45);
+    background:var(--scrim);
     animation:voicing-backdrop-in .15s ease;
   }
   .tips-modal-backdrop[hidden]{ display:none; }
@@ -708,7 +889,7 @@
   .rsearch-backdrop{
     position:fixed; inset:0; z-index:60; padding:24px;
     display:flex; align-items:center; justify-content:center;
-    background:rgba(41,38,33,.45);
+    background:var(--scrim);
     animation:voicing-backdrop-in .15s ease;
   }
   .rsearch-backdrop[hidden]{ display:none; }
@@ -790,14 +971,13 @@
     .rsearch-backdrop, .rsearch-modal{ animation:none; }
     .spinner{ animation:none; }
   }
-  .error{ font-size:13px; font-weight:600; color:#9e2a20; margin:9px 0 0; }
+  .error{ font-size:13px; font-weight:600; color:var(--error); margin:9px 0 0; }
   .error:empty{ display:none; }
   .empty-hint{ font-size:14.5px; font-style:italic; color:var(--ink-soft); margin:6px 0; }
-  /* slim page-arrangement controls under the grid; carries the chart section's
-     closing divider like the options panel carries the header's */
+  /* slim page-arrangement controls closing the sheet, fenced off the charts */
   .grid-arrange{
     display:flex; justify-content:flex-end; align-items:center; gap:8px 20px; flex-wrap:wrap;
-    margin:18px 0 0; padding-bottom:12px; border-bottom:1px solid var(--card-border);
+    margin:18px 0 0; padding-top:10px; border-top:1px solid var(--card-border);
   }
   .grid-arrange .switch-wrap[hidden]{ display:none; }
   /* switch and stepper share one flex cell: a collapsed sibling would still
@@ -952,7 +1132,7 @@
   .voicing-modal-backdrop{
     position:fixed; inset:0; z-index:60; padding:24px;
     display:flex; align-items:center; justify-content:center;
-    background:rgba(41,38,33,.45);
+    background:var(--scrim);
     animation:voicing-backdrop-in .15s ease;
   }
   .voicing-modal-backdrop[hidden]{ display:none; }
@@ -1162,11 +1342,26 @@
   .fb-footer-copy:disabled{ opacity:.45; cursor:default; text-decoration:none; }
   /* when the two footer actions wrap to two lines, keep them close together */
   #fretboardIdModal .voicing-modal-footer{ row-gap:4px; }
-  /* On a phone the instrument picker names the same instrument and tuning one
-     screen-width below the heading — two lines of pure repetition. Screen only:
-     the heading is what identifies a printed sheet. */
+  /* --- entrance: one calm, staggered reveal on first load --- */
+  @media (prefers-reduced-motion: no-preference){
+    .topbar, .settings-section, .stage, .harp-promo, .site-footer{
+      animation:rise .6s cubic-bezier(.2,.7,.2,1) both;
+    }
+    .settings-section{ animation-delay:.06s; }
+    .stage{ animation-delay:.14s; }
+    .harp-promo{ animation-delay:.2s; }
+    .site-footer{ animation-delay:.26s; }
+    @keyframes rise{
+      from{ opacity:0; transform:translateY(16px); }
+      to{ opacity:1; transform:none; }
+    }
+  }
+
+  /* On a phone the instrument picker already names the tuning one screen-width
+     above the sheet — keep the sheet's title, drop the echoed tuning. Screen
+     only: the full heading is what identifies a printed sheet. */
   @media screen and (max-width:600px){
-    #pageTitle{ display:none; }
+    .page-title-sub{ display:none; }
   }
   @media (max-width:600px){
     /* stack the readout above the board; hide the extra card (the input board is
@@ -1174,14 +1369,18 @@
     .fb-board-col{ order:1; align-self:stretch; }
     .fb-readout{ order:0; position:static; width:100%; padding-bottom:10px; margin-bottom:2px; border-bottom:1px solid var(--card-border); }
     .fb-card-slot{ display:none; }
-    body{ padding:16px 12px 32px; }
-    .masthead{ align-items:flex-start; gap:10px; padding-bottom:14px; margin-bottom:14px; }
-    .brand-mark{ width:38px; height:38px; flex-basis:38px; border-radius:11px; }
-    .brand-title{ font-size:24px; }
+    body{ padding:14px 10px 32px; }
+    .topbar{ margin:2px 0 18px; }
+    /* clear the fixed corner buttons, which the narrow width pulls inwards */
+    .topbar .brand-mark{ margin-top:4px; }
+    .brand-mark{ width:44px; height:44px; border-radius:13px; }
+    .brand-mark svg{ width:27px; height:27px; }
     .brand-tagline{ display:none; }
-    .page-title-main{ font-size:15px; }
-    .page-title-sub{ font-size:9.5px; letter-spacing:.1em; }
-    .settings-section{ padding:14px; border-radius:14px; }
+    .topbar::after{ margin-top:11px; }
+    .theme-toggle, .icon-link{ width:40px; height:40px; }
+    .page-title-main{ font-size:19px; }
+    .stage{ border-radius:18px; }
+    .settings-section{ padding:14px 12px; border-radius:16px; }
     .builder-head{ margin-bottom:10px; }
     .builder-title{ font-size:19px; }
     /* the heading takes the line, so the picker takes the next one whole */
@@ -1214,8 +1413,8 @@
     .chord-suggestions-more{ min-width:52px; padding:0 2px; }
     /* keep long titles readable on narrow dropdowns */
     .song-result-meta{ display:none; }
-    .results-toolbar{ align-items:stretch; }
-    .results-summary{ width:100%; }
+    .stage-head{ align-items:stretch; }
+    .stage-heading{ width:100%; }
     /* Options and Share split the row; printing from a phone is rare enough
        that the primary action gets by on its icon alone. */
     .results-actions{ display:flex; width:100%; gap:8px; }
@@ -1253,6 +1452,24 @@
   @media (max-width:340px){ .grid{ grid-template-columns:1fr; } }
   @media print {
     body{ padding:16px; background:#fff !important; }
+    body::before, body::after{ display:none; }
+    /* the entrance animation must never leave a printed element on its
+       invisible first frame */
+    *, *::before, *::after{ animation:none !important; transition:none !important; }
+    /* one quiet credit line — the sheet title below is what leads the page */
+    .topbar{ margin:0 0 10px; }
+    .topbar::after{ display:none; }
+    .brand-mark, .brand-tagline{ display:none; }
+    .brand-title{
+      font-size:15px; background:none;
+      -webkit-text-fill-color:currentColor; color:#716a61;
+    }
+    .stage{
+      background:none; border:none; box-shadow:none;
+      padding:0; border-radius:0; margin:0;
+    }
+    .stage::before{ display:none; }
+    .stage-head{ border-bottom:none; padding-bottom:0; margin-bottom:10px; }
     .grid{ gap:12px; }
     .grid.masonry{ gap:12px; }
     .masonry-col{ gap:12px; }
