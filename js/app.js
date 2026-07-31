@@ -740,12 +740,17 @@ function updateChordInputClearUI(){
 // chart's first chord (an empty input starts from C) and rebuilt on every
 // generate, so they stay usable as typed. Chords already on the sheet are
 // dropped — a pill that changes nothing is noise.
-// the common qualities fit one line; the tail (diminished, augmented, altered)
-// waits behind the "more" toggle, which stays open once opened
-const SUGGESTIONS_COLLAPSED = 6;
+// However many fit one line — the tail (diminished, augmented, altered) waits
+// behind the "more" toggle, which stays open once opened. A phone fits half of
+// what a pointer does, and the toggle shrinks to its caret to buy the room.
+const SUGGESTIONS_NARROW = window.matchMedia('(max-width:600px)');
+const collapsedSuggestions = ()=> SUGGESTIONS_NARROW.matches ? 3 : 6;
 let suggestionsExpanded = false;
+let lastSuggestionLabels = [];
+SUGGESTIONS_NARROW.addEventListener('change', ()=> renderChordSuggestions(lastSuggestionLabels));
 
 function renderChordSuggestions(labels){
+  lastSuggestionLabels = labels;
   const row = document.getElementById('chordSuggestions');
   const rootMatch = labels.length ? labels[0].match(/^([A-Ga-g])(#|b)?/) : null;
   // a root typed lower case ("eb, ab") still yields pills spelled the usual way
@@ -757,21 +762,27 @@ function renderChordSuggestions(labels){
   const label = labels.length
     ? `More ${formatAccidentals(root)} chords:`
     : `Start with a ${formatAccidentals(root)} chord:`;
-  const hidden = pills.length - SUGGESTIONS_COLLAPSED;
+  const collapsed = collapsedSuggestions();
+  const hidden = pills.length - collapsed;
   row.classList.toggle('show-all', suggestionsExpanded);
   row.innerHTML = `<span class="chord-suggestions-label">${escapeXML(label)}</span>`
     + pills.map((s,i) => {
         // the quality spelled out carries the pill for anyone who doesn't read the
         // shorthand, so it names the button rather than sitting in a tooltip alone
         const name = escapeXML(`Add ${s.chord} — ${s.hint}`);
-        const extra = i >= SUGGESTIONS_COLLAPSED ? ' is-extra' : '';
+        const extra = i >= collapsed ? ' is-extra' : '';
         return `<button type="button" class="chord-suggestion${extra}" data-chord="${escapeXML(s.chord)}"`
           + ` title="${name}" aria-label="${name}">${escapeXML(formatAccidentals(s.chord))}</button>`;
       }).join('')
-    + (hidden > 0
-        ? `<button type="button" class="chord-suggestions-more" aria-expanded="${suggestionsExpanded}">`
-          + `${suggestionsExpanded ? 'Show fewer' : `${hidden} more`}</button>`
-        : '');
+    + (hidden > 0 ? moreToggleHTML(hidden) : '');
+}
+
+function moreToggleHTML(hidden){
+  const name = suggestionsExpanded ? 'Show fewer chord suggestions' : 'Show more chord suggestions';
+  return `<button type="button" class="chord-suggestions-more" aria-expanded="${suggestionsExpanded}" aria-label="${name}" title="${name}">`
+    + `<span class="btn-text-long">${suggestionsExpanded ? 'Show fewer' : `${hidden} more`}</span>`
+    + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`
+    + `</button>`;
 }
 
 function addSuggestedChord(chord){
@@ -2207,10 +2218,10 @@ document.getElementById('chordSuggestions').addEventListener('click', e=>{
   if(moreBtn){
     suggestionsExpanded = !suggestionsExpanded;
     row.classList.toggle('show-all', suggestionsExpanded);
-    moreBtn.setAttribute('aria-expanded', String(suggestionsExpanded));
-    moreBtn.textContent = suggestionsExpanded
-      ? 'Show fewer'
-      : `${row.querySelectorAll('.chord-suggestion.is-extra').length} more`;
+    // replacing the node drops the focus the click put on it
+    const hadFocus = document.activeElement === moreBtn;
+    moreBtn.outerHTML = moreToggleHTML(row.querySelectorAll('.chord-suggestion.is-extra').length);
+    if(hadFocus) row.querySelector('.chord-suggestions-more').focus();
     return;
   }
   const btn = e.target.closest('.chord-suggestion');

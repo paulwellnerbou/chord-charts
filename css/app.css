@@ -88,8 +88,17 @@
   /* stretch, so the transpose column tracks the field as it grows with the text.
      Tighter than the grid gap on its right: proximity is what says which of the
      two neighbours it belongs to, now that it carries no label. */
-  .chord-input-row{ display:flex; align-items:stretch; gap:6px; }
+  .chord-input-row{ position:relative; display:flex; align-items:stretch; gap:6px; }
   .chord-input-row .input-clear-wrap{ flex:1 1 auto; min-width:0; }
+  /* The stepper spells out nothing, so the explanation rides a popover the page
+     draws itself — native title bubbles never appear on touch. Below the
+     control, right-aligned, so it never covers the field being described. */
+  .chord-input-row .transpose-tip{ top:calc(100% + 8px); left:auto; right:0; }
+  #transposeStepper:hover ~ .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); transition-delay:.4s; }
+  .chord-input-row:has(#transposeStepper :focus-visible) .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); }
+  @media (hover:none){
+    .chord-input-row:has(#transposeStepper :focus) .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); }
+  }
   /* flex-start, never centred: expanding the help grows it downwards, and a
      centred neighbour would be shoved down and back on every toggle */
   .chord-hint-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin:8px 0 0; }
@@ -113,9 +122,12 @@
      click away instead of spending the width by default */
   .chord-suggestions:not(.show-all) .chord-suggestion.is-extra{ display:none; }
   .chord-suggestions-more{
+    display:inline-flex; align-items:center; gap:3px;
     min-height:0; padding:4px 4px; border:0; border-radius:6px;
     background:transparent; color:var(--accent); font-size:12.5px; font-weight:650;
   }
+  .chord-suggestions-more svg{ width:11px; height:11px; transition:transform .2s ease; }
+  .chord-suggestions-more[aria-expanded="true"] svg{ transform:rotate(180deg); }
   .chord-suggestions-more:hover{ background:transparent; border-color:transparent; color:var(--accent-strong); text-decoration:underline; }
   .chord-suggestions-more:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   /* Boxed and marked so it reads as help at a glance, rather than as one more
@@ -1146,11 +1158,16 @@
     .custom-chord-notes-input{ font-size:16px; }
     /* a thumb needs a taller target than a pointer does */
     .chord-suggestion{ padding:7px 12px; }
-    /* One line, whatever the root spells out to: the row scrolls sideways
-       instead of wrapping and pushing the chart further down the screen. */
-    .chord-suggestions{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
-    .chord-suggestions::-webkit-scrollbar{ display:none; }
+    /* One line, whatever the root spells out to: half as many pills, a toggle
+       shrunk to its caret, and the label as the one part that may give way. */
+    .chord-suggestions{ flex-wrap:nowrap; }
     .chord-suggestions > *{ flex:0 0 auto; }
+    .chord-suggestions-label{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .chord-suggestions-more{ padding:4px 6px; }
+    /* asked for the rest, so the rest gets its lines — the one-line rule is
+       about what you land on, not about what you opened yourself */
+    .chord-suggestions.show-all{ flex-wrap:wrap; }
+    .chord-suggestions.show-all .chord-suggestions-label{ flex:0 0 auto; }
     /* keep long titles readable on narrow dropdowns */
     .song-result-meta{ display:none; }
     .results-toolbar{ align-items:stretch; }

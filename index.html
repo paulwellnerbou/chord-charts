@@ -58,13 +58,15 @@
             <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
           </div>
           <!-- Up is up: + on top. Butted against the field because it edits the
-               text in it, and it grows with the field. -->
-          <div class="stepper stepper-vert" id="transposeStepper" role="group" aria-label="Transpose all chords" title="Transpose — shift every chord up or down in semitones, rewriting the chord text">
-            <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone" title="Up a semitone">+</button>
+               text in it, and it grows with the field. Carrying no label, it
+               leans on the popover below to say what it does. -->
+          <div class="stepper stepper-vert" id="transposeStepper" role="group" aria-label="Transpose all chords" aria-describedby="transposeTip">
+            <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone">+</button>
             <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
-            <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone" title="Down a semitone">−</button>
+            <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone">−</button>
             <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
           </div>
+          <div class="info-popover transpose-tip" id="transposeTip" role="tooltip">Transpose: shifts every chord in the box up or down a semitone, rewriting the chord text itself.</div>
         </div>
         <!-- The format hint belongs to the field, so it reads as its hint line
              rather than as a stray sentence further down the card. -->
