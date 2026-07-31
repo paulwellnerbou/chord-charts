@@ -38,7 +38,7 @@ function animateHeightSwap(el, mutate, opts = {}){
   const to = el.offsetHeight;
   if(from === to) return;
   const anim = el.animate([{ height:`${from}px` }, { height:`${to}px` }],
-    { duration: opts.duration || 220, easing:'cubic-bezier(.4,0,.2,1)' });
+    { duration: opts.duration ?? 220, easing:'cubic-bezier(.4,0,.2,1)' });
   el._heightAnim = anim;
   if(opts.clip) el.style.overflow = 'hidden';
   const clear = ()=>{
