@@ -249,19 +249,20 @@
      point the heading itself isn't */
   .builder-title label{ cursor:default; }
   .chord-field{ min-width:0; }
-  /* stretch, so the transpose column tracks the field as it grows with the text.
-     Tighter than the grid gap on its right: proximity is what says which of the
-     two neighbours it belongs to, now that it carries no label. */
-  .chord-input-row{ position:relative; display:flex; align-items:stretch; gap:6px; }
-  .chord-input-row .input-clear-wrap{ flex:1 1 auto; min-width:0; }
+  /* Input + transpose stepper, in both builders. Stretch, so the transpose
+     column tracks the field as it grows with the text. Tighter than the grid
+     gap on its right: proximity is what says which of the two neighbours it
+     belongs to, now that it carries no label. */
+  .transpose-row{ position:relative; display:flex; align-items:stretch; gap:6px; }
+  .transpose-row .input-clear-wrap{ flex:1 1 auto; min-width:0; }
   /* The stepper spells out nothing, so the explanation rides a popover the page
      draws itself — native title bubbles never appear on touch. Below the
      control, right-aligned, so it never covers the field being described. */
-  .chord-input-row .transpose-tip{ top:calc(100% + 8px); left:auto; right:0; }
+  .transpose-row .transpose-tip{ top:calc(100% + 8px); left:auto; right:0; }
   /* The tip is the stepper's next sibling, so plain combinators reach it — no
      parent selector, and one rule covers keyboard and touch alike. */
-  #transposeStepper:hover ~ .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); transition-delay:.4s; }
-  #transposeStepper:focus-within ~ .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); }
+  .transpose-row .stepper-vert:hover ~ .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); transition-delay:.4s; }
+  .transpose-row .stepper-vert:focus-within ~ .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); }
   /* flex-start, never centred: expanding the help grows it downwards, and a
      centred neighbour would be shoved down and back on every toggle */
   .chord-hint-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin:8px 0 0; }

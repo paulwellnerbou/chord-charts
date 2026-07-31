@@ -93,7 +93,7 @@
            so they keep to the moment of typing rather than standing in the card
            all the time. -->
       <div class="chord-entry">
-        <div class="chord-input-row">
+        <div class="transpose-row">
           <div class="input-clear-wrap" id="chordInputWrap">
             <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, F, G7</textarea>
             <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
@@ -163,12 +163,23 @@
     </div>
     <div id="scalesPanel" role="tabpanel" aria-labelledby="modeTabScales" hidden>
       <div class="field scale-field">
-        <div class="input-clear-wrap" id="scaleInputWrap">
-          <input type="text" id="scaleInput" placeholder="e.g. A minor pentatonic" value="C major pentatonic"
-                 autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go"
-                 role="combobox" aria-expanded="false" aria-controls="scaleSuggestMenu" aria-autocomplete="list">
-          <button type="button" class="input-clear-btn" id="scaleInputClear" aria-label="Clear scale">&times;</button>
-          <div class="typeahead-menu" id="scaleSuggestMenu" role="listbox" aria-label="Scale completions" hidden></div>
+        <div class="transpose-row">
+          <div class="input-clear-wrap" id="scaleInputWrap">
+            <input type="text" id="scaleInput" placeholder="e.g. A minor pentatonic" value="C major pentatonic"
+                   autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go"
+                   role="combobox" aria-expanded="false" aria-controls="scaleSuggestMenu" aria-autocomplete="list">
+            <button type="button" class="input-clear-btn" id="scaleInputClear" aria-label="Clear scale">&times;</button>
+            <div class="typeahead-menu" id="scaleSuggestMenu" role="listbox" aria-label="Scale completions" hidden></div>
+          </div>
+          <!-- The chords transpose stepper's twin: same spot against the field,
+               same popover carrying the label it doesn't wear. -->
+          <div class="stepper stepper-vert" id="scaleTransposeStepper" role="group" aria-label="Transpose the scale" aria-describedby="scaleTransposeTip">
+            <button type="button" class="stepper-btn" id="scaleTransposePlus" aria-label="Transpose the scale up one semitone">+</button>
+            <button type="button" class="stepper-value" id="scaleTransposeValue" disabled>0</button>
+            <button type="button" class="stepper-btn" id="scaleTransposeMinus" aria-label="Transpose the scale down one semitone">−</button>
+            <span class="sr-only" id="scaleTransposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+          </div>
+          <div class="info-popover transpose-tip" id="scaleTransposeTip" role="tooltip">Transpose: moves the scale's root up or down a semitone, rewriting the name itself.</div>
         </div>
         <p class="scale-hint scale-hint-examples"><span>One scale at a time — type a root and a name, or try</span>
           <button type="button" class="secondary scale-example">A Minor Pentatonic</button>
