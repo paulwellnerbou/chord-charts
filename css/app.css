@@ -41,12 +41,14 @@
     --panel-border:var(--card-border);
     --panel-shadow:0 20px 44px -28px rgba(0,0,0,.7);
 
-    --stage-border:rgba(233,209,177,.15);
-    --stage-shadow:0 44px 90px -40px rgba(0,0,0,.9), 0 12px 40px -20px rgba(0,0,0,.6);
-    --stage-bg-color:#fffcf7;
+    /* Dark stage under the lit paper tiles — the raised panel, not the paper,
+       darkens with the chrome. */
+    --stage-border:rgba(233,209,177,.13);
+    --stage-shadow:0 34px 70px -34px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.05);
+    --stage-bg-color:transparent;
     --stage-bg-image:
-      radial-gradient(120% 90% at 50% -12%, rgba(164,71,55,.06), transparent 55%),
-      linear-gradient(180deg, #fffdf8, #f5ecdd);
+      radial-gradient(120% 120% at 50% -20%, rgba(224,122,80,.09), transparent 58%),
+      linear-gradient(180deg, rgba(255,255,255,.035), rgba(0,0,0,.16));
 
     --heading-font:'Fraunces', Georgia, serif;
     --body-font:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -95,10 +97,16 @@
 
     --stage-border:rgba(74,54,26,.16);
     --stage-shadow:0 34px 64px -34px rgba(85,60,25,.55), 0 10px 30px -18px rgba(85,60,25,.35);
+    --stage-bg-color:#fffcf7;
+    --stage-bg-image:
+      radial-gradient(120% 90% at 50% -12%, rgba(164,71,55,.06), transparent 55%),
+      linear-gradient(180deg, #fffdf8, #f5ecdd);
   }
-  /* The sheet and everything that floats over it: printed-paper palette,
-     identical in both themes. Every component inside inherits these. */
-  .stage, .voicing-modal, .rsearch-modal, .tips-modal, .tip-toast, .card-menu{
+  /* The printed artefacts — chord tiles and the dialogs that stage them —
+     keep the letterpress paper palette in both themes, so what's on a card is
+     what prints. The stage around the cards is themed: it darkens with the
+     chrome and lets the paper tiles carry the light. */
+  .card, .voicing-modal, .rsearch-modal, .tips-modal, .tip-toast, .card-menu{
     color-scheme:light;   /* light scrollbars and form bits on paper */
     --page-bg:#f6f0e5;
     --ink:#292621;
@@ -117,7 +125,7 @@
   }
   /* B&W preview: a flat photocopy — glow, grain and paper warmth all switch off. */
   body.bw-mode,
-  body.bw-mode :is(.stage, .voicing-modal, .rsearch-modal, .tips-modal, .tip-toast, .card-menu){
+  body.bw-mode :is(.card, .voicing-modal, .rsearch-modal, .tips-modal, .tip-toast, .card-menu){
     --page-bg:#ffffff;
     --ink:#000000;
     --ink-soft:#333333;
@@ -275,11 +283,10 @@
      not shift when the pills fold onto a second line */
   .chord-suggestions-pills{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; flex:1 1 auto; min-width:0; }
   .chord-suggestions.measuring .chord-suggestions-pills{ flex-wrap:wrap; }
-  /* the label holds its full width while measuring, or the pills' appetite for
-     room would squeeze it and the first line would come out wider than it
-     will be once the overflow is hidden again */
-  .chord-suggestions.measuring .chord-suggestions-label{ flex:0 0 auto; }
-  .chord-suggestions-label{ margin-right:2px; color:var(--ink-soft); font-size:12.5px; }
+  /* never let the pills' appetite for room squeeze the label into wrapping —
+     it holds its width and the pills wrap instead (phones override with a
+     one-line ellipsis) */
+  .chord-suggestions-label{ flex:0 0 auto; white-space:nowrap; margin-right:2px; color:var(--ink-soft); font-size:12.5px; }
   .chord-suggestion{
     min-height:0; padding:3px 9px; border-radius:999px;
     background:var(--card-bg); color:var(--ink); border:1px solid var(--control-border);
@@ -758,9 +765,15 @@
   .info-popover a{ color:var(--accent); font-weight:650; text-decoration:none; }
   .info-popover a:hover{ text-decoration:underline; text-underline-offset:2px; }
   .info-popover a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
-  .threshold-example{ display:flex; align-items:flex-start; gap:14px; margin-top:9px; }
-  .threshold-example figure{ margin:0; text-align:center; }
-  .threshold-example figcaption{ font-size:11px; font-weight:600; margin-bottom:3px; }
+  .threshold-example{ display:flex; align-items:flex-start; gap:10px; margin-top:9px; }
+  /* the example diagrams are drawn in printed-paper ink, so they sit on paper
+     chips whatever ground the popover has */
+  .threshold-example figure{
+    margin:0; text-align:center;
+    background:#fffcf7; border:1px solid #ddd3c5; border-radius:8px; padding:5px 4px 2px;
+  }
+  body.bw-mode .threshold-example figure{ background:#fff; border-color:#000; }
+  .threshold-example figcaption{ font-size:11px; font-weight:600; color:#292621; margin-bottom:3px; }
   .threshold-example svg{ width:88px; height:auto; display:block; margin:0 auto; }
   /* the tiny example scale would render the 10-unit numbers unreadable */
   .threshold-example .fret-num{ font-size:20px; opacity:.85; transform:translateY(3px); }
@@ -772,18 +785,19 @@
     .tip-pointer-text{ display:none; }
     .tip-touch-text{ display:inline; }
   }
+  /* solid CTA colours: a translucent fill sinks into the dark backdrop */
   .tip-fab{
     position:fixed; right:20px; bottom:20px; z-index:50;
     min-height:46px; width:46px; height:46px; padding:0; border:none; border-radius:50%;
-    background:var(--accent-soft); color:var(--accent);
+    background:var(--btn-bg); color:var(--btn-fg);
     display:flex; align-items:center; justify-content:center;
-    box-shadow:0 10px 24px -10px rgba(41,38,33,.4), 0 2px 8px rgba(41,38,33,.16);
-    cursor:pointer; transition:background-color .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease;
+    box-shadow:0 10px 24px -8px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.2);
+    cursor:pointer; transition:background-color .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease,filter .18s ease;
   }
   .tip-fab svg{ width:21px; height:21px; }
-  .tip-fab:hover{ background:var(--accent); color:#fff; transform:translateY(-2px); box-shadow:0 14px 28px -10px rgba(41,38,33,.48), 0 3px 10px rgba(41,38,33,.2); }
-  .tip-fab:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
-  .tip-fab[aria-expanded="true"]{ background:var(--accent); color:#fff; }
+  .tip-fab:hover{ background:var(--btn-bg); filter:brightness(1.1); transform:translateY(-2px); box-shadow:0 14px 28px -8px rgba(0,0,0,.5), 0 3px 10px rgba(0,0,0,.24); }
+  .tip-fab:focus-visible{ outline:none; box-shadow:0 0 0 4px var(--accent-soft), 0 10px 24px -8px rgba(0,0,0,.45); }
+  .tip-fab[aria-expanded="true"]{ box-shadow:0 0 0 4px var(--accent-soft), 0 10px 24px -8px rgba(0,0,0,.45); }
   .tip-toast{
     position:fixed; right:20px; bottom:78px; z-index:50; width:300px; max-width:calc(100vw - 32px);
     background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px;
@@ -1467,6 +1481,8 @@
     .stage{
       background:none; border:none; box-shadow:none;
       padding:0; border-radius:0; margin:0;
+      /* the stage is themed on screen; on paper its text must be ink */
+      --ink:#292621; --ink-soft:#716a61; --accent:#a44737;
     }
     .stage::before{ display:none; }
     .stage-head{ border-bottom:none; padding-bottom:0; margin-bottom:10px; }

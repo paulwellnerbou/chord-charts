@@ -201,8 +201,9 @@ async function copyAllChordsAsImage(btnEl){
     canvas.height = Math.round(gridRect.height*scale);
     const ctx = canvas.getContext('2d');
     if(!ctx) throw new Error('canvas 2d context unavailable');
-    // the sheet's paper, not the page chrome — exports must match what prints
-    ctx.fillStyle = getComputedStyle(document.getElementById('stage')).backgroundColor;
+    // the tiles' own paper (or bw white), never the themed stage behind them —
+    // exports must match what prints
+    ctx.fillStyle = colors.cardBg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     await Promise.all(items.map(item=> new Promise((resolve,reject)=>{
