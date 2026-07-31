@@ -208,13 +208,20 @@ function fallbackSpelling(rootPC, intervals, preferFlat){
 // doesn't name a scale. Scales without a letter-per-degree convention (whole
 // tone, diminished, chromatic…) fall back to the root's accidental family, as
 // does any spelling that would need a triple accidental.
-function spellScale(rootName, type){
+// `simplifyDoubles` trades the letter-per-degree rule for legibility where it
+// costs a double accidental: Gb blues reads Gb A Cb C Db Fb rather than
+// Gb Bbb Cb Dbb Db Fb. Same pitches, simpler names on the dots.
+function spellScale(rootName, type, simplifyDoubles){
   const intervals = SCALE_TYPES[type];
   if(!intervals) return null;
   const root = normalizeAccidentals(String(rootName).trim());
   const head = parseNoteHead(root);
   if(!head || head.len !== root.length) return null;
   const preferFlat = root.includes('b') || root.toUpperCase() === 'F';
+  if(simplifyDoubles){
+    const strict = spellScale(rootName, type);
+    return strict.map((name, i) => name.length > 2 ? pcName((head.pc + intervals[i]) % 12, preferFlat) : name);
+  }
   const offsets = intervals.length === 7 ? HEPTATONIC_OFFSETS : LETTER_OFFSETS[scaleDisplayName(type)];
   if(!offsets) return fallbackSpelling(head.pc, intervals, preferFlat);
   const rootLetterIdx = LETTERS.indexOf(root[0].toUpperCase());
@@ -230,8 +237,8 @@ function spellScale(rootName, type){
 }
 
 // pc → spelled name for a scale, for labelling diagram dots.
-function scaleNoteNames(rootName, type){
-  const names = spellScale(rootName, type);
+function scaleNoteNames(rootName, type, simplifyDoubles){
+  const names = spellScale(rootName, type, simplifyDoubles);
   if(!names) return null;
   const head = parseNoteHead(normalizeAccidentals(String(rootName).trim()));
   const map = {};

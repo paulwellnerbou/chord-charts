@@ -60,7 +60,8 @@ function boardInner(numFrets, startFret, labels, colors){
   const bottomY = NUT_Y + numRows*FRET_H;
   let s = '';
   labels.forEach((lab,i)=>{
-    s += `<text x="${XS[i]}" y="12" text-anchor="middle" font-size="13" fill="${colors.ink}" font-family="Arial,sans-serif" font-weight="700">${accTspans(escapeXML(lab), 8.5)}</text>`;
+    // tuning labels are stored ASCII (F#, Bb), so they need the glyph swap first
+    s += `<text x="${XS[i]}" y="12" text-anchor="middle" font-size="13" fill="${colors.ink}" font-family="Arial,sans-serif" font-weight="700">${accTspans(escapeXML(formatAccidentals(lab)), 8.5)}</text>`;
   });
   const topLineWidth = startFret === 0 ? 3 : 1;
   const topLineOpacity = startFret === 0 ? 1 : colors.lineOpacity;

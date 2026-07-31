@@ -112,6 +112,13 @@ test('scaleSVG spells dot names through the scale map, not the chord-root table'
   assert.match(svg, /class="note-name"[^>]*>E<tspan font-size="6" dx="0\.[\d]+"/);
 });
 
+test('board labels engrave their accidentals, ASCII tuning tables notwithstanding', () => {
+  const dTuning = TUNINGS.find(t => t.id === 'uke_d_tuning'); // A D F# B, stored ASCII
+  const svg = chordSVG('D', [2, 2, 2, 0], 3, dTuning.labels, NICE_COLORS, dTuning.openPCs, 2, false, dTuning.openAbs, 0);
+  assert.match(svg, />F<tspan font-size="8\.5"[^>]*>♯<\/tspan><\/text>/);
+  assert.ok(!svg.includes('>F#<'), 'no full-size ASCII sharp on the board');
+});
+
 test('scaleSVG draws a double flat as two glyphs on one raised baseline', () => {
   const parsed = parseScale('Gb blues'); // Gb Bbb Cb Dbb Db Fb
   const pos = scalePositions(parsed.pcs, UKE)[0];

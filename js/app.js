@@ -592,6 +592,7 @@ function saveSettings(){
     bwMode: document.getElementById('bwToggle').checked,
     highlightRoot: document.getElementById('rootToggle').checked,
     scaleRootRun: document.getElementById('rootRunToggle').checked,
+    scaleSimplifyAccidentals: document.getElementById('simplifyAccidentalsToggle').checked,
     showNoteNames: noteNamesByMode.chords,
     scaleShowNoteNames: noteNamesByMode.scales,
     aquilaStrings: document.getElementById('aquilaToggle').checked,
@@ -1485,8 +1486,12 @@ function positionCaption(pos){
   return pos.startFret === 0 ? 'Open position' : `Frets ${pos.startFret}–${pos.endFret}`;
 }
 
+function simplifyAccidentals(){
+  return document.getElementById('simplifyAccidentalsToggle').checked;
+}
+
 function scaleNotesLine(parsed){
-  const spelled = spellScale(parsed.rootName, parsed.type);
+  const spelled = spellScale(parsed.rootName, parsed.type, simplifyAccidentals());
   return spelled ? spelled.map(formatAccidentals).join(' · ') : '';
 }
 
@@ -1672,7 +1677,7 @@ function generateScale(){
     updateScaleURLParam();
     return;
   }
-  const noteNames = scaleNoteNames(parsed.rootName, parsed.type);
+  const noteNames = scaleNoteNames(parsed.rootName, parsed.type, simplifyAccidentals());
   // same scale on the same instrument: stay in the chosen position
   const key = `${parsed.label}::${tuning.id}`;
   const posIndex = (scaleState && scaleState.key === key)
@@ -2477,6 +2482,9 @@ if(typeof savedSettings.highlightRoot === 'boolean'){
 if(typeof savedSettings.scaleRootRun === 'boolean'){
   document.getElementById('rootRunToggle').checked = savedSettings.scaleRootRun;
 }
+if(typeof savedSettings.scaleSimplifyAccidentals === 'boolean'){
+  document.getElementById('simplifyAccidentalsToggle').checked = savedSettings.scaleSimplifyAccidentals;
+}
 // pre-split settings carried a single showNoteNames; it becomes the chords value
 if(typeof savedSettings.showNoteNames === 'boolean'){
   noteNamesByMode.chords = savedSettings.showNoteNames;
@@ -2916,6 +2924,7 @@ themeToggleBtn.addEventListener('click', ()=>{
 });
 document.getElementById('rootToggle').addEventListener('change', regenerate);
 document.getElementById('rootRunToggle').addEventListener('change', regenerate);
+document.getElementById('simplifyAccidentalsToggle').addEventListener('change', regenerate);
 document.getElementById('noteNamesToggle').addEventListener('change', e=>{
   noteNamesByMode[currentMode] = e.target.checked;
   regenerate();

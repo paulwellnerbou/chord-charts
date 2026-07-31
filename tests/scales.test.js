@@ -122,6 +122,22 @@ test('spellScale falls back to the root accidental family where letters run out'
   assert.equal(spellScale('H', 'major'), null);
 });
 
+test('spellScale can trade the letter-per-degree rule for names without double accidentals', () => {
+  assert.deepEqual(spellScale('Gb', 'blues'), ['Gb', 'Bbb', 'Cb', 'Dbb', 'Db', 'Fb']);
+  assert.deepEqual(spellScale('Gb', 'blues', true), ['Gb', 'A', 'Cb', 'C', 'Db', 'Fb']);
+  // sharp keys simplify their own way: A# major's F## and G## become G and A
+  assert.deepEqual(spellScale('A#', 'major', true), ['A#', 'B#', 'D', 'D#', 'E#', 'G', 'A']);
+  // scales that never reach a double accidental are untouched
+  assert.deepEqual(spellScale('A', 'blues', true), spellScale('A', 'blues'));
+  assert.deepEqual(spellScale('F#', 'major', true), spellScale('F#', 'major'));
+  assert.equal(spellScale('H', 'major', true), null);
+});
+
+test('scaleNoteNames carries the simplification through to the dot labels', () => {
+  assert.equal(scaleNoteNames('Gb', 'blues')[9], 'Bbb');
+  assert.equal(scaleNoteNames('Gb', 'blues', true)[9], 'A');
+});
+
 test('scaleNoteNames maps pitch classes to the spelled names', () => {
   const names = scaleNoteNames('F#', 'major');
   assert.equal(names[5], 'E#');
