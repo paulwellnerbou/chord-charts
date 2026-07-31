@@ -740,6 +740,10 @@ function updateChordInputClearUI(){
 // chart's first chord (an empty input starts from C) and rebuilt on every
 // generate, so they stay usable as typed. Chords already on the sheet are
 // dropped — a pill that changes nothing is noise.
+// The tail (diminished, augmented, altered) waits behind the "more" toggle,
+// which stays open once opened.
+let suggestionsExpanded = false;
+
 function renderChordSuggestions(labels){
   const row = document.getElementById('chordSuggestions');
   const rootMatch = labels.length ? labels[0].match(/^([A-Ga-g])(#|b)?/) : null;
@@ -752,14 +756,69 @@ function renderChordSuggestions(labels){
   const label = labels.length
     ? `More ${formatAccidentals(root)} chords:`
     : `Start with a ${formatAccidentals(root)} chord:`;
+  row.classList.toggle('show-all', suggestionsExpanded);
+  // pills in their own box: the toggle beyond it keeps the row's right edge
+  // whatever the pills do, instead of being shoved along as they appear
   row.innerHTML = `<span class="chord-suggestions-label">${escapeXML(label)}</span>`
+    + '<div class="chord-suggestions-pills">'
     + pills.map(s => {
         // the quality spelled out carries the pill for anyone who doesn't read the
         // shorthand, so it names the button rather than sitting in a tooltip alone
         const name = escapeXML(`Add ${s.chord} — ${s.hint}`);
         return `<button type="button" class="chord-suggestion" data-chord="${escapeXML(s.chord)}"`
           + ` title="${name}" aria-label="${name}">${escapeXML(formatAccidentals(s.chord))}</button>`;
-      }).join('');
+      }).join('')
+    + '</div>'
+    + moreToggleHTML();
+  fitChordSuggestions();
+}
+
+// However many pills sit on the first line is the collapsed set — measured with
+// them all laid out, so the wrap does the arithmetic. A fixed count would leave
+// the row half empty on a wide window and overflow a narrow one.
+function fitChordSuggestions(){
+  const row = document.getElementById('chordSuggestions');
+  if(row.hidden) return;
+  const pills = [...row.querySelectorAll('.chord-suggestion')];
+  if(!pills.length) return;
+  const toggle = row.querySelector('.chord-suggestions-more');
+  // shown for the measurement whatever the last fit concluded, so the line it
+  // shares with the pills always accounts for the room it takes
+  toggle.hidden = false;
+  row.classList.add('measuring');
+  const firstTop = pills[0].offsetTop;
+  // at least one, or a narrow window with a long root would show none at all
+  const fits = Math.max(1, pills.filter(p => p.offsetTop === firstTop).length);
+  row.classList.remove('measuring');
+  pills.forEach((p,i)=>{
+    p.classList.toggle('is-extra', i >= fits);
+    // --i staggers the reveal, so the extras fan out instead of snapping in
+    if(i >= fits) p.style.setProperty('--i', i - fits);
+    else p.style.removeProperty('--i');
+  });
+  toggle.hidden = fits >= pills.length;
+  paintMoreToggle(toggle, pills.length - fits);
+}
+
+// Painted in place rather than re-rendered: the button is the one the click
+// landed on, and replacing it would drop the focus that came with the click.
+// The count is the part a narrow screen drops — "more" alone still reads as a
+// control, where a bare caret barely registers.
+function paintMoreToggle(btn, hidden){
+  const name = suggestionsExpanded ? 'Show fewer chord suggestions' : 'Show more chord suggestions';
+  btn.setAttribute('aria-expanded', String(suggestionsExpanded));
+  btn.setAttribute('aria-label', name);
+  btn.title = name;
+  btn.querySelector('.chord-suggestions-more-text').innerHTML = suggestionsExpanded
+    ? '<span class="btn-text-long">Show </span>fewer'
+    : `<span class="btn-text-long">${hidden} </span>more`;
+}
+
+function moreToggleHTML(){
+  return '<button type="button" class="chord-suggestions-more">'
+    + '<span class="chord-suggestions-more-text"></span>'
+    + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>'
+    + '</button>';
 }
 
 function addSuggestedChord(chord){
@@ -957,6 +1016,7 @@ function generate(){
 
   errorBox.textContent = errors.join('  ·  ');
   renderChordSuggestions(results.map(r => r.label));
+  updateReverseSearchBtn(results.map(r => r.label));
   const countLabel = `${results.length} ${results.length === 1 ? 'chord' : 'chords'}`;
   document.getElementById('resultsCount').textContent = countLabel;
   document.getElementById('resultsContext').textContent = errors.length
@@ -1922,10 +1982,10 @@ const TIPS = [
   { emoji:'📷', text:'Switch on “Black & white” in Options for crisp, high-contrast diagrams that print or screenshot cleanly.' },
   { emoji:'🎨', text:"Turn on “Use Aquila Kid's string colours” in Options to draw each string in its own colour — handy for teaching beginners." },
   { emoji:'🔗', text:'Open the Share menu for a link to just the song, just these chords, or the whole app.' },
-  { emoji:'🎼', text:'Use the Transpose buttons next to the Chords box to shift every chord up or down in semitones — no need to retype anything.' },
+  { emoji:'🎼', text:'The + and − buttons beside the Chords box transpose: they shift every chord up or down in semitones, so you never retype a thing.' },
   { emoji:'📥', text:'Each chord card has a ⋯ menu — copy or download the diagram as PNG or SVG, or grab a link straight to that chord.' },
   { emoji:'📸', text:'Turn off “Show chord card controls” in Options to hide play buttons and arrows before you screenshot.' },
-  { emoji:'🖼️', text:'“Copy all charts” combines all diagrams on the page into one image, ready to paste anywhere.' },
+  { emoji:'🖼️', text:'“Copy all charts as one image” in the Share menu combines every diagram on the page into a single picture, ready to paste anywhere.' },
   { emoji:'🧩', text:"Switch on “Masonry layout” below the chart to pack chord cards together tightly instead of leaving gaps when they're different heights." },
   { emoji:'🔍', text:'Raise “Search up to fret” in the voicing chooser — tap the number between a card\'s arrows — to unlock alternate voicings further up the neck.' },
   { emoji:'📏', text:'Fingers too short? Lower “Max stretch” in the voicing chooser to skip voicings that need a wide stretch.' },
@@ -2064,10 +2124,22 @@ document.getElementById('tipToastShowAll').addEventListener('click', e=> openTip
 let tipsOptedOut = false;
 try{ tipsOptedOut = localStorage.getItem(TIPS_OPT_OUT_KEY) === 'true'; }catch(err){}
 if(!tipsOptedOut){
-  setTimeout(openTipToast, 1500);
+  // On a phone the toast lands on top of the builder card, so an unprompted
+  // one would cover the form on arrival — there it waits for the first touch.
+  if(window.matchMedia('(max-width:600px)').matches){
+    let tipArmed = false;
+    const armTipToast = ()=>{
+      if(tipArmed) return;
+      tipArmed = true;
+      setTimeout(openTipToast, 900);
+    };
+    document.addEventListener('pointerdown', armTipToast, { once:true });
+    document.getElementById('chordInput').addEventListener('input', armTipToast, { once:true });
+  } else {
+    setTimeout(openTipToast, 1500);
+  }
 }
 
-document.getElementById('copyAllBtn').addEventListener('click', ()=> copyAllChordsAsImage(document.getElementById('copyAllBtn')));
 document.getElementById('printBtn').addEventListener('click', ()=>window.print());
 
 // --- share menu: one link per thing worth sharing (song / chord list / app) ---
@@ -2089,6 +2161,8 @@ function buildShareMenu(){
     document.getElementById('shareSongLabel').textContent = `Chords of song “${activeSong.title.replace(/\s-\s.*$/,'')}”`;
     document.getElementById('shareSongSub').textContent = activeSong.artist;
   }
+  // nothing drawn, nothing to put on the clipboard
+  document.getElementById('shareImageItem').hidden = !document.querySelector('#grid .card');
   const trimmed = document.getElementById('chordInput').value.trim();
   document.getElementById('shareChordsItem').hidden = trimmed === '';
   document.getElementById('shareChordsSub').textContent = trimmed.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean).join(', ');
@@ -2124,6 +2198,13 @@ document.getElementById('shareChordsItem').addEventListener('click', ()=> copySh
   return params;
 }));
 document.getElementById('shareAppItem').addEventListener('click', ()=> copyShareOption(()=> new URLSearchParams()));
+// not a link, but the same intent — the feedback flashes on the Share button
+// because the item it was clicked on is hidden with the menu
+document.getElementById('shareImageItem').addEventListener('click', ()=>{
+  shareMenuCtl.close();
+  shareBtn.focus();
+  copyAllChordsAsImage(shareBtn);
+});
 
 const syntaxToggleBtn = document.getElementById('syntaxToggleBtn');
 const syntaxPanel = document.getElementById('syntaxPanel');
@@ -2169,11 +2250,20 @@ chordInputEl.addEventListener('input', ()=>{
 // one has been taken — instead of falling back to the page.
 document.getElementById('chordSuggestions').addEventListener('click', e=>{
   const row = e.currentTarget;
+  const moreBtn = e.target.closest('.chord-suggestions-more');
+  if(moreBtn){
+    suggestionsExpanded = !suggestionsExpanded;
+    row.classList.toggle('show-all', suggestionsExpanded);
+    paintMoreToggle(moreBtn, row.querySelectorAll('.chord-suggestion.is-extra').length);
+    return;
+  }
   const btn = e.target.closest('.chord-suggestion');
   if(!btn) return;
-  const index = [...row.querySelectorAll('.chord-suggestion')].indexOf(btn);
+  // collapsed extras can't take focus, so the successor is picked among the shown ones
+  const shownPills = ()=> [...row.querySelectorAll('.chord-suggestion')].filter(p => p.offsetParent !== null);
+  const index = shownPills().indexOf(btn);
   addSuggestedChord(btn.dataset.chord);
-  const pills = row.querySelectorAll('.chord-suggestion');
+  const pills = shownPills();
   if(pills.length) pills[Math.min(index, pills.length - 1)].focus();
   else document.getElementById('chordInput').focus();
 });
@@ -2269,6 +2359,7 @@ function songChartOffset(chordInputValue){
 }
 
 const songSearchFieldEl = document.getElementById('songSearchField');
+const songSearchOpenBtn = document.getElementById('songSearchOpenBtn');
 const songDataFooterEl = document.getElementById('songDataFooter');
 const songSearchInputEl = document.getElementById('songSearchInput');
 const songSearchResultsEl = document.getElementById('songSearchResults');
@@ -2279,20 +2370,54 @@ let songSearchDebounce = null;
 let songSearchInflight = null; // AbortController — every keystroke cancels the previous request
 let songLoadInflight = null; // AbortController — a newer selection or a manual edit cancels a pending song load
 
+// Two independent gates on the song field: whether the backend offers it at all
+// (the chips), and whether the user has asked for it (the field itself).
+let songBackendReady = false;
+let sheetChords = [];
+
 function setSongSearchVisible(visible){
-  songSearchFieldEl.hidden = !visible;
+  songBackendReady = visible;
+  songSearchOpenBtn.hidden = !visible;
   // the dataset attribution belongs to the feature, not the base app
   songDataFooterEl.hidden = !visible;
   // reverse search rides the same backend, so it appears and vanishes with it
-  document.getElementById('reverseSearchBtn').hidden = !visible;
+  updateReverseSearchBtn();
   // …including a dialog opened during the localStorage pre-reveal, should the
   // healthz check later gate the feature off
-  if(!visible) closeReverseModal();
+  if(!visible){ setSongSearchExpanded(false); closeReverseModal(); }
   try{
     if(visible) localStorage.setItem(SONG_SEARCH_SEEN_KEY, 'true');
     else localStorage.removeItem(SONG_SEARCH_SEEN_KEY);
   }catch(err){}
 }
+
+// The inverse lookup answers "what else uses these?" — with nothing on the
+// sheet to look up, it would open onto an empty query. The button spells the
+// chords out so it names its own query; past this many the label is a wall of
+// text nobody reads, ellipsis or not.
+const REVERSE_LABEL_CHORDS = 6;
+function updateReverseSearchBtn(chordLabels){
+  if(Array.isArray(chordLabels)) sheetChords = chordLabels;
+  const btn = document.getElementById('reverseSearchBtn');
+  btn.hidden = !songBackendReady || sheetChords.length < 2;
+  if(btn.hidden) return;
+  const named = sheetChords.slice(0, REVERSE_LABEL_CHORDS).map(formatAccidentals).join(', ');
+  const rest = sheetChords.length > REVERSE_LABEL_CHORDS ? ', …' : '';
+  document.getElementById('reverseSearchLabel').textContent = `Find songs using chords ${named}${rest}`;
+}
+
+function setSongSearchExpanded(open){
+  songSearchFieldEl.hidden = !open;
+  songSearchOpenBtn.setAttribute('aria-expanded', String(open));
+  if(!open) closeSongResults();
+}
+
+songSearchOpenBtn.addEventListener('click', ()=>{
+  const open = songSearchFieldEl.hidden;
+  setSongSearchExpanded(open);
+  if(open) songSearchInputEl.focus();
+  else songSearchOpenBtn.focus();
+});
 
 function setSongNote(text){ songSearchNoteEl.textContent = text || ''; }
 
@@ -2393,6 +2518,9 @@ async function selectSong(song){
 }
 
 function applySong(full, songId){
+  // a shared ?song= link lands here without the field ever being opened by hand;
+  // the note below it (what loaded, what didn't, where to hear it) needs it shown
+  setSongSearchExpanded(true);
   // "unmapped" symbols never reach the chord input — the parser would reject them
   if(!Array.isArray(full.chords) || !full.chords.length){
     setSongNote(`No playable chords found for ${full.artist} — ${full.title}.`);
@@ -2733,7 +2861,17 @@ if(songParam) (async ()=>{
     if(err.name === 'AbortError') return; // superseded — the newer action owns the UI
     if(ctrl === songLoadInflight) songLoadInflight = null;
     if(activeSong && activeSong.id === songParam){
-      setSongNote('Could not load the linked song — please try again.');
+      // A dead backend fails this fetch and the healthz check alike, and that
+      // check gates the field's opener away — so expanding it here would strand
+      // it open with nothing to close it. Then the builder's own error line
+      // carries the message, which is on screen either way.
+      const note = 'Could not load the linked song — please try again.';
+      if(songBackendReady){
+        setSongSearchExpanded(true);
+        setSongNote(note);
+      } else {
+        document.getElementById('errorBox').textContent = note;
+      }
     }
   }
 })();
@@ -2746,7 +2884,8 @@ resizeChordInput();
 let chordInputResizeTimer = null;
 window.addEventListener('resize', ()=>{
   clearTimeout(chordInputResizeTimer);
-  chordInputResizeTimer = setTimeout(resizeChordInput, 120);
+  // how many pills fit a line is a width question, so it is re-answered here
+  chordInputResizeTimer = setTimeout(()=>{ resizeChordInput(); fitChordSuggestions(); }, 120);
 });
 // grid width can change without a window resize (scrollbar appearing, etc.).
 // Height alone isn't a signal — it changes on every render (cards added or

@@ -48,54 +48,13 @@
   </header>
 
   <section class="settings-section no-print" aria-label="Chords">
-    <div class="builder-heading">
-      <span class="builder-kicker">Chart builder</span>
-      <h2 class="builder-title">Which chords do you need?</h2>
-    </div>
-    <div class="song-search-field" id="songSearchField" hidden>
-      <label class="field-label" for="songSearchInput">Start from a song</label>
-      <div class="song-search">
-        <svg class="song-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
-        <input type="text" id="songSearchInput" placeholder="Search a song to load its chords — e.g. Wonderwall"
-               autocomplete="off" autocapitalize="off" spellcheck="false"
-               role="combobox" aria-expanded="false" aria-controls="songSearchResults" aria-autocomplete="list">
-        <ul class="song-search-results" id="songSearchResults" role="listbox" aria-label="Song matches" hidden></ul>
-      </div>
-      <p class="song-search-note" id="songSearchNote" role="status" aria-live="polite"></p>
-    </div>
-    <div class="builder-grid">
-      <div class="field">
-        <div class="field-label-row">
-          <label class="field-label" for="chordInput">Chords</label>
-          <div class="field-label-actions">
-            <button type="button" class="secondary rsearch-open-btn" id="customChordOpenBtn" aria-haspopup="dialog" title="Search fingerings for your own set of notes">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>
-              Custom chord by given notes
-            </button>
-            <button type="button" class="secondary rsearch-open-btn" id="fretboardIdOpenBtn" aria-haspopup="dialog" title="Click a fretboard and let the tool name the chord">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="3" x2="4" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="20" y1="3" x2="20" y2="21"/><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="12" cy="11.5" r="2.4" fill="currentColor" stroke="none"/></svg>
-              Name chord from fretboard
-            </button>
-            <button type="button" class="secondary rsearch-open-btn" id="reverseSearchBtn" hidden aria-haspopup="dialog" title="Find songs that use the chords in this input">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
-              Find songs by chords
-            </button>
-            <div class="stepper stepper-sm" id="transposeStepper" role="group" aria-label="Transpose all chords" title="Shift every chord up or down in semitones — the chord text itself is rewritten">
-              <span class="stepper-label">Transpose</span>
-              <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone" title="Down a semitone">−</button>
-              <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
-              <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone" title="Up a semitone">+</button>
-              <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
-            </div>
-          </div>
-        </div>
-        <div class="input-clear-wrap" id="chordInputWrap">
-          <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, F, G7</textarea>
-          <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
-        </div>
-      </div>
-      <div class="field">
-        <span class="field-label" id="instrumentLabel">Instrument &amp; tuning</span>
+    <!-- The heading is the field's label: one line of text over the input, not
+         three. The instrument rides the same row — it is the one setting here
+         that isn't about the chord text, so it stays clear of that run. -->
+    <div class="builder-head">
+      <h2 class="builder-title"><label for="chordInput">Which chords do you need?</label></h2>
+      <div class="instrument-field">
+        <span class="sr-only" id="instrumentLabel">Instrument and tuning</span>
         <div class="tuning-select" id="tuningSelectWrap">
           <button type="button" class="tuning-select-trigger" id="tuningSelectBtn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="instrumentLabel tuningSelectName tuningSelectTuning">
             <span class="tuning-select-icon" id="tuningSelectIcon"></span>
@@ -109,16 +68,77 @@
         </div>
       </div>
     </div>
-    <!-- Filled in by the app: the pills follow the root the input already uses. -->
-    <div class="chord-suggestions no-print" id="chordSuggestions" hidden></div>
-    <div class="syntax-help no-print">
-      <button type="button" class="syntax-summary" id="syntaxToggleBtn" aria-expanded="false" aria-controls="syntaxPanel">Separate chords with commas or new lines. Try <code>C, Am7, D7/F#, G/B</code>. <span class="syntax-toggle">Supported qualities <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></button>
-      <div class="syntax-panel" id="syntaxPanel" aria-hidden="true">
-        <div class="syntax-panel-inner">
-          <p>major, m, 5 (power chord), 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9) — plus slash/inversion chords like Am/C, D7/F#, G/B.</p>
-          <p>Append <code>*</code> to a chord to lay out every voicing as its own tile — e.g. <code>C*</code>.</p>
+    <div class="field chord-field">
+      <!-- Wraps the field and its pills: the pills are an aid for typing here,
+           so they keep to the moment of typing rather than standing in the card
+           all the time. -->
+      <div class="chord-entry">
+        <div class="chord-input-row">
+          <div class="input-clear-wrap" id="chordInputWrap">
+            <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, F, G7</textarea>
+            <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
+          </div>
+          <!-- Up is up: + on top. Butted against the field because it edits the
+               text in it, and it grows with the field. Carrying no label, it
+               leans on the popover below to say what it does. -->
+          <div class="stepper stepper-vert" id="transposeStepper" role="group" aria-label="Transpose all chords" aria-describedby="transposeTip">
+            <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone">+</button>
+            <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
+            <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone">−</button>
+            <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+          </div>
+          <div class="info-popover transpose-tip" id="transposeTip" role="tooltip">Transpose: shifts every chord in the box up or down a semitone, rewriting the chord text itself.</div>
         </div>
+        <!-- Filled in by the app: the pills follow the root the input already uses. -->
+        <div class="chord-suggestions no-print" id="chordSuggestions" hidden></div>
       </div>
+      <!-- The format hint belongs to the field, so it reads as its hint line
+           rather than as a stray sentence further down the card. -->
+      <div class="chord-hint-row">
+        <div class="syntax-help no-print">
+          <button type="button" class="syntax-summary" id="syntaxToggleBtn" aria-expanded="false" aria-controls="syntaxPanel"><span class="syntax-help-mark" aria-hidden="true">?</span><span class="syntax-summary-text">Separate chords with commas or new lines. Try <code>C, Am7, D7/F#, G/B</code>. <span class="syntax-toggle">Supported qualities <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></span></button>
+          <div class="syntax-panel" id="syntaxPanel" aria-hidden="true">
+            <div class="syntax-panel-inner">
+              <p>major, m, 5 (power chord), 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9) — plus slash/inversion chords like Am/C, D7/F#, G/B.</p>
+              <p>Append <code>*</code> to a chord to lay out every voicing as its own tile — e.g. <code>C*</code>.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Names the chords it would search for, filled in by the app -->
+        <button type="button" class="secondary rsearch-open-btn" id="reverseSearchBtn" hidden aria-haspopup="dialog" title="Find songs that use the chords in this input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
+          <span class="rsearch-open-label" id="reverseSearchLabel"></span>
+        </button>
+      </div>
+    </div>
+    <!-- Ways of filling the field above for anyone who can't just type it.
+         Each name has a short form: a phone puts the label on its own line and
+         gives the three an equal share of the next one. -->
+    <div class="builder-helpers no-print">
+      <span class="builder-helpers-label">Search chords:</span>
+      <button type="button" class="secondary rsearch-open-btn" id="songSearchOpenBtn" hidden aria-expanded="false" aria-controls="songSearchField" title="Load a song's chords by name">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
+        <span class="label-wide">From a song</span><span class="label-narrow">Song</span>
+      </button>
+      <button type="button" class="secondary rsearch-open-btn" id="customChordOpenBtn" aria-haspopup="dialog" title="Search fingerings for your own set of notes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="18" r="3" fill="currentColor" stroke="none"/><path d="M10 18V4l9-2v13"/><circle cx="16" cy="15" r="3" fill="currentColor" stroke="none"/></svg>
+        <span class="label-wide">From notes</span><span class="label-narrow">Notes</span>
+      </button>
+      <button type="button" class="secondary rsearch-open-btn" id="fretboardIdOpenBtn" aria-haspopup="dialog" title="Click a fretboard and let the tool name the chord">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="3" x2="4" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="20" y1="3" x2="20" y2="21"/><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="12" cy="11.5" r="2.4" fill="currentColor" stroke="none"/></svg>
+        <span class="label-wide">From the fretboard</span><span class="label-narrow">Fretboard</span>
+      </button>
+    </div>
+    <div class="song-search-field" id="songSearchField" hidden>
+      <label class="sr-only" for="songSearchInput">Start from a song</label>
+      <div class="song-search">
+        <svg class="song-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
+        <input type="text" id="songSearchInput" placeholder="Search a song to load its chords — e.g. Wonderwall"
+               autocomplete="off" autocapitalize="off" spellcheck="false"
+               role="combobox" aria-expanded="false" aria-controls="songSearchResults" aria-autocomplete="list">
+        <ul class="song-search-results" id="songSearchResults" role="listbox" aria-label="Song matches" hidden></ul>
+      </div>
+      <p class="song-search-note" id="songSearchNote" role="status" aria-live="polite"></p>
     </div>
     <div class="error" id="errorBox" role="status" aria-live="polite"></div>
   </section>
@@ -132,12 +152,13 @@
         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="share-wrap" id="shareWrap">
-        <button type="button" id="shareBtn" class="secondary btn-iconic" title="Copy a share link" aria-expanded="false" aria-controls="shareMenu">
+        <button type="button" id="shareBtn" class="secondary btn-iconic" title="Copy a link or an image of this chart" aria-expanded="false" aria-controls="shareMenu">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
           <span class="btn-label"><span class="btn-label-default">Share</span><span class="btn-label-flash" aria-hidden="true"></span></span>
           <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <div class="share-menu" id="shareMenu" aria-label="Copy a share link">
+        <div class="share-menu" id="shareMenu" aria-label="Copy a link or an image of this chart">
+          <span class="share-menu-heading">Copy a link to…</span>
           <button type="button" class="share-menu-item" id="shareSongItem" hidden>
             <span class="share-menu-label" id="shareSongLabel"></span>
             <span class="share-menu-sub" id="shareSongSub"></span>
@@ -150,15 +171,15 @@
             <span class="share-menu-label">App</span>
             <span class="share-menu-sub" id="shareAppSub"></span>
           </button>
+          <button type="button" class="share-menu-item share-menu-item-split" id="shareImageItem">
+            <span class="share-menu-label">Copy all charts as one image</span>
+            <span class="share-menu-sub">Ready to paste anywhere</span>
+          </button>
         </div>
       </div>
-      <button type="button" id="copyAllBtn" class="secondary btn-iconic" title="Copy one image of all displayed chord diagrams">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        <span class="btn-label"><span class="btn-label-default">Copy all charts</span><span class="btn-label-flash" aria-hidden="true"></span></span>
-      </button>
-      <button type="button" id="printBtn" class="btn-iconic">
+      <button type="button" id="printBtn" class="btn-iconic" aria-label="Print or save as PDF" title="Print or save as PDF">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        Print / PDF
+        <span class="btn-text-long">Print / PDF</span>
       </button>
     </div>
   </div>

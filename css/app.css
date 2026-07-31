@@ -79,32 +79,116 @@
     border:1px solid var(--card-border); border-radius:16px;
     box-shadow:0 12px 32px -30px rgba(41,38,33,.7);
   }
-  .builder-heading{ margin-bottom:14px; }
-  .builder-kicker{ display:block; margin-bottom:3px; color:var(--accent); font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+  .builder-head{ display:flex; align-items:center; justify-content:space-between; gap:10px 18px; flex-wrap:wrap; margin:0 0 10px; }
   .builder-title{ margin:0; font-family:var(--heading-font); font-size:21px; font-weight:600; }
-  .builder-grid{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px; align-items:end; }
+  /* the heading labels the field below it; a text cursor would promise an edit
+     point the heading itself isn't */
+  .builder-title label{ cursor:default; }
+  .chord-field{ min-width:0; }
+  /* stretch, so the transpose column tracks the field as it grows with the text.
+     Tighter than the grid gap on its right: proximity is what says which of the
+     two neighbours it belongs to, now that it carries no label. */
+  .chord-input-row{ position:relative; display:flex; align-items:stretch; gap:6px; }
+  .chord-input-row .input-clear-wrap{ flex:1 1 auto; min-width:0; }
+  /* The stepper spells out nothing, so the explanation rides a popover the page
+     draws itself — native title bubbles never appear on touch. Below the
+     control, right-aligned, so it never covers the field being described. */
+  .chord-input-row .transpose-tip{ top:calc(100% + 8px); left:auto; right:0; }
+  /* The tip is the stepper's next sibling, so plain combinators reach it — no
+     parent selector, and one rule covers keyboard and touch alike. */
+  #transposeStepper:hover ~ .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); transition-delay:.4s; }
+  #transposeStepper:focus-within ~ .transpose-tip{ opacity:1; visibility:visible; transform:translateY(0); }
+  /* flex-start, never centred: expanding the help grows it downwards, and a
+     centred neighbour would be shoved down and back on every toggle */
+  .chord-hint-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin:8px 0 0; }
+  .chord-hint-row .syntax-help{ flex:1 1 300px; }
+  /* It names the chords it would search for, so its width is whatever they run
+     to — capped at a third of the row, with the tail ellipsized. */
+  .chord-hint-row #reverseSearchBtn{ flex:0 1 auto; min-width:0; max-width:33%; }
+  .rsearch-open-label{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .field-label{ display:block; margin:0 0 6px; color:var(--ink); font-size:12px; font-weight:750; letter-spacing:.04em; }
   .settings-section-title{
     font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.13em;
     color:var(--ink-soft); margin:0 0 8px;
   }
   .controls{ display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin-bottom:10px; }
-  .chord-suggestions{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:11px 0 0; }
+  /* Label, pills, toggle. flex-start plus a pill-height box on the two outer
+     items lines them up with the first row of pills and leaves them there when
+     the pills grow downwards. */
+  .chord-suggestions{ --pill-h:22px; display:flex; align-items:flex-start; gap:6px; margin:9px 0 0; }
   .chord-suggestions[hidden]{ display:none; }
+  .chord-suggestions-label, .chord-suggestions-more{ display:inline-flex; align-items:center; min-height:var(--pill-h); }
+  /* takes the row's remaining width in either state, so the toggle past it does
+     not shift when the pills fold onto a second line */
+  .chord-suggestions-pills{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; flex:1 1 auto; min-width:0; }
+  .chord-suggestions.measuring .chord-suggestions-pills{ flex-wrap:wrap; }
+  /* the label holds its full width while measuring, or the pills' appetite for
+     room would squeeze it and the first line would come out wider than it
+     will be once the overflow is hidden again */
+  .chord-suggestions.measuring .chord-suggestions-label{ flex:0 0 auto; }
   .chord-suggestions-label{ margin-right:2px; color:var(--ink-soft); font-size:12.5px; }
   .chord-suggestion{
-    min-height:0; padding:4px 11px; border-radius:999px;
+    min-height:0; padding:3px 9px; border-radius:999px;
     background:var(--card-bg); color:var(--ink); border:1px solid var(--control-border);
-    font-size:12.5px; font-weight:650;
+    font-size:12px; font-weight:650;
   }
   .chord-suggestion:hover{ background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent); }
-  .syntax-help{ margin:10px 0 0; font-size:12.5px; color:var(--ink-soft); line-height:1.55; max-width:760px; }
+  /* the tail of the pill list is a long band of rarely-used qualities — kept one
+     click away instead of spending the width by default */
+  .chord-suggestions:not(.show-all) .chord-suggestion.is-extra{ display:none; }
+  /* must follow the rule above — same specificity, and fitChordSuggestions needs
+     every pill laid out to see where the line breaks */
+  .chord-suggestions.measuring .chord-suggestion.is-extra{ display:inline-flex; }
+  /* display can't be transitioned, so the revealed pills animate themselves in,
+     staggered by their position in the tail */
+  .chord-suggestions.show-all .chord-suggestion.is-extra{
+    animation:pill-in .26s cubic-bezier(.34,1.4,.64,1) both;
+    animation-delay:calc(var(--i, 0) * 22ms);
+  }
+  @keyframes pill-in{
+    from{ opacity:0; transform:translateY(-4px) scale(.9); }
+    to{ opacity:1; transform:none; }
+  }
+  /* Last in the row, past the pills that fill it. The fixed width holds the
+     caret still while the wording changes, and keeps the fit measurement from
+     being invalidated by its own label. */
+  .chord-suggestions-more{
+    flex:0 0 auto; gap:3px; justify-content:flex-end; min-width:86px;
+    padding:0 4px; border:0; border-radius:6px;
+    background:transparent; color:var(--accent); font-size:12.5px; font-weight:650;
+  }
+  .chord-suggestions-more[hidden]{ display:none; }
+  .chord-suggestions-more svg{ width:12px; height:12px; transition:transform .2s ease; }
+  .chord-suggestions-more[aria-expanded="true"] svg{ transform:rotate(180deg); }
+  @media (prefers-reduced-motion:reduce){
+    .chord-suggestions.show-all .chord-suggestion.is-extra{ animation:none; }
+    .chord-suggestions-more svg{ transition:none; }
+  }
+  .chord-suggestions-more:hover{ background:transparent; border-color:transparent; color:var(--accent-strong); text-decoration:underline; }
+  .chord-suggestions-more:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  /* Boxed and marked so it reads as help at a glance, rather than as one more
+     control in a card that is otherwise all controls. */
+  .syntax-help{
+    margin:0; font-size:12.5px; color:var(--ink-soft); line-height:1.55; max-width:760px;
+    padding:8px 12px; background:var(--page-bg); border-radius:10px;
+  }
   .syntax-summary{
-    display:block; min-height:0; width:100%; padding:0; border:0; border-radius:4px;
+    display:flex; align-items:flex-start; gap:9px;
+    min-height:0; width:100%; padding:0; border:0; border-radius:4px;
     background:transparent; color:inherit; font:inherit; line-height:inherit; text-align:left; cursor:pointer;
   }
   .syntax-summary:hover{ background:transparent; border-color:transparent; color:inherit; }
   .syntax-summary:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .syntax-help-mark{
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    width:19px; height:19px; border-radius:50%;
+    border:1px solid var(--control-border); background:var(--card-bg); color:var(--ink-soft);
+    font-family:Georgia,'Times New Roman',serif; font-weight:700; font-size:12px; line-height:1;
+    transition:border-color .18s ease, color .18s ease;
+  }
+  .syntax-summary:hover .syntax-help-mark{ border-color:var(--accent); color:var(--accent); }
+  /* the opened list lines up with the summary text, not under the mark */
+  .syntax-panel{ padding-left:28px; }
   .syntax-help code{ font-family:inherit; font-size:inherit; font-weight:600; color:var(--ink); }
   .syntax-toggle{ display:inline-flex; align-items:center; gap:3px; color:var(--accent); font-weight:600; white-space:nowrap; }
   .syntax-summary:hover .syntax-toggle{ text-decoration:underline; }
@@ -163,6 +247,12 @@
     background:transparent; color:var(--ink); font-size:14px; text-align:left; cursor:pointer;
   }
   .share-menu-item[hidden]{ display:none; }
+  .share-menu-heading{
+    padding:5px 10px 3px; color:var(--ink-soft);
+    font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  }
+  /* the image copy is not a link — the rule keeps it from reading as one more of them */
+  .share-menu-item-split{ margin-top:5px; padding-top:9px; border-top:1px solid var(--card-border); border-radius:0 0 8px 8px; }
   .share-menu-item:hover{ background:var(--page-bg); border-color:transparent; color:var(--ink); }
   .share-menu-item:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
   .share-menu-label{ font-weight:700; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -207,9 +297,18 @@
   .input-clear-wrap.has-value .input-clear-btn{ opacity:1; visibility:visible; }
   .input-clear-btn:hover{ color:var(--accent); background:var(--page-bg); }
   .input-clear-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  /* --- alternative ways into the chord field --- */
+  .builder-helpers{ display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin:12px 0 0; }
+  .builder-helpers-label{ margin-right:1px; color:var(--ink-soft); font-size:12.5px; }
+  .label-narrow{ display:none; }
+
   /* --- song search --- */
-  .song-search-field{ margin-bottom:13px; }
+  .song-search-field{ margin:11px 0 0; animation:field-reveal .22s ease; }
   .song-search{ position:relative; }
+  @keyframes field-reveal{ from{ opacity:0; transform:translateY(-5px); } }
+  @media (prefers-reduced-motion:reduce){
+    .song-search-field{ animation:none; }
+  }
   .song-search-icon{
     position:absolute; top:50%; left:12px; transform:translateY(-50%);
     width:16px; height:16px; color:var(--ink-soft); pointer-events:none;
@@ -399,10 +498,20 @@
     100%{ transform:scale(1); color:var(--ink); }
   }
 
-  /* --- transpose control (compact stepper in the Chords label row) --- */
+  /* --- transpose control (upright stepper against the chord field) --- */
   .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
-  .field-label-row{ display:flex; align-items:end; justify-content:space-between; flex-wrap:wrap; gap:6px 14px; margin:0 0 6px; }
-  .field-label-row .field-label{ margin:0; }
+  /* as wide as one of its buttons is tall, so the three cells read as a stack
+     of squares rather than as a second input beside the field */
+  .stepper-vert{
+    flex-direction:column; flex-shrink:0; align-self:stretch;
+    width:28px; height:auto; border-radius:8px;
+  }
+  .stepper-vert .stepper-btn{ flex:1 1 0; width:100%; height:auto; min-height:0; font-size:15px; }
+  .stepper-vert .stepper-value{
+    flex:0 0 auto; width:100%; min-width:0; height:auto; padding:3px 0;
+    font-size:11px; border-left:none; border-right:none;
+    border-top:1px solid var(--card-border); border-bottom:1px solid var(--card-border);
+  }
   .stepper-sm{ height:28px; border-radius:7px; }
   .stepper-sm .stepper-label{ font-size:12px; padding-left:10px; }
   .stepper-sm .stepper-btn{ width:27px; font-size:14px; }
@@ -586,13 +695,15 @@
     .tips-modal-backdrop, .tips-modal{ animation:none; }
   }
   /* --- reverse song search (find songs that use the current chords) --- */
-  .field-label-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .rsearch-open-btn{
     display:inline-flex; align-items:center; gap:6px;
     min-height:0; height:28px; padding:0 11px; border-radius:7px;
     font-size:12px; font-weight:650; line-height:1;
   }
   .rsearch-open-btn[hidden]{ display:none; }
+  /* the chip stays lit while the field it revealed is open, so it reads as the
+     field's heading rather than a button that did nothing */
+  .rsearch-open-btn[aria-expanded="true"]{ background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent); }
   .rsearch-open-btn svg{ width:12px; height:12px; flex-shrink:0; }
   .rsearch-backdrop{
     position:fixed; inset:0; z-index:60; padding:24px;
@@ -1051,6 +1162,12 @@
   .fb-footer-copy:disabled{ opacity:.45; cursor:default; text-decoration:none; }
   /* when the two footer actions wrap to two lines, keep them close together */
   #fretboardIdModal .voicing-modal-footer{ row-gap:4px; }
+  /* On a phone the instrument picker names the same instrument and tuning one
+     screen-width below the heading — two lines of pure repetition. Screen only:
+     the heading is what identifies a printed sheet. */
+  @media screen and (max-width:600px){
+    #pageTitle{ display:none; }
+  }
   @media (max-width:600px){
     /* stack the readout above the board; hide the extra card (the input board is
        right below), and no longer needing to pin the readout, drop the sticky */
@@ -1065,9 +1182,22 @@
     .page-title-main{ font-size:15px; }
     .page-title-sub{ font-size:9.5px; letter-spacing:.1em; }
     .settings-section{ padding:14px; border-radius:14px; }
-    .builder-heading{ margin-bottom:12px; }
+    .builder-head{ margin-bottom:10px; }
     .builder-title{ font-size:19px; }
-    .builder-grid{ grid-template-columns:1fr; gap:11px; }
+    /* the heading takes the line, so the picker takes the next one whole */
+    .builder-head .instrument-field{ flex:1 1 100%; }
+    /* drops what the width can't carry and the reader can do without: the count
+       on the pill toggle, the words beside the printer */
+    .btn-text-long{ display:none; }
+    /* The three ways in share a row of their own rather than breaking across
+       two: the label takes the line above, and the short names fit the thirds. */
+    .builder-helpers{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+    .builder-helpers-label{ grid-column:1 / -1; margin:0; }
+    .builder-helpers .rsearch-open-btn{ width:100%; justify-content:center; padding-inline:6px; }
+    /* the row is one column here, so the chord list gets the whole of it */
+    .chord-hint-row #reverseSearchBtn{ flex:1 1 100%; max-width:none; }
+    .label-wide{ display:none; }
+    .label-narrow{ display:inline; }
     .tuning-select-trigger{ width:100%; min-width:0; }
     .tuning-select-menu{ width:100%; }
     /* 16px stops iOS Safari from auto-zooming the page on focus */
@@ -1075,18 +1205,33 @@
     #songSearchInput{ font-size:16px; }
     .custom-chord-notes-input{ font-size:16px; }
     /* a thumb needs a taller target than a pointer does */
-    .chord-suggestion{ padding:7px 12px; }
+    .chord-suggestion{ padding:5px 10px; font-size:12.5px; }
+    .chord-suggestions{ --pill-h:27px; }
+    /* the label is the one part that may give way if a long root leaves the
+       pills nothing to sit in */
+    .chord-suggestions-label{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* only "more"/"fewer" here — the count is dropped with .btn-text-long */
+    .chord-suggestions-more{ min-width:52px; padding:0 2px; }
     /* keep long titles readable on narrow dropdowns */
     .song-result-meta{ display:none; }
     .results-toolbar{ align-items:stretch; }
     .results-summary{ width:100%; }
-    .results-actions{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; gap:8px; }
+    /* Options and Share split the row; printing from a phone is rare enough
+       that the primary action gets by on its icon alone. */
+    .results-actions{ display:flex; width:100%; gap:8px; }
     .results-actions button{ justify-content:center; padding-inline:10px; }
+    .results-actions > .options-toggle, .results-actions > .share-wrap{ flex:1 1 0; min-width:0; }
+    .share-wrap > #shareBtn{ width:100%; }
+    #printBtn{ flex:0 0 auto; width:46px; padding-inline:0; }
+    .share-wrap .share-menu{ min-width:0; width:max-content; max-width:min(300px,calc(100vw - 28px)); }
     .tip-fab{ right:14px; bottom:14px; }
     .tip-toast{ right:14px; bottom:70px; width:272px; max-width:calc(100vw - 28px); }
     .options-card{ padding:13px 14px 15px; gap:16px 24px; }
     .stepper{ height:40px; }
     .stepper-btn{ width:38px; }
+    /* after the two above, which would otherwise stop it tracking the field */
+    .stepper-vert{ height:auto; }
+    .stepper-vert .stepper-btn{ width:100%; }
     .stepper-sm{ height:36px; }
     .stepper-sm .stepper-btn{ width:34px; }
     .stepper-sm .stepper-value{ min-width:42px; }
