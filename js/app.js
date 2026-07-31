@@ -740,21 +740,11 @@ function updateChordInputClearUI(){
 // chart's first chord (an empty input starts from C) and rebuilt on every
 // generate, so they stay usable as typed. Chords already on the sheet are
 // dropped — a pill that changes nothing is noise.
-// However many fit one line — the tail (diminished, augmented, altered) waits
-// behind the "more" toggle, which stays open once opened. A phone fits half of
-// what a pointer does, and the toggle shrinks to its caret to buy the room.
-const SUGGESTIONS_NARROW = window.matchMedia('(max-width:600px)');
-const collapsedSuggestions = ()=> SUGGESTIONS_NARROW.matches ? 3 : 6;
+// The tail (diminished, augmented, altered) waits behind the "more" toggle,
+// which stays open once opened.
 let suggestionsExpanded = false;
-let lastSuggestionLabels = [];
-// pre-2020 Safari only has the deprecated addListener, and an unguarded call
-// would throw here and take the rest of this module's setup with it
-const onNarrowChange = ()=> renderChordSuggestions(lastSuggestionLabels);
-if(SUGGESTIONS_NARROW.addEventListener) SUGGESTIONS_NARROW.addEventListener('change', onNarrowChange);
-else if(SUGGESTIONS_NARROW.addListener) SUGGESTIONS_NARROW.addListener(onNarrowChange);
 
 function renderChordSuggestions(labels){
-  lastSuggestionLabels = labels;
   const row = document.getElementById('chordSuggestions');
   const rootMatch = labels.length ? labels[0].match(/^([A-Ga-g])(#|b)?/) : null;
   // a root typed lower case ("eb, ab") still yields pills spelled the usual way
@@ -766,38 +756,69 @@ function renderChordSuggestions(labels){
   const label = labels.length
     ? `More ${formatAccidentals(root)} chords:`
     : `Start with a ${formatAccidentals(root)} chord:`;
-  const collapsed = collapsedSuggestions();
-  const hidden = pills.length - collapsed;
   row.classList.toggle('show-all', suggestionsExpanded);
   // pills in their own box: the toggle beyond it keeps the row's right edge
   // whatever the pills do, instead of being shoved along as they appear
   row.innerHTML = `<span class="chord-suggestions-label">${escapeXML(label)}</span>`
     + '<div class="chord-suggestions-pills">'
-    + pills.map((s,i) => {
+    + pills.map(s => {
         // the quality spelled out carries the pill for anyone who doesn't read the
         // shorthand, so it names the button rather than sitting in a tooltip alone
         const name = escapeXML(`Add ${s.chord} — ${s.hint}`);
-        // --i staggers the reveal, so the extras fan out instead of snapping in
-        const cls = i < collapsed ? 'chord-suggestion' : 'chord-suggestion is-extra';
-        const style = i < collapsed ? '' : ` style="--i:${i - collapsed}"`;
-        return `<button type="button" class="${cls}"${style} data-chord="${escapeXML(s.chord)}"`
+        return `<button type="button" class="chord-suggestion" data-chord="${escapeXML(s.chord)}"`
           + ` title="${name}" aria-label="${name}">${escapeXML(formatAccidentals(s.chord))}</button>`;
       }).join('')
     + '</div>'
-    + (hidden > 0 ? moreToggleHTML(hidden) : '');
+    + moreToggleHTML();
+  fitChordSuggestions();
 }
 
+// However many pills sit on the first line is the collapsed set — measured with
+// them all laid out, so the wrap does the arithmetic. A fixed count would leave
+// the row half empty on a wide window and overflow a narrow one.
+function fitChordSuggestions(){
+  const row = document.getElementById('chordSuggestions');
+  if(row.hidden) return;
+  const pills = [...row.querySelectorAll('.chord-suggestion')];
+  if(!pills.length) return;
+  const toggle = row.querySelector('.chord-suggestions-more');
+  // shown for the measurement whatever the last fit concluded, so the line it
+  // shares with the pills always accounts for the room it takes
+  toggle.hidden = false;
+  row.classList.add('measuring');
+  const firstTop = pills[0].offsetTop;
+  // at least one, or a narrow window with a long root would show none at all
+  const fits = Math.max(1, pills.filter(p => p.offsetTop === firstTop).length);
+  row.classList.remove('measuring');
+  pills.forEach((p,i)=>{
+    p.classList.toggle('is-extra', i >= fits);
+    // --i staggers the reveal, so the extras fan out instead of snapping in
+    if(i >= fits) p.style.setProperty('--i', i - fits);
+    else p.style.removeProperty('--i');
+  });
+  toggle.hidden = fits >= pills.length;
+  paintMoreToggle(toggle, pills.length - fits);
+}
+
+// Painted in place rather than re-rendered: the button is the one the click
+// landed on, and replacing it would drop the focus that came with the click.
 // The count is the part a narrow screen drops — "more" alone still reads as a
 // control, where a bare caret barely registers.
-function moreToggleHTML(hidden){
+function paintMoreToggle(btn, hidden){
   const name = suggestionsExpanded ? 'Show fewer chord suggestions' : 'Show more chord suggestions';
-  const text = suggestionsExpanded
+  btn.setAttribute('aria-expanded', String(suggestionsExpanded));
+  btn.setAttribute('aria-label', name);
+  btn.title = name;
+  btn.querySelector('.chord-suggestions-more-text').innerHTML = suggestionsExpanded
     ? '<span class="btn-text-long">Show </span>fewer'
     : `<span class="btn-text-long">${hidden} </span>more`;
-  return `<button type="button" class="chord-suggestions-more" aria-expanded="${suggestionsExpanded}" aria-label="${name}" title="${name}">`
-    + `<span>${text}</span>`
-    + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`
-    + `</button>`;
+}
+
+function moreToggleHTML(){
+  return '<button type="button" class="chord-suggestions-more">'
+    + '<span class="chord-suggestions-more-text"></span>'
+    + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>'
+    + '</button>';
 }
 
 function addSuggestedChord(chord){
@@ -2233,10 +2254,7 @@ document.getElementById('chordSuggestions').addEventListener('click', e=>{
   if(moreBtn){
     suggestionsExpanded = !suggestionsExpanded;
     row.classList.toggle('show-all', suggestionsExpanded);
-    // replacing the node drops the focus the click put on it
-    const hadFocus = document.activeElement === moreBtn;
-    moreBtn.outerHTML = moreToggleHTML(row.querySelectorAll('.chord-suggestion.is-extra').length);
-    if(hadFocus) row.querySelector('.chord-suggestions-more').focus();
+    paintMoreToggle(moreBtn, row.querySelectorAll('.chord-suggestion.is-extra').length);
     return;
   }
   const btn = e.target.closest('.chord-suggestion');
@@ -2857,7 +2875,8 @@ resizeChordInput();
 let chordInputResizeTimer = null;
 window.addEventListener('resize', ()=>{
   clearTimeout(chordInputResizeTimer);
-  chordInputResizeTimer = setTimeout(resizeChordInput, 120);
+  // how many pills fit a line is a width question, so it is re-answered here
+  chordInputResizeTimer = setTimeout(()=>{ resizeChordInput(); fitChordSuggestions(); }, 120);
 });
 // grid width can change without a window resize (scrollbar appearing, etc.).
 // Height alone isn't a signal — it changes on every render (cards added or

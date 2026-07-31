@@ -118,7 +118,14 @@
   .chord-suggestions{ --pill-h:22px; display:flex; align-items:flex-start; gap:6px; margin:9px 0 0; }
   .chord-suggestions[hidden]{ display:none; }
   .chord-suggestions-label, .chord-suggestions-more{ display:inline-flex; align-items:center; min-height:var(--pill-h); }
-  .chord-suggestions-pills{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; }
+  /* takes the row's remaining width in either state, so the toggle past it does
+     not shift when the pills fold onto a second line */
+  .chord-suggestions-pills{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; flex:1 1 auto; min-width:0; }
+  .chord-suggestions.measuring .chord-suggestions-pills{ flex-wrap:wrap; }
+  /* the label holds its full width while measuring, or the pills' appetite for
+     room would squeeze it and the first line would come out wider than it
+     will be once the overflow is hidden again */
+  .chord-suggestions.measuring .chord-suggestions-label{ flex:0 0 auto; }
   .chord-suggestions-label{ margin-right:2px; color:var(--ink-soft); font-size:12.5px; }
   .chord-suggestion{
     min-height:0; padding:3px 9px; border-radius:999px;
@@ -129,6 +136,9 @@
   /* the tail of the pill list is a long band of rarely-used qualities — kept one
      click away instead of spending the width by default */
   .chord-suggestions:not(.show-all) .chord-suggestion.is-extra{ display:none; }
+  /* must follow the rule above — same specificity, and fitChordSuggestions needs
+     every pill laid out to see where the line breaks */
+  .chord-suggestions.measuring .chord-suggestion.is-extra{ display:inline-flex; }
   /* display can't be transitioned, so the revealed pills animate themselves in,
      staggered by their position in the tail */
   .chord-suggestions.show-all .chord-suggestion.is-extra{
@@ -139,13 +149,15 @@
     from{ opacity:0; transform:translateY(-4px) scale(.9); }
     to{ opacity:1; transform:none; }
   }
-  /* Pinned to the row's right edge, so it grows leftwards as the wording
-     changes and the caret never leaves the spot you just clicked. */
+  /* Last in the row, past the pills that fill it. The fixed width holds the
+     caret still while the wording changes, and keeps the fit measurement from
+     being invalidated by its own label. */
   .chord-suggestions-more{
-    flex:0 0 auto; margin-left:auto; gap:3px;
+    flex:0 0 auto; gap:3px; justify-content:flex-end; min-width:86px;
     padding:0 4px; border:0; border-radius:6px;
     background:transparent; color:var(--accent); font-size:12.5px; font-weight:650;
   }
+  .chord-suggestions-more[hidden]{ display:none; }
   .chord-suggestions-more svg{ width:12px; height:12px; transition:transform .2s ease; }
   .chord-suggestions-more[aria-expanded="true"] svg{ transform:rotate(180deg); }
   @media (prefers-reduced-motion:reduce){
@@ -1194,16 +1206,12 @@
     .custom-chord-notes-input{ font-size:16px; }
     /* a thumb needs a taller target than a pointer does */
     .chord-suggestion{ padding:5px 10px; font-size:12.5px; }
-    /* One line, whatever the root spells out to: half as many pills, and the
-       label as the one part that may give way. Expanding is an explicit ask, so
-       the pills wrap to as many lines as they need — the toggle stays put. */
     .chord-suggestions{ --pill-h:27px; }
-    .chord-suggestions-pills{ flex:0 0 auto; flex-wrap:nowrap; }
-    /* shrinkable again once it may wrap, or its max-content width would shove
-       the toggle off the edge instead of folding the pills onto a second line */
-    .chord-suggestions.show-all .chord-suggestions-pills{ flex:0 1 auto; flex-wrap:wrap; }
+    /* the label is the one part that may give way if a long root leaves the
+       pills nothing to sit in */
     .chord-suggestions-label{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .chord-suggestions-more{ padding:0 2px; }
+    /* only "more"/"fewer" here — the count is dropped with .btn-text-long */
+    .chord-suggestions-more{ min-width:52px; padding:0 2px; }
     /* keep long titles readable on narrow dropdowns */
     .song-result-meta{ display:none; }
     .results-toolbar{ align-items:stretch; }
