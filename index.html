@@ -170,7 +170,12 @@
           <button type="button" class="input-clear-btn" id="scaleInputClear" aria-label="Clear scale">&times;</button>
           <div class="typeahead-menu" id="scaleSuggestMenu" role="listbox" aria-label="Scale completions" hidden></div>
         </div>
-        <p class="scale-hint">One scale at a time — type a root and a name, like <code>G blues</code> or <code>D dorian</code>.</p>
+        <p class="scale-hint scale-hint-examples"><span>One scale at a time — type a root and a name, or try</span>
+          <button type="button" class="secondary scale-example">A Minor Pentatonic</button>
+          <button type="button" class="secondary scale-example">G Blues</button>
+          <button type="button" class="secondary scale-example">C Major</button>
+          <button type="button" class="secondary scale-example">D Dorian</button>
+        </p>
       </div>
     </div>
     <div class="error" id="errorBox" role="status" aria-live="polite"></div>
@@ -261,6 +266,11 @@
               <input type="checkbox" id="rootToggle" checked>
               <span class="switch-track"><span class="switch-thumb"></span></span>
               <span>Highlight root note</span>
+            </label>
+            <label class="switch scales-only" title="Build each position from the root instead: the box starts where the lowest string carries the root note and ends at its highest root, so diagrams and playback run root to root.">
+              <input type="checkbox" id="rootRunToggle">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span>Start and end at the root</span>
             </label>
             <label class="switch">
               <input type="checkbox" id="noteNamesToggle">

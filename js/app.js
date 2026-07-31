@@ -95,6 +95,11 @@ function accidentalsHTML(name){
     .replace(/#/g, '<span class="acc">♯</span>');
 }
 
+// Same .acc wrapping for text that already carries ♭/♯ glyphs (formatAccidentals output).
+function accGlyphsHTML(text){
+  return escapeXML(text).replace(/[♭♯]/g, g=>`<span class="acc">${g}</span>`);
+}
+
 function chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){
   const colors = currentColors();
   const sourceURL = new URL(chordPageURL(label, false), window.location.href).href;
@@ -537,9 +542,14 @@ function chordPlayOpts(tuning){
 // --- chords/scales mode: two builders sharing one sheet ---
 let currentMode = 'chords';
 
+// The note-names toggle keeps one remembered state per mode: names clutter a
+// chord sheet but are half the point of a scale box, so scales default on.
+const noteNamesByMode = { chords: false, scales: true };
+
 function setMode(mode, opts){
   currentMode = mode;
   const scales = mode === 'scales';
+  document.getElementById('noteNamesToggle').checked = noteNamesByMode[mode];
   document.body.classList.toggle('scales-mode', scales);
   const tabChords = document.getElementById('modeTabChords');
   const tabScales = document.getElementById('modeTabScales');
@@ -583,7 +593,9 @@ function saveSettings(){
     showCardControls: document.getElementById('cardControlsToggle').checked,
     bwMode: document.getElementById('bwToggle').checked,
     highlightRoot: document.getElementById('rootToggle').checked,
-    showNoteNames: document.getElementById('noteNamesToggle').checked,
+    scaleRootRun: document.getElementById('rootRunToggle').checked,
+    showNoteNames: noteNamesByMode.chords,
+    scaleShowNoteNames: noteNamesByMode.scales,
     aquilaStrings: document.getElementById('aquilaToggle').checked,
     columns: columnsValue,
     masonry: document.getElementById('masonryToggle').checked,
@@ -847,7 +859,7 @@ function renderChordSuggestions(labels){
         // shorthand, so it names the button rather than sitting in a tooltip alone
         const name = escapeXML(`Add ${s.chord} — ${s.hint}`);
         return `<button type="button" class="chord-suggestion" data-chord="${escapeXML(s.chord)}"`
-          + ` title="${name}" aria-label="${name}">${escapeXML(formatAccidentals(s.chord))}</button>`;
+          + ` title="${name}" aria-label="${name}">${accGlyphsHTML(formatAccidentals(s.chord))}</button>`;
       }).join('')
     + '</div>'
     + moreToggleHTML();
@@ -1067,7 +1079,7 @@ function generate(){
   closeCardMenu();
   const tuning = currentTuning();
   document.getElementById('pageTitleMain').textContent = `${tuning.name} chords`;
-  document.getElementById('pageTitleSub').textContent = `${formatAccidentals(tuning.tuningLabel)} tuning`;
+  document.getElementById('pageTitleSub').innerHTML = accGlyphsHTML(`${formatAccidentals(tuning.tuningLabel)} tuning`);
 
   const raw = document.getElementById('chordInput').value;
   const tokens = raw.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean);
@@ -1415,7 +1427,7 @@ function updateScaleURLParam(){
 
 function scaleDiagramHTML(parsed, pos, noteNames, tuning, colors, highlightRoot, showNoteNames, interactive){
   return scaleSVG(parsed.label, pos.strings, pos.endFret, tuning.labels, colors, tuning.openPCs, parsed.rootPC,
-    highlightRoot, interactive ? tuning.openAbs : undefined, positionStartFret(pos), showNoteNames, noteNames);
+    highlightRoot, interactive ? tuning.openAbs : undefined, positionStartFret(pos), showNoteNames, noteNames, parsed.blueNotePC);
 }
 
 function positionCaption(pos){
@@ -1446,7 +1458,7 @@ function buildScaleCard(parsed, positions, noteNames){
   card.className = 'card scale-card';
   card._scaleResult = { parsed, positions, noteNames };
   card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play the ${escapeXML(parsed.label)} scale up and down" aria-label="Play the ${escapeXML(parsed.label)} scale up and down">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play the ${escapeXML(parsed.label)} scale up and down">${accidentalsHTML(parsed.label)}</h2></div><div class="diagram-slot"></div><p class="scale-notes"></p>`;
-  card.querySelector('.scale-notes').textContent = scaleNotesLine(parsed);
+  card.querySelector('.scale-notes').innerHTML = accGlyphsHTML(scaleNotesLine(parsed));
 
   appendCardMenuButton(card, parsed.label);
   // always the up-and-down practice run — a scale strummed at once says nothing
@@ -1483,7 +1495,7 @@ function scaleTileSVGString(card){
   const highlightRoot = document.getElementById('rootToggle').checked;
   const showNoteNames = document.getElementById('noteNamesToggle').checked;
   return exportScaleTileSVG(formatAccidentals(parsed.label), pos.strings, pos.endFret, tuning.labels, colors,
-    showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, positionStartFret(pos), scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames);
+    showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, positionStartFret(pos), scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames, parsed.blueNotePC);
 }
 
 function scaleFileName(card, ext){
@@ -1519,7 +1531,7 @@ function renderPositionTiles(card){
   const colors = currentColors();
   const highlightRoot = document.getElementById('rootToggle').checked;
   const showNoteNames = document.getElementById('noteNamesToggle').checked;
-  positionModalTitleEl.textContent = `${formatAccidentals(parsed.label)} — ${positions.length} position${positions.length === 1 ? '' : 's'}`;
+  positionModalTitleEl.innerHTML = accGlyphsHTML(`${formatAccidentals(parsed.label)} — ${positions.length} position${positions.length === 1 ? '' : 's'}`);
   positionModalGridEl.innerHTML = '';
 
   const tiles = positions.map((pos, i)=>{
@@ -1571,7 +1583,7 @@ function generateScale(){
   closeCardMenu();
   const tuning = currentTuning();
   document.getElementById('pageTitleMain').textContent = `${tuning.name} scales`;
-  document.getElementById('pageTitleSub').textContent = `${formatAccidentals(tuning.tuningLabel)} tuning`;
+  document.getElementById('pageTitleSub').innerHTML = accGlyphsHTML(`${formatAccidentals(tuning.tuningLabel)} tuning`);
 
   const raw = scaleInputEl.value;
   const errorBox = document.getElementById('errorBox');
@@ -1596,7 +1608,18 @@ function generateScale(){
   }
   errorBox.textContent = '';
 
-  const positions = scalePositions(parsed.pcs, tuning);
+  const rootRun = document.getElementById('rootRunToggle').checked;
+  const positions = scalePositions(parsed.pcs, tuning, undefined, rootRun ? parsed.rootPC : null);
+  if(!positions.length){
+    // root-run only: the root can miss the anchor string's reachable frets
+    grid.innerHTML = `<p class="empty-hint">No position of this scale starts at the root within ${MAX_FRET_DEFAULT} frets on this tuning — switch off “Start and end at the root” to see every box.</p>`;
+    document.getElementById('resultsCount').innerHTML = accGlyphsHTML(formatAccidentals(parsed.label));
+    document.getElementById('resultsContext').textContent = 'no root-to-root position';
+    positionModal.close({ restoreFocus:false });
+    saveSettings();
+    updateScaleURLParam();
+    return;
+  }
   const noteNames = scaleNoteNames(parsed.rootName, parsed.type);
   // same scale on the same instrument: stay in the chosen position
   const key = `${parsed.label}::${tuning.id}`;
@@ -1609,7 +1632,7 @@ function generateScale(){
   grid.appendChild(card);
   fitCardTitles();
 
-  document.getElementById('resultsCount').textContent = formatAccidentals(parsed.label);
+  document.getElementById('resultsCount').innerHTML = accGlyphsHTML(formatAccidentals(parsed.label));
   document.getElementById('resultsContext').textContent =
     `${positions.length} position${positions.length === 1 ? '' : 's'} up the neck`
     + (parsed.hadRoot ? '' : ' — root defaulted to C');
@@ -1735,6 +1758,15 @@ document.getElementById('scaleInputClear').addEventListener('click', ()=>{
   scaleInputIsDefault = false;
   scaleInputEl.focus();
   generateScale();
+});
+
+document.querySelectorAll('.scale-example').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    clearTimeout(scaleInputDebounce);
+    scaleInputEl.value = btn.textContent;
+    scaleInputIsDefault = false;
+    generateScale();
+  });
 });
 
 // --- Custom chord diagram: search fingerings for a free-form set of notes,
@@ -2379,8 +2411,15 @@ if(typeof savedSettings.bwMode === 'boolean'){
 if(typeof savedSettings.highlightRoot === 'boolean'){
   document.getElementById('rootToggle').checked = savedSettings.highlightRoot;
 }
+if(typeof savedSettings.scaleRootRun === 'boolean'){
+  document.getElementById('rootRunToggle').checked = savedSettings.scaleRootRun;
+}
+// pre-split settings carried a single showNoteNames; it becomes the chords value
 if(typeof savedSettings.showNoteNames === 'boolean'){
-  document.getElementById('noteNamesToggle').checked = savedSettings.showNoteNames;
+  noteNamesByMode.chords = savedSettings.showNoteNames;
+}
+if(typeof savedSettings.scaleShowNoteNames === 'boolean'){
+  noteNamesByMode.scales = savedSettings.scaleShowNoteNames;
 }
 if(typeof savedSettings.aquilaStrings === 'boolean'){
   document.getElementById('aquilaToggle').checked = savedSettings.aquilaStrings;
@@ -2813,7 +2852,11 @@ themeToggleBtn.addEventListener('click', ()=>{
   syncThemeUI();
 });
 document.getElementById('rootToggle').addEventListener('change', regenerate);
-document.getElementById('noteNamesToggle').addEventListener('change', regenerate);
+document.getElementById('rootRunToggle').addEventListener('change', regenerate);
+document.getElementById('noteNamesToggle').addEventListener('change', e=>{
+  noteNamesByMode[currentMode] = e.target.checked;
+  regenerate();
+});
 document.getElementById('aquilaToggle').addEventListener('change', regenerate);
 document.getElementById('autoColumnsToggle').addEventListener('change', e=>{
   columnsValue = e.target.checked ? 'auto' : currentRenderedColumns();

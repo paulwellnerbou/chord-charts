@@ -26,6 +26,13 @@ test('parseScale reads root and type through aliases, case and unicode accidenta
   assert.equal(parseScale('Bb').label, 'Bb Major');
 });
 
+test('parseScale marks the blue note of the blues scales and nothing else', () => {
+  assert.equal(parseScale('A blues').blueNotePC, 3);       // the b5, Eb
+  assert.equal(parseScale('C major blues').blueNotePC, 3); // the b3, Eb
+  assert.equal(parseScale('A minor pentatonic').blueNotePC, null);
+  assert.equal(parseScale('C major').blueNotePC, null);
+});
+
 test('parseScale defaults bare mode names to a C root instead of misreading the initial as one', () => {
   const dorian = parseScale('Dorian');
   assert.equal(dorian.rootPC, 0);
@@ -185,6 +192,21 @@ test('scalePositions drops a pitch refingered on the neighbouring string but kee
       }
     }
   }
+});
+
+test('scalePositions with a rootPC builds boxes that start and end on the root', () => {
+  const parsed = parseScale('A blues');
+  const anchorString = UKE.openAbs.indexOf(Math.min(...UKE.openAbs));
+  const positions = scalePositions(parsed.pcs, UKE, undefined, parsed.rootPC);
+  assert.ok(positions.length >= 1);
+  for(const pos of positions){
+    assert.equal((UKE.openPCs[anchorString] + pos.startFret) % 12, parsed.rootPC, 'box anchored at the root');
+    assert.equal(pos.midis[0] % 12, parsed.rootPC, 'run starts on the root');
+    assert.equal(pos.midis[pos.midis.length - 1] % 12, parsed.rootPC, 'run ends on the root');
+    assert.ok(pos.midis[pos.midis.length - 1] - pos.midis[0] >= 12, 'spans at least an octave');
+  }
+  // far fewer boxes than the every-scale-tone anchoring
+  assert.ok(positions.length < scalePositions(parsed.pcs, UKE).length);
 });
 
 test('positionPlaybackMidis runs up the box and back down without repeating the top', () => {

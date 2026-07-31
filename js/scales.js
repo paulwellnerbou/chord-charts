@@ -64,14 +64,20 @@ function parseNoteHead(str){
   return { pc: ((pc % 12) + 12) % 12, len };
 }
 
+// The added chromatic tone that gives the blues scales their name — the b5 of
+// the minor blues, the b3 of the major blues. Diagrams tint it blue.
+const BLUE_NOTE_INTERVALS = { 'Blues': 6, 'Major Blues': 3 };
+
 function makeScale(rootPC, rootText, type, hadRoot){
   const rootName = rootText[0].toUpperCase() + rootText.slice(1);
   const intervals = SCALE_TYPES[type];
+  const blueIv = BLUE_NOTE_INTERVALS[scaleDisplayName(type)];
   return {
     rootPC, rootName, type, hadRoot,
     label: `${rootName} ${scaleDisplayName(type)}`,
     intervals,
     pcs: intervals.map(iv => (rootPC + iv) % 12),
+    blueNotePC: blueIv === undefined ? null : (rootPC + blueIv) % 12,
   };
 }
 
@@ -235,13 +241,19 @@ function windowSize(tuning){
 // carries a scale tone, so the box's bottom fret is always playable and open
 // strings belong to the nut box alone. Each position:
 //   { startFret, endFret, strings: number[][] per string, midis: ascending }
-function scalePositions(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT){
+// With a rootPC, boxes are built from the root instead — anchored where the
+// lowest string carries the root and cut off above the box's highest root, so
+// the shape (and its practice run) starts and ends on the root. The window
+// always reaches the next octave: strings cover contiguous pitch (W ≥ the
+// largest open-string gap), so root+12 sits within every box.
+function scalePositions(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = null){
   const pcSet = new Set(scalePCs);
   const W = windowSize(tuning);
   const anchorString = tuning.openAbs.indexOf(Math.min(...tuning.openAbs));
   const positions = [];
   for(let s = 0; s + W - 1 <= maxFret; s++){
-    if(!pcSet.has((tuning.openPCs[anchorString] + s) % 12)) continue;
+    const anchorPC = (tuning.openPCs[anchorString] + s) % 12;
+    if(rootPC === null ? !pcSet.has(anchorPC) : anchorPC !== rootPC) continue;
     const strings = tuning.openPCs.map(openPC => {
       const frets = [];
       for(let f = s; f <= s + W - 1; f++){
@@ -262,6 +274,13 @@ function scalePositions(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT){
         if(f < twin) strings[i + 1] = strings[i + 1].filter(x => x !== twin);
         else strings[i] = strings[i].filter(x => x !== f);
       }
+    }
+    if(rootPC !== null){
+      const all = strings.flatMap((frets, i) => frets.map(f => tuning.openAbs[i] + f));
+      const hiRoot = Math.max(...all.filter(m => m % 12 === rootPC));
+      strings.forEach((frets, i) => {
+        strings[i] = frets.filter(f => tuning.openAbs[i] + f <= hiRoot);
+      });
     }
     // playback still sounds every pitch once, wherever it is doubled
     const midis = [...new Set(strings.flatMap((frets, i) => frets.map(f => tuning.openAbs[i] + f)))]
