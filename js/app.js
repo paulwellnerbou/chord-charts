@@ -94,12 +94,8 @@ function accidentalsHTML(name){
 }
 
 // Same .acc wrapping for text that already carries ♭/♯ glyphs (formatAccidentals output).
-// Sharps carry their own class: the glyph is wide and flat-sided, so it wants air
-// where the ♭ wants to tuck under the letter. So does a second glyph in a run
-// (a double flat), which has a glyph to its left rather than a note letter.
 function accGlyphsHTML(text){
-  return escapeXML(text).replace(/[♭♯]+/g, run => [...run].map((g, i) =>
-    `<span class="acc${g === '♯' ? ' acc-sharp' : ''}${i ? ' acc-run' : ''}">${g}</span>`).join(''));
+  return escapeXML(text).replace(/[♭♯]/g, g=>`<span class="acc">${g}</span>`);
 }
 
 function chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){

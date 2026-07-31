@@ -42,11 +42,10 @@ function accTspans(escaped, size){
   let out = '', raised = false;
   for(const part of parts){
     if(part === '♭' || part === '♯'){
-      // the ♭ has an open left flank and tucks under the letter; the ♯ is flat-sided
-      // and needs a hair of air instead. A second glyph in a run keeps the same
+      // a hair of air, so the glyph never touches the note letter (or the glyph
+      // before it in a double flat). A second glyph in a run keeps the same
       // baseline — the dy that raised the first one still applies.
-      const dx = part === '♭' ? -size*0.12 : size*0.05;
-      out += `<tspan font-size="${size}" dx="${dx}"${raised ? '' : ` dy="${-raise}"`}>${part}</tspan>`;
+      out += `<tspan font-size="${size}" dx="${size*0.05}"${raised ? '' : ` dy="${-raise}"`}>${part}</tspan>`;
       raised = true;
     } else if(part){
       out += raised ? `<tspan dy="${raise}">${part}</tspan>` : part;
