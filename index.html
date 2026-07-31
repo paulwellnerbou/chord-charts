@@ -48,14 +48,17 @@
   </header>
 
   <section class="settings-section no-print" aria-label="Chords">
-    <div class="builder-heading">
-      <span class="builder-kicker">Chart builder</span>
-      <h2 class="builder-title">Which chords do you need?</h2>
-    </div>
+    <!-- The heading is the field's label: one line of text over the input, not three. -->
+    <h2 class="builder-title"><label for="chordInput">Which chords do you need?</label></h2>
     <div class="builder-grid">
       <div class="field">
-        <div class="field-label-row">
-          <label class="field-label" for="chordInput">Chords</label>
+        <div class="input-clear-wrap" id="chordInputWrap">
+          <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, F, G7</textarea>
+          <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
+        </div>
+        <!-- Both act on what the field already holds, so they sit against it —
+             "these chords" has to point at something within reading distance. -->
+        <div class="chord-actions">
           <div class="stepper stepper-sm" id="transposeStepper" role="group" aria-label="Transpose all chords" title="Shift every chord up or down in semitones — the chord text itself is rewritten">
             <span class="stepper-label">Transpose</span>
             <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone" title="Down a semitone">−</button>
@@ -63,14 +66,14 @@
             <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone" title="Up a semitone">+</button>
             <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
           </div>
-        </div>
-        <div class="input-clear-wrap" id="chordInputWrap">
-          <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, F, G7</textarea>
-          <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
+          <button type="button" class="secondary rsearch-open-btn" id="reverseSearchBtn" hidden aria-haspopup="dialog" aria-label="Find songs with these chords" title="Find songs that use the chords in this input">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
+            <span>Find songs<span class="btn-text-long"> with these chords</span></span>
+          </button>
         </div>
       </div>
       <div class="field">
-        <span class="field-label" id="instrumentLabel">Instrument &amp; tuning</span>
+        <span class="sr-only" id="instrumentLabel">Instrument and tuning</span>
         <div class="tuning-select" id="tuningSelectWrap">
           <button type="button" class="tuning-select-trigger" id="tuningSelectBtn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="instrumentLabel tuningSelectName tuningSelectTuning">
             <span class="tuning-select-icon" id="tuningSelectIcon"></span>
@@ -95,10 +98,9 @@
         </div>
       </div>
     </div>
-    <!-- Ways into the field above, and (right-aligned) the one lookup that runs
-         off what it already holds. -->
+    <!-- Ways of filling the field above for anyone who can't just type it. -->
     <div class="builder-helpers no-print">
-      <span class="builder-helpers-label">Don't know them?</span>
+      <span class="builder-helpers-label">Search chords:</span>
       <button type="button" class="secondary rsearch-open-btn" id="songSearchOpenBtn" hidden aria-expanded="false" aria-controls="songSearchField" title="Load a song's chords by name">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
         From a song
@@ -110,10 +112,6 @@
       <button type="button" class="secondary rsearch-open-btn" id="fretboardIdOpenBtn" aria-haspopup="dialog" title="Click a fretboard and let the tool name the chord">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="3" x2="4" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="20" y1="3" x2="20" y2="21"/><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="12" cy="11.5" r="2.4" fill="currentColor" stroke="none"/></svg>
         From the fretboard
-      </button>
-      <button type="button" class="secondary rsearch-open-btn helper-inverse" id="reverseSearchBtn" hidden aria-haspopup="dialog" title="Find songs that use the chords in this input">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
-        Find songs with these chords
       </button>
     </div>
     <div class="song-search-field" id="songSearchField" hidden>
