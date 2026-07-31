@@ -69,21 +69,28 @@
       </div>
     </div>
     <div class="field chord-field">
-      <div class="chord-input-row">
-        <div class="input-clear-wrap" id="chordInputWrap">
-          <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, F, G7</textarea>
-          <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
+      <!-- Wraps the field and its pills: the pills are an aid for typing here,
+           so they keep to the moment of typing rather than standing in the card
+           all the time. -->
+      <div class="chord-entry">
+        <div class="chord-input-row">
+          <div class="input-clear-wrap" id="chordInputWrap">
+            <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, F, G7</textarea>
+            <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
+          </div>
+          <!-- Up is up: + on top. Butted against the field because it edits the
+               text in it, and it grows with the field. Carrying no label, it
+               leans on the popover below to say what it does. -->
+          <div class="stepper stepper-vert" id="transposeStepper" role="group" aria-label="Transpose all chords" aria-describedby="transposeTip">
+            <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone">+</button>
+            <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
+            <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone">−</button>
+            <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+          </div>
+          <div class="info-popover transpose-tip" id="transposeTip" role="tooltip">Transpose: shifts every chord in the box up or down a semitone, rewriting the chord text itself.</div>
         </div>
-        <!-- Up is up: + on top. Butted against the field because it edits the
-             text in it, and it grows with the field. Carrying no label, it
-             leans on the popover below to say what it does. -->
-        <div class="stepper stepper-vert" id="transposeStepper" role="group" aria-label="Transpose all chords" aria-describedby="transposeTip">
-          <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone">+</button>
-          <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
-          <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone">−</button>
-          <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
-        </div>
-        <div class="info-popover transpose-tip" id="transposeTip" role="tooltip">Transpose: shifts every chord in the box up or down a semitone, rewriting the chord text itself.</div>
+        <!-- Filled in by the app: the pills follow the root the input already uses. -->
+        <div class="chord-suggestions no-print" id="chordSuggestions" hidden></div>
       </div>
       <!-- The format hint belongs to the field, so it reads as its hint line
            rather than as a stray sentence further down the card. -->
@@ -104,22 +111,22 @@
         </button>
       </div>
     </div>
-    <!-- Filled in by the app: the pills follow the root the input already uses. -->
-    <div class="chord-suggestions no-print" id="chordSuggestions" hidden></div>
-    <!-- Ways of filling the field above for anyone who can't just type it. -->
+    <!-- Ways of filling the field above for anyone who can't just type it.
+         Each name has a short form: a phone puts the label on its own line and
+         gives the three an equal share of the next one. -->
     <div class="builder-helpers no-print">
       <span class="builder-helpers-label">Search chords:</span>
       <button type="button" class="secondary rsearch-open-btn" id="songSearchOpenBtn" hidden aria-expanded="false" aria-controls="songSearchField" title="Load a song's chords by name">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
-        From a song
+        <span class="label-wide">From a song</span><span class="label-narrow">Song</span>
       </button>
       <button type="button" class="secondary rsearch-open-btn" id="customChordOpenBtn" aria-haspopup="dialog" title="Search fingerings for your own set of notes">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>
-        From notes
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="18" r="3" fill="currentColor" stroke="none"/><path d="M10 18V4l9-2v13"/><circle cx="16" cy="15" r="3" fill="currentColor" stroke="none"/></svg>
+        <span class="label-wide">From notes</span><span class="label-narrow">Notes</span>
       </button>
       <button type="button" class="secondary rsearch-open-btn" id="fretboardIdOpenBtn" aria-haspopup="dialog" title="Click a fretboard and let the tool name the chord">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="3" x2="4" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="20" y1="3" x2="20" y2="21"/><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="12" cy="11.5" r="2.4" fill="currentColor" stroke="none"/></svg>
-        From the fretboard
+        <span class="label-wide">From the fretboard</span><span class="label-narrow">Fretboard</span>
       </button>
     </div>
     <div class="song-search-field" id="songSearchField" hidden>

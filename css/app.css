@@ -109,8 +109,14 @@
     color:var(--ink-soft); margin:0 0 8px;
   }
   .controls{ display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin-bottom:10px; }
-  .chord-suggestions{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:11px 0 0; }
+  .chord-suggestions{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:9px 0 0; }
   .chord-suggestions[hidden]{ display:none; }
+  /* An aid for typing in the field above, so it keeps to the moment of typing —
+     showcasing what the app can draw is not worth a standing row of buttons.
+     Focus, not hover: clicking a pill moves the keyboard to the next one. */
+  .chord-entry:not(:focus-within) .chord-suggestions{ display:none; }
+  .chord-entry:focus-within .chord-suggestions{ animation:pill-row-in .2s ease both; }
+  @keyframes pill-row-in{ from{ opacity:0; transform:translateY(-4px); } }
   .chord-suggestions-label{ margin-right:2px; color:var(--ink-soft); font-size:12.5px; }
   .chord-suggestion{
     min-height:0; padding:4px 11px; border-radius:999px;
@@ -278,6 +284,7 @@
   /* --- alternative ways into the chord field --- */
   .builder-helpers{ display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin:12px 0 0; }
   .builder-helpers-label{ margin-right:1px; color:var(--ink-soft); font-size:12.5px; }
+  .label-narrow{ display:none; }
 
   /* --- song search --- */
   .song-search-field{ margin:11px 0 0; animation:field-reveal .22s ease; }
@@ -1166,6 +1173,13 @@
     /* drops what the width can't carry and the reader can do without: the count
        on the pill toggle, the words beside the printer */
     .btn-text-long{ display:none; }
+    /* The three ways in share a row of their own rather than breaking across
+       two: the label takes the line above, and the short names fit the thirds. */
+    .builder-helpers{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+    .builder-helpers-label{ grid-column:1 / -1; margin:0; }
+    .builder-helpers .rsearch-open-btn{ width:100%; justify-content:center; padding-inline:6px; }
+    .label-wide{ display:none; }
+    .label-narrow{ display:inline; }
     .tuning-select-trigger{ width:100%; min-width:0; }
     .tuning-select-menu{ width:100%; }
     /* 16px stops iOS Safari from auto-zooming the page on focus */
