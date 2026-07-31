@@ -21,6 +21,15 @@ function getAudioCtx(){
 
 function midiToFreq(midi){ return 440 * Math.pow(2, (midi-69)/12); }
 
+// Below C4 both the ear and any small speaker lose a note's fundamental fast —
+// at the bass low E, 41 Hz, it sits some 25 dB under a ukulele's G fed the same
+// signal. Harmonics are what carry those notes, so the voice leans on them the
+// lower it goes. 0 from C4 up, where the plain triangle voice already carries.
+const LOW_TOP = 261.6, LOW_BOTTOM = 41.2;
+function lowness(freq){
+  return Math.min(1, Math.max(0, Math.log2(LOW_TOP/freq) / Math.log2(LOW_TOP/LOW_BOTTOM)));
+}
+
 let resumePromise = null;
 
 // resolves once the note has actually been scheduled — immediately when the
@@ -44,26 +53,36 @@ function scheduleNote(ctx, midi, opts){
   const peak = (opts && opts.gain) || 0.22;
   const t0 = ctx.currentTime + delay;
   const freq = midiToFreq(midi);
+  const low = lowness(freq);
 
-  const osc = ctx.createOscillator();
-  osc.type = 'triangle';
-  osc.frequency.setValueAtTime(freq, t0);
-
-  // lowpass sweep gives the triangle wave a plucked-string character
+  // lowpass sweep gives the wave a plucked-string character; its resting point
+  // lifts with `low` so the harmonics the note depends on survive the sweep
+  const floor = 200 + low*900;
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
   filter.Q.value = 0.6;
-  filter.frequency.setValueAtTime(freq*8, t0);
-  filter.frequency.exponentialRampToValueAtTime(Math.max(freq*1.2, 200), t0+0.5);
+  filter.frequency.setValueAtTime(Math.max(freq*8, floor*2.8), t0);
+  filter.frequency.exponentialRampToValueAtTime(Math.max(freq*1.2, floor), t0+0.5);
 
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(0, t0);
-  gain.gain.linearRampToValueAtTime(peak, t0+0.006);
+  gain.gain.linearRampToValueAtTime(peak*(1 + low*0.25), t0+0.006);
   gain.gain.exponentialRampToValueAtTime(0.0001, t0+1.4);
+  filter.connect(gain).connect(ctx.destination);
 
-  osc.connect(filter).connect(gain).connect(ctx.destination);
-  osc.start(t0);
-  osc.stop(t0+1.5);
+  // triangle up top, crossfading to sawtooth down low for its far richer
+  // harmonics — 1/n against the triangle's 1/n²
+  for(const [type, amp] of [['triangle', 1-low], ['sawtooth', low]]){
+    if(amp <= 0.001) continue;
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    const mix = ctx.createGain();
+    mix.gain.value = amp;
+    osc.connect(mix).connect(filter);
+    osc.start(t0);
+    osc.stop(t0+1.5);
+  }
 }
 
 // per-note stagger in seconds: a quick strum, or a broken chord slow enough
