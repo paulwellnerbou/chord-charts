@@ -987,7 +987,7 @@ function generate(){
 
   errorBox.textContent = errors.join('  ·  ');
   renderChordSuggestions(results.map(r => r.label));
-  updateReverseSearchBtn(results.length);
+  updateReverseSearchBtn(results.map(r => r.label));
   const countLabel = `${results.length} ${results.length === 1 ? 'chord' : 'chords'}`;
   document.getElementById('resultsCount').textContent = countLabel;
   document.getElementById('resultsContext').textContent = errors.length
@@ -2347,7 +2347,7 @@ let songLoadInflight = null; // AbortController — a newer selection or a manua
 // Two independent gates on the song field: whether the backend offers it at all
 // (the chips), and whether the user has asked for it (the field itself).
 let songBackendReady = false;
-let sheetChordCount = 0;
+let sheetChords = [];
 
 function setSongSearchVisible(visible){
   songBackendReady = visible;
@@ -2366,10 +2366,18 @@ function setSongSearchVisible(visible){
 }
 
 // The inverse lookup answers "what else uses these?" — with nothing on the
-// sheet to look up, it would open onto an empty query.
-function updateReverseSearchBtn(chordCount){
-  if(typeof chordCount === 'number') sheetChordCount = chordCount;
-  document.getElementById('reverseSearchBtn').hidden = !songBackendReady || sheetChordCount < 2;
+// sheet to look up, it would open onto an empty query. The button spells the
+// chords out so it names its own query; past this many the label is a wall of
+// text nobody reads, ellipsis or not.
+const REVERSE_LABEL_CHORDS = 6;
+function updateReverseSearchBtn(chordLabels){
+  if(Array.isArray(chordLabels)) sheetChords = chordLabels;
+  const btn = document.getElementById('reverseSearchBtn');
+  btn.hidden = !songBackendReady || sheetChords.length < 2;
+  if(btn.hidden) return;
+  const named = sheetChords.slice(0, REVERSE_LABEL_CHORDS).map(formatAccidentals).join(', ');
+  const rest = sheetChords.length > REVERSE_LABEL_CHORDS ? ', …' : '';
+  document.getElementById('reverseSearchLabel').textContent = `Find songs using chords ${named}${rest}`;
 }
 
 function setSongSearchExpanded(open){
