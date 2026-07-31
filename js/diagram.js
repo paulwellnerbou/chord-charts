@@ -6,11 +6,14 @@ const EXPORT_HEADING_FONT = "Georgia, 'Times New Roman', serif";
 const NICE_COLORS = {
   ink:'#292621', dotFill:'#554f49', dotStroke:'#37332f',
   cardBg:'#fffcf7', cardBorder:'#ddd3c5', heading:'#a44737', rootColor:'#a44737',
+  blueNoteFill:'#3f6592', blueNoteStroke:'#2d4a6d',
   lineOpacity:0.55, markerOpacity:0.3, exportHeadingFont:EXPORT_HEADING_FONT
 };
+// The blue note keeps its blue even here — it is the one color with meaning.
 const BW_COLORS = {
   ink:'#000000', dotFill:'#000000', dotStroke:'#000000',
   cardBg:'#ffffff', cardBorder:'#000000', heading:'#000000', rootColor:'#000000',
+  blueNoteFill:'#1e4fa3', blueNoteStroke:'#12356f',
   lineOpacity:1, markerOpacity:0.25, exportHeadingFont:EXPORT_HEADING_FONT
 };
 // Aquila Kids educational set: green/red/yellow/blue from 4th to 1st string
@@ -29,12 +32,36 @@ function escapeXML(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// Accidental glyphs draw smaller, raised and tucked against their note letter,
+// engraving-style — the SVG twin of the HTML .acc treatment. dy shifts are
+// cumulative in SVG, so any text after the accidental drops back down in a
+// compensating tspan. Input must already be escaped.
+function accTspans(escaped, size){
+  const raise = size*0.18;
+  const parts = String(escaped).split(/([♭♯])/);
+  let out = '', raised = false;
+  for(const part of parts){
+    if(part === '♭' || part === '♯'){
+      // a hair of air, so the glyph never touches the note letter (or the glyph
+      // before it in a double flat). A second glyph in a run keeps the same
+      // baseline — the dy that raised the first one still applies.
+      out += `<tspan font-size="${size}" dx="${size*0.05}"${raised ? '' : ` dy="${-raise}"`}>${part}</tspan>`;
+      raised = true;
+    } else if(part){
+      out += raised ? `<tspan dy="${raise}">${part}</tspan>` : part;
+      raised = false;
+    }
+  }
+  return out;
+}
+
 function boardInner(numFrets, startFret, labels, colors){
   const numRows = Math.max(3, numFrets - startFret);
   const bottomY = NUT_Y + numRows*FRET_H;
   let s = '';
   labels.forEach((lab,i)=>{
-    s += `<text x="${XS[i]}" y="12" text-anchor="middle" font-size="13" fill="${colors.ink}" font-family="Arial,sans-serif" font-weight="700">${escapeXML(lab)}</text>`;
+    // tuning labels are stored ASCII (F#, Bb), so they need the glyph swap first
+    s += `<text x="${XS[i]}" y="12" text-anchor="middle" font-size="13" fill="${colors.ink}" font-family="Arial,sans-serif" font-weight="700">${accTspans(escapeXML(formatAccidentals(lab)), 8.5)}</text>`;
   });
   const topLineWidth = startFret === 0 ? 3 : 1;
   const topLineOpacity = startFret === 0 ? 1 : colors.lineOpacity;
@@ -59,19 +86,21 @@ function boardInner(numFrets, startFret, labels, colors){
   return s;
 }
 
-function dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name){
+function dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name, isBlue){
   const x = XS[i];
-  const noteAttrs = abs!==null ? ` class="note-dot" data-abs="${abs}" tabindex="0" role="button" aria-label="Play ${escapeXML(labels[i])} string, ${escapeXML(String(fret))}${fret===0?' open':''}"` : '';
+  const blueSuffix = isBlue ? ' (blue note)' : '';
+  const blueTitle = isBlue ? '<title>Blue note</title>' : '';
+  const noteAttrs = abs!==null ? ` class="note-dot" data-abs="${abs}" tabindex="0" role="button" aria-label="Play ${escapeXML(labels[i])} string, ${escapeXML(String(fret))}${fret===0?' open':''}${blueSuffix}"` : '';
   let s = '';
   if(fret===0){
-    s += `<circle cx="${x}" cy="24" r="6" fill="${colors.cardBg}" stroke="${colors.ink}" stroke-width="1.5"${noteAttrs}/>`;
+    s += `<circle cx="${x}" cy="24" r="6" fill="${colors.cardBg}" stroke="${isBlue ? colors.blueNoteFill : colors.ink}" stroke-width="1.5"${noteAttrs}>${blueTitle}</circle>`;
     if(isRoot){
       s += `<circle cx="${x}" cy="24" r="9" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
     }
   } else {
     const y = rowCenter(fret-startFret);
-    s += `<circle cx="${x}" cy="${y}" r="9" fill="${colors.dotFill}" stroke="${colors.dotStroke}" stroke-width="1"${noteAttrs}/>`;
-    if(name) s += `<text class="note-name" x="${x}" y="${y+3}" text-anchor="middle" font-size="8" font-weight="700" fill="${colors.cardBg}" font-family="Arial,sans-serif" pointer-events="none">${name}</text>`;
+    s += `<circle cx="${x}" cy="${y}" r="9" fill="${isBlue ? colors.blueNoteFill : colors.dotFill}" stroke="${isBlue ? colors.blueNoteStroke : colors.dotStroke}" stroke-width="1"${noteAttrs}>${blueTitle}</circle>`;
+    if(name) s += `<text class="note-name" x="${x}" y="${y+3}" text-anchor="middle" font-size="8" font-weight="700" fill="${colors.cardBg}" font-family="Arial,sans-serif" pointer-events="none">${accTspans(name, 6)}</text>`;
     if(isRoot){
       s += `<circle cx="${x}" cy="${y}" r="12" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
     }
@@ -101,7 +130,7 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
 
 // Scale-position variant of diagramInner: several notes per string, spelled
 // through the scale's own pc → name map (F# major reads E#, not F).
-function scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames, noteNames){
+function scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames, noteNames, blueNotePC){
   startFret = startFret || 0;
   let s = boardInner(numFrets, startFret, labels, colors);
   stringFrets.forEach((frets,i)=>{
@@ -111,7 +140,7 @@ function scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, high
       const abs = openAbs ? openAbs[i]+fret : null;
       const spelled = (noteNames && noteNames[pc]) || spellNote(pc);
       const name = (showNoteNames && fret>0) ? escapeXML(formatAccidentals(spelled)) : null;
-      s += dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name);
+      s += dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name, blueNotePC!=null && pc===blueNotePC);
     });
   });
   return s;
@@ -125,10 +154,10 @@ function chordSVG(name, frets, numFrets, labels, colors, openPCs, rootPC, highli
   return s;
 }
 
-function scaleSVG(name, stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames, noteNames){
+function scaleSVG(name, stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames, noteNames, blueNotePC){
   const bottomY = boardBottomY(numFrets, startFret);
   let s = `<svg viewBox="0 0 188 ${bottomY+12}" width="328" role="img" aria-label="${escapeXML(name)} scale position diagram">`;
-  s += scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames, noteNames);
+  s += scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames, noteNames, blueNotePC);
   s += '</svg>';
   return s;
 }
@@ -146,10 +175,10 @@ function exportFrame(label, innerSVG, numFrets, startFret, colors, showBorder, f
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${tileW} ${tileH}" width="${tileW}" height="${tileH}">`;
   if(metadataText) s += `<metadata>${escapeXML(metadataText)}</metadata>`;
   s += `<rect x="1" y="1" width="${tileW-2}" height="${tileH-2}" rx="12" fill="${colors.cardBg}" ${strokeAttr}/>`;
-  s += `<text x="${tileW/2}" y="${PAD+headerH*0.7}" text-anchor="middle" font-size="21" font-weight="700" fill="${colors.heading}" font-family="${colors.exportHeadingFont}">${escapeXML(label)}</text>`;
+  s += `<text x="${tileW/2}" y="${PAD+headerH*0.7}" text-anchor="middle" font-size="21" font-weight="700" fill="${colors.heading}" font-family="${colors.exportHeadingFont}">${accTspans(escapeXML(label), 13)}</text>`;
   s += `<g transform="translate(${PAD},${PAD+headerH})">${innerSVG}</g>`;
   if(footerText){
-    s += `<text x="${tileW/2}" y="${PAD+headerH+diagH+11}" text-anchor="middle" font-size="9" font-style="italic" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${escapeXML(footerText)}</text>`;
+    s += `<text x="${tileW/2}" y="${PAD+headerH+diagH+11}" text-anchor="middle" font-size="9" font-style="italic" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${accTspans(escapeXML(footerText), 6.5)}</text>`;
   }
   s += '</svg>';
   return s;
@@ -162,8 +191,8 @@ function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openP
     sourceURL ? `Chord diagram from ${sourceURL}` : null);
 }
 
-function exportScaleTileSVG(label, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, notesLine, sourceURL, showNoteNames, noteNames){
-  const inner = scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret, showNoteNames, noteNames);
+function exportScaleTileSVG(label, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, notesLine, sourceURL, showNoteNames, noteNames, blueNotePC){
+  const inner = scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret, showNoteNames, noteNames, blueNotePC);
   return exportFrame(label, inner, numFrets, startFret, colors, showBorder,
     notesLine || null,
     sourceURL ? `Scale diagram from ${sourceURL}` : null);

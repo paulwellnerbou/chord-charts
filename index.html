@@ -181,7 +181,12 @@
           </div>
           <div class="info-popover transpose-tip" id="scaleTransposeTip" role="tooltip">Transpose: moves the scale's root up or down a semitone, rewriting the name itself.</div>
         </div>
-        <p class="scale-hint">One scale at a time — type a root and a name, like <code>G blues</code> or <code>D dorian</code>.</p>
+        <p class="scale-hint scale-hint-examples"><span>One scale at a time — type a root and a name, or try</span>
+          <button type="button" class="secondary scale-example">A Minor Pentatonic</button>
+          <button type="button" class="secondary scale-example">G Blues</button>
+          <button type="button" class="secondary scale-example">C Major</button>
+          <button type="button" class="secondary scale-example">D Dorian</button>
+        </p>
       </div>
     </div>
     <div class="error" id="errorBox" role="status" aria-live="polite"></div>
@@ -273,10 +278,20 @@
               <span class="switch-track"><span class="switch-thumb"></span></span>
               <span>Highlight root note</span>
             </label>
+            <label class="switch scales-only" title="Build each position from the root instead: the box starts where the lowest string carries the root note and ends at its highest root, so diagrams and playback run root to root.">
+              <input type="checkbox" id="rootRunToggle">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span>Start and end at the root</span>
+            </label>
             <label class="switch">
               <input type="checkbox" id="noteNamesToggle">
               <span class="switch-track"><span class="switch-thumb"></span></span>
               <span>Show note names</span>
+            </label>
+            <label class="switch scales-only" title="Giving every scale degree its own letter costs a double accidental in some keys — the 6th of Gb blues is Bbb. When on, those notes take their simpler name instead (A), the same pitch either way.">
+              <input type="checkbox" id="simplifyAccidentalsToggle" checked>
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span>Simplify double accidentals</span>
             </label>
             <div class="switch-wrap" id="aquilaInfoWrap">
               <label class="switch" title="Colour the strings like the Aquila Kids educational set — green, red, yellow and blue.">

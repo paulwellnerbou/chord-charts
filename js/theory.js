@@ -315,7 +315,9 @@ function spellNote(pc){ return ROOT_NAMES[((pc%12)+12)%12]; }
 // it apart from a lower-case "b" standing for the note B; "#" is always a sharp.
 // Never run this on strings bound for parsing, URLs, filenames or storage.
 function formatAccidentals(name){
-  return String(name).replace(/([A-Ga-g0-9])b/g, '$1♭').replace(/#/g, '♯');
+  // a run of flats goes glyph-for-glyph, so a double flat reads B♭♭, never B♭b
+  return String(name).replace(/([A-Ga-g0-9])(b+)/g, (_, head, flats) => head + '♭'.repeat(flats.length))
+    .replace(/#/g, '♯');
 }
 
 // Names the notes sounding in a fingering. `pcs` are the sounding pitch classes

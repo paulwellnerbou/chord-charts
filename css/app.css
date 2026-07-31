@@ -567,6 +567,7 @@
   .scales-only{ display:none; }
   body.scales-mode .chords-only{ display:none; }
   body.scales-mode .scales-only{ display:inline; }
+  body.scales-mode .switch.scales-only{ display:inline-flex; }
   /* the incoming panel eases in on a tab switch, like the song-search field */
   #chordsPanel:not([hidden]), #scalesPanel:not([hidden]){ animation:field-reveal .22s ease; }
   @media (prefers-reduced-motion:reduce){
@@ -578,6 +579,9 @@
   .typeahead-text{ flex-shrink:0; font-weight:700; color:var(--ink); white-space:nowrap; }
   .typeahead-desc{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink-soft); font-size:12.5px; }
   .scale-hint code{ font-family:inherit; font-size:inherit; font-weight:600; color:var(--ink); }
+  /* example chips join the app's small-button family so they read as clickable */
+  .scale-hint-examples{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .scale-example{ min-height:0; height:24px; padding:0 10px; border-radius:7px; font-size:12px; font-weight:650; line-height:1; }
   /* position chooser: wider tiles than chord voicings, no masonry */
   .position-modal .voicing-modal-grid{ grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); }
   .position-caption{ display:block; padding:4px 0 6px; font-size:11.5px; font-weight:600; color:var(--ink-soft); }
@@ -1373,7 +1377,7 @@
   .fb-chord-name{ font-family:var(--heading-font); font-weight:650; font-size:30px; color:var(--accent); }
   /* accidental glyphs: smaller and tucked against the note letter, engraving-style.
      Margins are in the .acc's own (small) em, so they need to be sizeable to bite. */
-  .acc{ font-size:0.62em; vertical-align:0.09em; margin-left:-0.24em; margin-right:-0.09em; }
+  .acc{ font-size:0.62em; vertical-align:0.09em; margin-left:0.06em; }
   .fb-missing{ font-size:14px; color:var(--ink-soft); }
   .fb-alts{ margin:8px 0 0; font-size:13.5px; color:var(--ink-soft); }
   .fb-alts span{ font-weight:650; color:var(--ink); white-space:nowrap; }
