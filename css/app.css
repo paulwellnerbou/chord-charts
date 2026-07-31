@@ -451,14 +451,16 @@
 
   /* --- transpose control (upright stepper against the chord field) --- */
   .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  /* as wide as one of its buttons is tall, so the three cells read as a stack
+     of squares rather than as a second input beside the field */
   .stepper-vert{
     flex-direction:column; flex-shrink:0; align-self:stretch;
-    width:40px; height:auto; border-radius:10px;
+    width:28px; height:auto; border-radius:8px;
   }
-  .stepper-vert .stepper-btn{ flex:1 1 0; width:100%; height:auto; min-height:0; font-size:17px; }
+  .stepper-vert .stepper-btn{ flex:1 1 0; width:100%; height:auto; min-height:0; font-size:15px; }
   .stepper-vert .stepper-value{
     flex:0 0 auto; width:100%; min-width:0; height:auto; padding:3px 0;
-    font-size:12.5px; border-left:none; border-right:none;
+    font-size:11px; border-left:none; border-right:none;
     border-top:1px solid var(--card-border); border-bottom:1px solid var(--card-border);
   }
   .stepper-sm{ height:28px; border-radius:7px; }
@@ -1144,6 +1146,11 @@
     .custom-chord-notes-input{ font-size:16px; }
     /* a thumb needs a taller target than a pointer does */
     .chord-suggestion{ padding:7px 12px; }
+    /* One line, whatever the root spells out to: the row scrolls sideways
+       instead of wrapping and pushing the chart further down the screen. */
+    .chord-suggestions{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+    .chord-suggestions::-webkit-scrollbar{ display:none; }
+    .chord-suggestions > *{ flex:0 0 auto; }
     /* keep long titles readable on narrow dropdowns */
     .song-result-meta{ display:none; }
     .results-toolbar{ align-items:stretch; }
@@ -1161,9 +1168,8 @@
     .options-card{ padding:13px 14px 15px; gap:16px 24px; }
     .stepper{ height:40px; }
     .stepper-btn{ width:38px; }
-    /* after the two above, which would otherwise stop it tracking the field's
-       height; width is all that is left to give a thumb here */
-    .stepper-vert{ width:48px; height:auto; }
+    /* after the two above, which would otherwise stop it tracking the field */
+    .stepper-vert{ height:auto; }
     .stepper-vert .stepper-btn{ width:100%; }
     .stepper-sm{ height:36px; }
     .stepper-sm .stepper-btn{ width:34px; }
