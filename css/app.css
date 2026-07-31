@@ -83,16 +83,13 @@
   /* the heading labels the field below it; a text cursor would promise an edit
      point the heading itself isn't */
   .builder-title label{ cursor:default; }
-  /* Named rows so transpose can sit above the chord field without dragging the
-     instrument trigger down with it — that one lines up with the field itself. */
-  .builder-grid{
-    display:grid; grid-template-columns:minmax(0,1fr) auto;
-    grid-template-areas:"head ." "chords instrument";
-    column-gap:14px; row-gap:6px; align-items:start;
-  }
-  .chord-field-head{ grid-area:head; display:flex; justify-content:flex-end; }
-  .chord-field{ grid-area:chords; min-width:0; }
-  .instrument-field{ grid-area:instrument; }
+  .builder-grid{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:start; }
+  .chord-field{ min-width:0; }
+  /* stretch, so the transpose column tracks the field as it grows with the text.
+     Tighter than the grid gap on its right: proximity is what says which of the
+     two neighbours it belongs to, now that it carries no label. */
+  .chord-input-row{ display:flex; align-items:stretch; gap:6px; }
+  .chord-input-row .input-clear-wrap{ flex:1 1 auto; min-width:0; }
   /* flex-start, never centred: expanding the help grows it downwards, and a
      centred neighbour would be shoved down and back on every toggle */
   .chord-hint-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin:8px 0 0; }
@@ -452,8 +449,18 @@
     100%{ transform:scale(1); color:var(--ink); }
   }
 
-  /* --- transpose control (compact stepper under the chord field) --- */
+  /* --- transpose control (upright stepper against the chord field) --- */
   .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  .stepper-vert{
+    flex-direction:column; flex-shrink:0; align-self:stretch;
+    width:40px; height:auto; border-radius:10px;
+  }
+  .stepper-vert .stepper-btn{ flex:1 1 0; width:100%; height:auto; min-height:0; font-size:17px; }
+  .stepper-vert .stepper-value{
+    flex:0 0 auto; width:100%; min-width:0; height:auto; padding:3px 0;
+    font-size:12.5px; border-left:none; border-right:none;
+    border-top:1px solid var(--card-border); border-bottom:1px solid var(--card-border);
+  }
   .stepper-sm{ height:28px; border-radius:7px; }
   .stepper-sm .stepper-label{ font-size:12px; padding-left:10px; }
   .stepper-sm .stepper-btn{ width:27px; font-size:14px; }
@@ -1128,8 +1135,7 @@
     /* the button sits right under the field it refers to, so the short name is
        still unambiguous — and it keeps the row beside Transpose */
     .btn-text-long{ display:none; }
-    .builder-grid{ grid-template-columns:1fr; grid-template-areas:"head" "chords" "instrument"; }
-    .instrument-field{ margin-top:5px; }
+    .builder-grid{ grid-template-columns:1fr; gap:11px; }
     .tuning-select-trigger{ width:100%; min-width:0; }
     .tuning-select-menu{ width:100%; }
     /* 16px stops iOS Safari from auto-zooming the page on focus */
@@ -1155,6 +1161,10 @@
     .options-card{ padding:13px 14px 15px; gap:16px 24px; }
     .stepper{ height:40px; }
     .stepper-btn{ width:38px; }
+    /* after the two above, which would otherwise stop it tracking the field's
+       height; width is all that is left to give a thumb here */
+    .stepper-vert{ width:48px; height:auto; }
+    .stepper-vert .stepper-btn{ width:100%; }
     .stepper-sm{ height:36px; }
     .stepper-sm .stepper-btn{ width:34px; }
     .stepper-sm .stepper-value{ min-width:42px; }

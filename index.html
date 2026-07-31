@@ -51,21 +51,20 @@
     <!-- The heading is the field's label: one line of text over the input, not three. -->
     <h2 class="builder-title"><label for="chordInput">Which chords do you need?</label></h2>
     <div class="builder-grid">
-      <!-- Its own grid row above the field, so the instrument trigger opposite
-           still lines up with the field's top edge rather than with this. -->
-      <div class="chord-field-head">
-        <div class="stepper stepper-sm" id="transposeStepper" role="group" aria-label="Transpose all chords" title="Shift every chord up or down in semitones — the chord text itself is rewritten">
-          <span class="stepper-label">Transpose</span>
-          <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone" title="Down a semitone">−</button>
-          <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
-          <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone" title="Up a semitone">+</button>
-          <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
-        </div>
-      </div>
       <div class="field chord-field">
-        <div class="input-clear-wrap" id="chordInputWrap">
-          <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, F, G7</textarea>
-          <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
+        <div class="chord-input-row">
+          <div class="input-clear-wrap" id="chordInputWrap">
+            <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, F, G7</textarea>
+            <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
+          </div>
+          <!-- Up is up: + on top. Butted against the field because it edits the
+               text in it, and it grows with the field. -->
+          <div class="stepper stepper-vert" id="transposeStepper" role="group" aria-label="Transpose all chords" title="Transpose — shift every chord up or down in semitones, rewriting the chord text">
+            <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone" title="Up a semitone">+</button>
+            <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
+            <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone" title="Down a semitone">−</button>
+            <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+          </div>
         </div>
         <!-- The format hint belongs to the field, so it reads as its hint line
              rather than as a stray sentence further down the card. -->
