@@ -174,6 +174,9 @@
   }
   body.bw-mode{ background-color:#fff; }
   body.bw-mode::before, body.bw-mode::after{ display:none; }
+  /* UA widgets (scrollbars, native controls) must match the white photocopy
+     even while the dark theme is selected underneath */
+  :root:has(body.bw-mode){ color-scheme:light; }
   ::selection{ background:var(--accent); color:#fff6ec; }
   .wrap{ max-width:1040px; margin:0 auto; }
 

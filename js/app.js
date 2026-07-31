@@ -283,7 +283,7 @@ function chordPageURL(label, allVoicings){
   // params (notes/fretboard/findsongs) so the link lands cleanly on the chart
   ['song','transpose','notes','fretboard','findsongs'].forEach(p=>params.delete(p));
   params.set('tuning', selectedTuningId);
-  return window.location.pathname + '?' + params.toString();
+  return window.location.pathname + '?' + readableQuery(params);
 }
 
 async function copyChordLink(label, btnEl){
@@ -584,6 +584,12 @@ function packChordInput(value){
 }
 function formatChordInput(value){
   return value.split(/[,\n]+/).map(t=>t.trim()).filter(Boolean).join(', ');
+}
+
+// Every link the app writes or copies serializes its params through this:
+// commas are legal in a query string, so unescaping them keeps links readable.
+function readableQuery(params){
+  return params.toString().replace(/%2C/gi, ',');
 }
 
 const MASONRY_GAP = 16, MASONRY_MIN_COL_WIDTH = 190;
@@ -1554,7 +1560,7 @@ function fretboardShareURL(){
   ['notes','chords','song','transpose','findsongs'].forEach(p=>params.delete(p));
   params.set('fretboard', encodeFretboardState(fretboardIdState));
   params.set('tuning', selectedTuningId);
-  return new URL(window.location.pathname + '?' + params.toString(), window.location.href).href;
+  return new URL(window.location.pathname + '?' + readableQuery(params), window.location.href).href;
 }
 
 // Absolute link into the main sheet for the "See all fingerings" action: every
@@ -1574,7 +1580,7 @@ function fretboardMainPageURL(){
     const distinct = [...new Set(sounding.map(a=>((a%12)+12)%12))];
     params.set('notes', distinct.map(spellNote).join(','));
   }
-  return new URL(window.location.pathname + '?' + params.toString(), window.location.href).href;
+  return new URL(window.location.pathname + '?' + readableQuery(params), window.location.href).href;
 }
 
 function syncFretboardIdShareLink(){
@@ -1813,8 +1819,7 @@ function updateURLParam(chordInputValue){
     else { params.delete('chords'); }
   }
   params.set('tuning', selectedTuningId);
-  // commas are legal in a query string — unescape them so the link stays readable
-  const query = params.toString().replace(/%2C/gi, ',');
+  const query = readableQuery(params);
   const newURL = window.location.pathname + (query ? `?${query}` : '') + window.location.hash;
   history.replaceState(null, '', newURL);
 }
@@ -2163,7 +2168,7 @@ const shareBtn = document.getElementById('shareBtn');
 document.getElementById('shareAppSub').textContent = window.location.host;
 
 function shareLinkFor(params){
-  const query = params.toString();
+  const query = readableQuery(params);
   return window.location.origin + window.location.pathname + (query ? `?${query}` : '');
 }
 
@@ -2208,7 +2213,7 @@ document.getElementById('shareSongItem').addEventListener('click', ()=> copyShar
 }));
 document.getElementById('shareChordsItem').addEventListener('click', ()=> copyShareOption(()=>{
   const params = new URLSearchParams();
-  params.set('chords', document.getElementById('chordInput').value);
+  params.set('chords', packChordInput(document.getElementById('chordInput').value));
   params.set('tuning', selectedTuningId);
   return params;
 }));
@@ -2301,20 +2306,30 @@ document.getElementById('cardControlsToggle').addEventListener('change', e=>{
 });
 document.getElementById('bwToggle').addEventListener('change', e=>{
   document.body.classList.toggle('bw-mode', e.target.checked);
+  syncThemeUI();
   generate();
 });
 // Theme switches the page chrome only — the sheet keeps its paper palette.
 // The pre-paint script in index.html applies the saved theme before first render.
 const themeColorMeta = document.querySelector('meta[name="theme-color"]');
-function syncThemeColor(){
-  if(themeColorMeta) themeColorMeta.content = document.documentElement.dataset.theme === 'light' ? '#f0e4cf' : '#191009';
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+function syncThemeUI(){
+  const light = document.documentElement.dataset.theme === 'light';
+  if(themeColorMeta){
+    themeColorMeta.content = document.body.classList.contains('bw-mode') ? '#ffffff'
+      : light ? '#f0e4cf' : '#191009';
+  }
+  // names the state it switches TO, matching the sun/moon icon shown
+  const label = light ? 'Switch to dark theme' : 'Switch to light theme';
+  themeToggleBtn.setAttribute('aria-label', label);
+  themeToggleBtn.title = label;
 }
-syncThemeColor();
-document.getElementById('themeToggleBtn').addEventListener('click', ()=>{
+syncThemeUI();
+themeToggleBtn.addEventListener('click', ()=>{
   const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
   document.documentElement.dataset.theme = next;
   try{ localStorage.setItem('chords-theme', next); }catch(err){}
-  syncThemeColor();
+  syncThemeUI();
 });
 document.getElementById('rootToggle').addEventListener('change', generate);
 document.getElementById('noteNamesToggle').addEventListener('change', generate);
