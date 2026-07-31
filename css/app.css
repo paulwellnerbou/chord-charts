@@ -562,8 +562,6 @@
   }
   .mode-tab:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   /* The same switch one size down, for the view it picks rather than the mode */
-  .scale-view-row{ display:flex; align-items:center; flex-wrap:wrap; gap:4px 10px; margin-top:10px; }
-  .scale-view-label{ font-size:12.5px; font-weight:650; color:var(--ink-soft); }
   .mode-tabs.view-tabs{ margin:0; padding:3px; border-radius:11px; }
   .view-tabs .mode-tab{ min-height:30px; padding:0 14px; border-radius:8px; font-size:13px; }
   /* Mode gating: .chords-only marks the chord affordances living outside the
@@ -1057,6 +1055,17 @@
     margin:18px 0 0; padding-top:10px; border-top:1px solid var(--card-border);
   }
   .grid-arrange .switch-wrap[hidden]{ display:none; }
+  /* The scales half of that row, centred under the sheet's single card: which
+     of the two drawings of the scale the chart carries. Both states are spelled
+     out here — .grid-arrange's own display would otherwise outrank the
+     .scales-only hide and leave the switch standing in chords mode. */
+  .grid-arrange.scale-view-row{ display:none; }
+  body.scales-mode .grid-arrange.scale-view-row{ display:flex; justify-content:center; gap:6px 10px; }
+  .scale-view-label{ font-size:12.5px; font-weight:650; color:var(--ink-soft); }
+  /* narrow screens stretch the mode switch to the full width; this one keeps its
+     own so the label stays beside it rather than floating above as a heading */
+  .scale-view-row .view-tabs{ width:max-content; }
+  .scale-view-row .view-tabs .mode-tab{ flex:0 0 auto; }
   /* switch and stepper share one flex cell: a collapsed sibling would still
      get the row's gap, leaving a dangling indent in the right-aligned row */
   .columns-ctl{ display:inline-flex; align-items:center; }

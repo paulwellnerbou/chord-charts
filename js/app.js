@@ -2664,7 +2664,7 @@ const TIPS = [
   { emoji:'🔍', chordsOnly:true, text:'Raise “Search up to fret” in the voicing chooser — tap the number between a card\'s arrows — to unlock alternate voicings further up the neck.' },
   { emoji:'📏', chordsOnly:true, text:'Fingers too short? Lower “Max stretch” in the voicing chooser to skip voicings that need a wide stretch.' },
   { emoji:'🔇', chordsOnly:true, text:'Power chords hard to finger? Switch on “Allow muted strings” in the voicing chooser and two- and three-note chords can skip strings instead of doubling notes.' },
-  { emoji:'🗺️', scalesOnly:true, text:'Switch “Show” to “Whole neck” under the scale box for every note of the scale from the nut to the 15th fret, laid out along the neck.' },
+  { emoji:'🗺️', scalesOnly:true, text:'Switch “Show” to “Whole neck” below the chart for every note of the scale from the nut to the 15th fret, laid out along the neck.' },
 ];
 
 // a shuffled bag (not plain Math.random each time) so every tip is seen before any repeat
