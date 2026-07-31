@@ -64,6 +64,9 @@
     <!-- Chords and scales are parallel worlds sharing the sheet below; the
          switch reads as part of the builder, not as page navigation. -->
     <div class="mode-tabs" role="tablist" aria-label="Chart type">
+      <!-- The lit chip is its own element so it can slide between the two tabs
+           instead of blinking from one to the other. -->
+      <span class="mode-tab-thumb" aria-hidden="true"></span>
       <button type="button" class="mode-tab" id="modeTabChords" role="tab" aria-selected="true" aria-controls="chordsPanel">Chords</button>
       <button type="button" class="mode-tab" id="modeTabScales" role="tab" aria-selected="false" aria-controls="scalesPanel" tabindex="-1">Scales</button>
     </div>
@@ -87,6 +90,8 @@
         </div>
       </div>
     </div>
+    <!-- Holds both builders so the switch can ease between their heights. -->
+    <div class="builder-panels" id="builderPanels">
     <div id="chordsPanel" role="tabpanel" aria-labelledby="modeTabChords">
     <div class="field chord-field">
       <!-- Wraps the field and its pills: the pills are an aid for typing here,
@@ -188,6 +193,7 @@
           <button type="button" class="secondary scale-example">D Dorian</button>
         </p>
       </div>
+    </div>
     </div>
     <div class="error" id="errorBox" role="status" aria-live="polite"></div>
   </section>

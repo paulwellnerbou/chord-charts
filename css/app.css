@@ -545,22 +545,35 @@
   /* Segmented switch on the console: the selected mode reads as the raised,
      lit chip; the other stays part of the desk until hovered. */
   .mode-tabs{
-    display:flex; gap:4px; width:max-content; margin:0 0 16px; padding:4px;
+    /* a grid, not a flex row: equal 1fr tracks keep both tabs the width of the
+       longer label, which is what lets the chip below be pure percentages */
+    position:relative;
+    display:grid; grid-template-columns:repeat(2,1fr); gap:4px;
+    width:max-content; margin:0 0 16px; padding:4px;
     background:var(--page-bg); border:1px solid var(--panel-border); border-radius:13px;
   }
   .mode-tab{
+    position:relative;
     min-height:36px; padding:0 20px; border:none; border-radius:9px;
     background:transparent; color:var(--ink-soft);
     font-family:inherit; font-size:14px; font-weight:650;
     cursor:pointer;
-    transition:background-color .18s ease, color .18s ease, box-shadow .18s ease;
+    transition:color .18s ease;
   }
-  .mode-tab:hover{ color:var(--ink); }
-  .mode-tab[aria-selected="true"]{
-    background:var(--card-bg); color:var(--accent);
-    box-shadow:0 1px 5px rgba(0,0,0,.16);
-  }
+  /* the background restates transparent to outrank the generic filled-button
+     hover: hovering a tab darkens its label, it doesn't paint over the chip */
+  .mode-tab:hover{ background:transparent; color:var(--ink); }
+  .mode-tab[aria-selected="true"]{ color:var(--accent); }
   .mode-tab:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  /* The chip itself: half the switch minus the 4px padding on both sides and
+     the 4px gap it slides across (widths resolve against the padding box). */
+  .mode-tab-thumb{
+    position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 6px);
+    border-radius:9px; background:var(--card-bg); box-shadow:0 1px 5px rgba(0,0,0,.16);
+    pointer-events:none;
+    transition:transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  body.scales-mode .mode-tab-thumb{ transform:translateX(calc(100% + 4px)); }
   /* Mode gating: .chords-only marks the chord affordances living outside the
      [hidden] chords panel (options, grid footer, tips) plus the chords half of
      mode-gated copy; .scales-only is the scales half of that copy. */
@@ -568,10 +581,24 @@
   body.scales-mode .chords-only{ display:none; }
   body.scales-mode .scales-only{ display:inline; }
   body.scales-mode .switch.scales-only{ display:inline-flex; }
-  /* the incoming panel eases in on a tab switch, like the song-search field */
-  #chordsPanel:not([hidden]), #scalesPanel:not([hidden]){ animation:field-reveal .22s ease; }
+  /* A switch reads as a move sideways: the arriving builder slides in from the
+     side its own tab sits on while the panels' shared box eases between the two
+     heights, and the sheet below fades back in as its height follows (both eased
+     from js/app.js). Class-driven rather than :not([hidden]) so it plays on a
+     switch and not on load, and one keyframe serves every piece — the direction
+     is a per-element custom property, absent (so: a plain fade) on the sheet. */
+  .mode-switch-in{ animation:mode-switch-in .3s cubic-bezier(.2,.7,.2,1); }
+  #chordsPanel.mode-switch-in{ --switch-from:-14px; }
+  #scalesPanel.mode-switch-in{ --switch-from:14px; }
+  /* opacity lands well before the slide does: nothing that replaces content
+     outright should spend the whole animation being read through */
+  @keyframes mode-switch-in{
+    from{ opacity:0; transform:translateX(var(--switch-from,0)); }
+    55%{ opacity:1; }
+  }
   @media (prefers-reduced-motion:reduce){
-    #chordsPanel:not([hidden]), #scalesPanel:not([hidden]){ animation:none; }
+    .mode-switch-in{ animation:none; }
+    .mode-tab-thumb{ transition:none; }
   }
   .scale-field{ min-width:0; }
   /* the input, its focus ring and the dropdown container live with the song
@@ -1078,7 +1105,9 @@
   .single-chord-tip a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
   .grid {
     display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,240px));
-    justify-content:center; gap:14px; align-items:start;
+    /* align-content:start keeps the rows packed while the mode switch eases the
+       grid's height — stretched tracks would drift the cards apart mid-swap */
+    justify-content:center; align-content:start; gap:14px; align-items:start;
   }
   .grid .empty-hint{ grid-column:1/-1; }
   .grid.masonry{
@@ -1484,7 +1513,6 @@
     .custom-chord-notes-input{ font-size:16px; }
     /* the two modes split the console's width evenly */
     .mode-tabs{ width:100%; }
-    .mode-tab{ flex:1 1 0; }
     /* a thumb needs a taller target than a pointer does */
     .chord-suggestion{ padding:5px 10px; font-size:12.5px; }
     .chord-suggestions{ --pill-h:27px; }

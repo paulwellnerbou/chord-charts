@@ -17,7 +17,10 @@ function afterNextPaint(fn){
 // Eases an element between the heights it has before and after a content swap.
 // Everything is border-box, so offsetHeight is directly the animatable height.
 // No fill needed: the last frame already equals the element's natural height.
-function animateHeightSwap(el, mutate){
+// opts.clip hides the overflow for the animation's duration — needed when the
+// box grows, where content taller than the current frame would otherwise spill
+// over whatever sits below. opts.duration overrides the default.
+function animateHeightSwap(el, mutate, opts = {}){
   const animated = el.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // read before cancelling, so an interrupted animation continues from where it
   // currently sits instead of snapping to its target
@@ -28,15 +31,49 @@ function animateHeightSwap(el, mutate){
     el._heightAnim.cancel();
     el._heightAnim = null;
   }
+  // and its clip — every return below leaves the element unclipped
+  el.style.overflow = '';
   mutate();
   if(!animated) return;
   const to = el.offsetHeight;
   if(from === to) return;
   const anim = el.animate([{ height:`${from}px` }, { height:`${to}px` }],
-    { duration:220, easing:'cubic-bezier(.4,0,.2,1)' });
+    { duration: opts.duration || 220, easing:'cubic-bezier(.4,0,.2,1)' });
   el._heightAnim = anim;
-  const clear = ()=>{ if(el._heightAnim === anim) el._heightAnim = null; };
+  if(opts.clip) el.style.overflow = 'hidden';
+  const clear = ()=>{
+    if(el._heightAnim !== anim) return;   // a newer swap owns the element now
+    el._heightAnim = null;
+    el.style.overflow = '';
+  };
   anim.finished.then(clear, clear);
+}
+
+// (Re)starts a one-shot CSS animation carried by a class, and takes the class
+// off again at the end. Removing it and reading a layout value in between is
+// what lets the same animation play twice in a row.
+function playAnimation(el, cls){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const clear = ()=>{
+    if(!el._animEnd) return;
+    el.removeEventListener('animationend', el._animEnd);
+    el.removeEventListener('animationcancel', el._animEnd);
+    el._animEnd = null;
+  };
+  clear();   // an interrupted play never ends; drop its handler first
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+  const done = e=>{
+    // animations of descendants bubble through here; only ours ends the class
+    if(e.target !== el) return;
+    clear();
+    el.classList.remove(cls);
+  };
+  el._animEnd = done;
+  // cancel too: hiding the element (a second switch) stops it without an end
+  el.addEventListener('animationend', done);
+  el.addEventListener('animationcancel', done);
 }
 
 function flashButton(btnEl, text){
@@ -238,6 +275,6 @@ function setupInfoPopover(wrapId, btnId){
 }
 
 export {
-  afterNextPaint, animateHeightSwap, flashButton, flashButtonText,
+  afterNextPaint, animateHeightSwap, playAnimation, flashButton, flashButtonText,
   createModal, createMenu, initStepper, bumpValue, setLabelText, setupInfoPopover,
 };
