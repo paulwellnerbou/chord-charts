@@ -1122,10 +1122,13 @@
     .song-result-meta{ display:none; }
     .results-toolbar{ align-items:stretch; }
     .results-summary{ width:100%; }
-    .results-actions{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; gap:8px; }
+    /* Options and Share split the row; printing from a phone is rare enough
+       that the primary action gets by on its icon alone. */
+    .results-actions{ display:flex; width:100%; gap:8px; }
     .results-actions button{ justify-content:center; padding-inline:10px; }
-    /* the odd one out of three — and the primary action, so it takes the full row */
-    #printBtn{ grid-column:1 / -1; }
+    .results-actions > .options-toggle, .results-actions > .share-wrap{ flex:1 1 0; min-width:0; }
+    .share-wrap > #shareBtn{ width:100%; }
+    #printBtn{ flex:0 0 auto; width:46px; padding-inline:0; }
     .share-wrap .share-menu{ min-width:0; width:max-content; max-width:min(300px,calc(100vw - 28px)); }
     .tip-fab{ right:14px; bottom:14px; }
     .tip-toast{ right:14px; bottom:70px; width:272px; max-width:calc(100vw - 28px); }

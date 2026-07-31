@@ -1935,7 +1935,7 @@ const TIPS = [
   { emoji:'📷', text:'Switch on “Black & white” in Options for crisp, high-contrast diagrams that print or screenshot cleanly.' },
   { emoji:'🎨', text:"Turn on “Use Aquila Kid's string colours” in Options to draw each string in its own colour — handy for teaching beginners." },
   { emoji:'🔗', text:'Open the Share menu for a link to just the song, just these chords, or the whole app.' },
-  { emoji:'🎼', text:'Use the Transpose buttons next to the Chords box to shift every chord up or down in semitones — no need to retype anything.' },
+  { emoji:'🎼', text:'Use the Transpose buttons under the instrument picker to shift every chord up or down in semitones — no need to retype anything.' },
   { emoji:'📥', text:'Each chord card has a ⋯ menu — copy or download the diagram as PNG or SVG, or grab a link straight to that chord.' },
   { emoji:'📸', text:'Turn off “Show chord card controls” in Options to hide play buttons and arrows before you screenshot.' },
   { emoji:'🖼️', text:'“Copy all charts as one image” in the Share menu combines every diagram on the page into a single picture, ready to paste anywhere.' },
