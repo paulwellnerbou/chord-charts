@@ -56,23 +56,28 @@
           <textarea id="chordInput" rows="2" placeholder="e.g. C, Am7, F, G7">C, F, G7</textarea>
           <button type="button" class="input-clear-btn" id="chordInputClear" aria-label="Clear chords">&times;</button>
         </div>
-        <!-- Both act on what the field already holds, so they sit against it —
-             "these chords" has to point at something within reading distance. -->
-        <div class="chord-actions">
-          <div class="stepper stepper-sm" id="transposeStepper" role="group" aria-label="Transpose all chords" title="Shift every chord up or down in semitones — the chord text itself is rewritten">
-            <span class="stepper-label">Transpose</span>
-            <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone" title="Down a semitone">−</button>
-            <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
-            <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone" title="Up a semitone">+</button>
-            <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+        <!-- The format hint belongs to the field, so it reads as its hint line
+             rather than as a stray sentence further down the card. -->
+        <div class="chord-hint-row">
+          <div class="syntax-help no-print">
+            <button type="button" class="syntax-summary" id="syntaxToggleBtn" aria-expanded="false" aria-controls="syntaxPanel">Separate chords with commas or new lines. Try <code>C, Am7, D7/F#, G/B</code>. <span class="syntax-toggle">Supported qualities <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></button>
+            <div class="syntax-panel" id="syntaxPanel" aria-hidden="true">
+              <div class="syntax-panel-inner">
+                <p>major, m, 5 (power chord), 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9) — plus slash/inversion chords like Am/C, D7/F#, G/B.</p>
+                <p>Append <code>*</code> to a chord to lay out every voicing as its own tile — e.g. <code>C*</code>.</p>
+              </div>
+            </div>
           </div>
+          <!-- "these chords" has to point at something within reading distance -->
           <button type="button" class="secondary rsearch-open-btn" id="reverseSearchBtn" hidden aria-haspopup="dialog" aria-label="Find songs with these chords" title="Find songs that use the chords in this input">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/></svg>
             <span>Find songs<span class="btn-text-long"> with these chords</span></span>
           </button>
         </div>
       </div>
-      <div class="field">
+      <!-- Instrument and key: the two settings that apply to every chord on the
+           sheet, rather than to the chord text itself. -->
+      <div class="field chart-settings">
         <span class="sr-only" id="instrumentLabel">Instrument and tuning</span>
         <div class="tuning-select" id="tuningSelectWrap">
           <button type="button" class="tuning-select-trigger" id="tuningSelectBtn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="instrumentLabel tuningSelectName tuningSelectTuning">
@@ -85,19 +90,17 @@
           </button>
           <ul class="tuning-select-menu" id="tuningSelectMenu" role="listbox" aria-label="Instrument"></ul>
         </div>
+        <div class="stepper stepper-sm" id="transposeStepper" role="group" aria-label="Transpose all chords" title="Shift every chord up or down in semitones — the chord text itself is rewritten">
+          <span class="stepper-label">Transpose</span>
+          <button type="button" class="stepper-btn" id="transposeMinus" aria-label="Transpose all chords down one semitone" title="Down a semitone">−</button>
+          <button type="button" class="stepper-value" id="transposeValue" disabled>0</button>
+          <button type="button" class="stepper-btn" id="transposePlus" aria-label="Transpose all chords up one semitone" title="Up a semitone">+</button>
+          <span class="sr-only" id="transposeStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+        </div>
       </div>
     </div>
     <!-- Filled in by the app: the pills follow the root the input already uses. -->
     <div class="chord-suggestions no-print" id="chordSuggestions" hidden></div>
-    <div class="syntax-help no-print">
-      <button type="button" class="syntax-summary" id="syntaxToggleBtn" aria-expanded="false" aria-controls="syntaxPanel">Separate chords with commas or new lines. Try <code>C, Am7, D7/F#, G/B</code>. <span class="syntax-toggle">Supported qualities <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></button>
-      <div class="syntax-panel" id="syntaxPanel" aria-hidden="true">
-        <div class="syntax-panel-inner">
-          <p>major, m, 5 (power chord), 7, m7, maj7 (or M7), dim, dim7, m7b5, aug (+), sus2, sus4, 6, m6, add9, madd9, 7add9 (or 9), 6add9 (or 6/9), maj7add9 (or maj9) — plus slash/inversion chords like Am/C, D7/F#, G/B.</p>
-          <p>Append <code>*</code> to a chord to lay out every voicing as its own tile — e.g. <code>C*</code>.</p>
-        </div>
-      </div>
-    </div>
     <!-- Ways of filling the field above for anyone who can't just type it. -->
     <div class="builder-helpers no-print">
       <span class="builder-helpers-label">Search chords:</span>

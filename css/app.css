@@ -86,7 +86,11 @@
   /* start-aligned: the left column grows downwards with the actions under the
      field, and the instrument trigger stays level with the field's top edge */
   .builder-grid{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px; align-items:start; }
-  .chord-actions{ display:flex; align-items:center; justify-content:space-between; gap:8px 14px; flex-wrap:wrap; margin:9px 0 0; }
+  /* flex-start, not center: opening the syntax panel grows the hint downwards
+     and must not drag the button with it */
+  .chord-hint-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin:8px 0 0; }
+  .chord-hint-row .syntax-help{ flex:1 1 300px; margin:0; }
+  .chart-settings{ display:flex; flex-direction:column; align-items:stretch; gap:9px; }
   .field-label{ display:block; margin:0 0 6px; color:var(--ink); font-size:12px; font-weight:750; letter-spacing:.04em; }
   .settings-section-title{
     font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.13em;
@@ -1103,6 +1107,9 @@
        still unambiguous — and it keeps the row beside Transpose */
     .btn-text-long{ display:none; }
     .builder-grid{ grid-template-columns:1fr; gap:11px; }
+    /* the column is the full card here, and a stepper stretched across it reads
+       as an empty text field — the select above it still spans */
+    .chart-settings > .stepper{ align-self:flex-start; }
     .tuning-select-trigger{ width:100%; min-width:0; }
     .tuning-select-menu{ width:100%; }
     /* 16px stops iOS Safari from auto-zooming the page on focus */
