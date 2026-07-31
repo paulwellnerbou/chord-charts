@@ -210,6 +210,13 @@ test('formatAccidentals swaps ASCII accidentals for notation glyphs, sparing not
   assert.equal(formatAccidentals('C'), 'C');
 });
 
+test('formatAccidentals converts a whole run of accidentals, leaving no ASCII behind', () => {
+  assert.equal(formatAccidentals('Bbb'), 'B♭♭'); // the Gb blues 6th, not "B♭" plus a stray letter
+  assert.equal(formatAccidentals('Dbb'), 'D♭♭');
+  assert.equal(formatAccidentals('F##'), 'F♯♯');
+  assert.equal(formatAccidentals('Gb Bbb Cb Dbb'), 'G♭ B♭♭ C♭ D♭♭');
+});
+
 test('identifyChord names a plain triad, root in the bass', () => {
   assert.deepEqual(exactLabels(identifyChord([0, 4, 7], 0)), ['C']);
   assert.deepEqual(exactLabels(identifyChord([0, 3, 7], 0)), ['Cm']);

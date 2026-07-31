@@ -37,16 +37,20 @@ function escapeXML(s){
 // cumulative in SVG, so any text after the accidental drops back down in a
 // compensating tspan. Input must already be escaped.
 function accTspans(escaped, size){
-  const raise = size*0.18, tuck = size*0.14;
+  const raise = size*0.18;
   const parts = String(escaped).split(/([♭♯])/);
-  let out = '', pendingDrop = 0;
+  let out = '', raised = false;
   for(const part of parts){
     if(part === '♭' || part === '♯'){
-      out += `<tspan font-size="${size}" dx="${-tuck}" dy="${-raise}">${part}</tspan>`;
-      pendingDrop = raise;
+      // the ♭ has an open left flank and tucks under the letter; the ♯ is flat-sided
+      // and needs a hair of air instead. A second glyph in a run keeps the same
+      // baseline — the dy that raised the first one still applies.
+      const dx = part === '♭' ? -size*0.12 : size*0.05;
+      out += `<tspan font-size="${size}" dx="${dx}"${raised ? '' : ` dy="${-raise}"`}>${part}</tspan>`;
+      raised = true;
     } else if(part){
-      out += pendingDrop ? `<tspan dy="${pendingDrop}">${part}</tspan>` : part;
-      pendingDrop = 0;
+      out += raised ? `<tspan dy="${raise}">${part}</tspan>` : part;
+      raised = false;
     }
   }
   return out;

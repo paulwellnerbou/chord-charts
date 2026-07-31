@@ -90,14 +90,16 @@ const GRID_ICON = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" strok
 // Accidentals wrapped in a span so CSS can shrink them and tuck them against the
 // note letter, engraving-style. HTML sink only — never assign to textContent.
 function accidentalsHTML(name){
-  return escapeXML(name)
-    .replace(/([A-Ga-g0-9])b/g, '$1<span class="acc">♭</span>')
-    .replace(/#/g, '<span class="acc">♯</span>');
+  return accGlyphsHTML(formatAccidentals(name));
 }
 
 // Same .acc wrapping for text that already carries ♭/♯ glyphs (formatAccidentals output).
+// Sharps carry their own class: the glyph is wide and flat-sided, so it wants air
+// where the ♭ wants to tuck under the letter. So does a second glyph in a run
+// (a double flat), which has a glyph to its left rather than a note letter.
 function accGlyphsHTML(text){
-  return escapeXML(text).replace(/[♭♯]/g, g=>`<span class="acc">${g}</span>`);
+  return escapeXML(text).replace(/[♭♯]+/g, run => [...run].map((g, i) =>
+    `<span class="acc${g === '♯' ? ' acc-sharp' : ''}${i ? ' acc-run' : ''}">${g}</span>`).join(''));
 }
 
 function chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){

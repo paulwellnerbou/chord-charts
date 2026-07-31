@@ -108,6 +108,18 @@ test('scaleSVG spells dot names through the scale map, not the chord-root table'
   // heading-style text after an accidental drops back to the baseline
   const tile = exportScaleTileSVG('F♯ Major', pos.strings, pos.endFret, UKE.labels, NICE_COLORS, false, UKE.openPCs, parsed.rootPC, false, 0, null);
   assert.match(tile, /<tspan font-size="13"[^>]*>♯<\/tspan><tspan dy="[\d.]+"> Major<\/tspan>/);
+  // the ♯ is flat-sided, so it stands off the letter instead of tucking under it
+  assert.match(svg, /class="note-name"[^>]*>E<tspan font-size="6" dx="0\.[\d]+"/);
+});
+
+test('scaleSVG draws a double flat as two glyphs on one raised baseline', () => {
+  const parsed = parseScale('Gb blues'); // Gb Bbb Cb Dbb Db Fb
+  const pos = scalePositions(parsed.pcs, UKE)[0];
+  const svg = scaleSVG(parsed.label, pos.strings, pos.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, parsed.rootPC, false, UKE.openAbs, 0, true, scaleNoteNames(parsed.rootName, parsed.type));
+  assert.ok(!/class="note-name"[^>]*>[A-G]<tspan[^>]*>♭<\/tspan>b/.test(svg), 'no ASCII flat survives beside the glyph');
+  // second glyph of the run carries no dy — SVG shifts are cumulative, so it
+  // would otherwise climb a second time above its neighbour
+  assert.match(svg, /class="note-name"[^>]*>B<tspan font-size="6" dx="-[\d.]+" dy="-[\d.]+">♭<\/tspan><tspan font-size="6" dx="-[\d.]+">♭<\/tspan><\/text>/);
 });
 
 test('scaleSVG passes string colors through to the board', () => {
