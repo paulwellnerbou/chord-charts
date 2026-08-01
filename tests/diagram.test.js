@@ -226,3 +226,97 @@ test('exportScaleTileSVG renders heading, notes footer and source metadata', () 
   assert.ok(!bare.includes('<metadata>'));
   assert.match(bare, /stroke="none"/);
 });
+
+// --- the animated export ---
+
+// A run over PENTA_POS ([[0,2],[0,2],[0,3],[0,3]]). On the high-G uke that box
+// holds its G twice — open on string 0 and at fret 3 on string 2 — so one
+// sounding of that pitch lights two dots, and the run coming back down through
+// it lights both a second time.
+const RUN = {
+  litMs: 560,
+  totalMs: 4000,
+  onsets: { '1:0': [0], '0:0': [500, 2500], '2:3': [500, 2500] },
+};
+
+test('a still export carries no animation', () => {
+  const svg = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+    null, null);
+  assert.ok(!svg.includes('<style>'), 'no stylesheet without a run');
+  assert.ok(!svg.includes('note-lit'), 'no lit discs without a run');
+});
+
+test('an animated export loops the whole run once per cycle', () => {
+  const svg = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+    null, null, false, null, null, RUN);
+  assert.match(svg, /animation:note-lit 4000ms linear infinite/);
+  // the flash occupies its lit window at the head of the cycle: struck at 14%
+  // of it, out by the end of it — 1.96% and 14% of a 4s loop
+  assert.match(svg, /@keyframes note-lit\{0%\{[^}]*\}1\.96%\{opacity:1[^}]*#a44737\)\}14%\{/);
+  assert.ok(!svg.includes('animation-play-state'), 'a downloaded animation runs');
+});
+
+test('each sounding of a note gets its own disc, placed by a negative delay', () => {
+  const svg = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+    null, null, false, null, null, RUN);
+  // five soundings over three dots: a pitch heard twice gets a second disc
+  // rather than one animation carrying both flashes
+  assert.equal((svg.match(/class="note-lit"/g) || []).length, 5);
+  // a note at 500ms sits 500ms into the 4000ms cycle — and both dots holding
+  // that pitch are placed there, so they light together
+  assert.equal((svg.match(/animation-delay:-3500ms/g) || []).length, 2);
+  assert.equal((svg.match(/animation-delay:-1500ms/g) || []).length, 2);   // and again on the way down
+  assert.equal((svg.match(/animation-delay:-4000ms/g) || []).length, 1);   // the note at 0ms
+});
+
+test('a seeked run is frozen at that moment, for grabbing frames', () => {
+  const frame = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+    null, null, false, null, null, { ...RUN, seekMs: 700, paused: true });
+  assert.match(frame, /animation-play-state:paused/);
+  // 700ms in, only the pair struck at 500ms is still alight — 200ms into their
+  // 560ms flash. The note struck at 0ms is long out and is left out of the frame
+  assert.equal((frame.match(/class="note-lit"/g) || []).length, 2);
+  assert.equal((frame.match(/animation-delay:-4200ms/g) || []).length, 2);
+  assert.ok(!frame.includes('animation-delay:-4700ms'), 'a note no longer sounding costs the frame nothing');
+
+  // and a moment with nothing sounding draws no discs at all
+  const quiet = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+    null, null, false, null, null, { ...RUN, seekMs: 3500, paused: true });
+  assert.ok(!quiet.includes('class="note-lit"'));
+});
+
+test('a frozen frame drops the discs sitting on either end of their flash', () => {
+  const frame = (seekMs)=> exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+    null, null, false, null, null, { ...RUN, seekMs, paused: true });
+
+  // 1060ms is exactly 560ms — one lit window — after the pair struck at 500ms,
+  // where the flash is back to zero opacity. Nothing else is alight either, so
+  // the frame draws no discs rather than two that would only cost it a blur.
+  assert.ok(!frame(1060).includes('class="note-lit"'), 'the far end of a flash is out');
+
+  // and the near end: at 500ms that same pair is struck but still at zero,
+  // while the note from 0ms is 500ms into its window and genuinely alight
+  assert.equal((frame(500).match(/class="note-lit"/g) || []).length, 1);
+  // its delay carries the seek too — a cycle, less its onset, plus 500ms
+  assert.match(frame(500), /animation-delay:-4500ms/);
+});
+
+test('the neck and chord exports animate on the same terms', () => {
+  const neck = exportNeckTileSVG('C Major Pentatonic', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true,
+    null, null, false, null, null, RUN);
+  assert.match(neck, /@keyframes note-lit/);
+  assert.ok(neck.includes('class="note-lit"'));
+
+  const chord = exportTileSVG('C', [0, 0, 0, 3], 3, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0, null, null, false,
+    { litMs: 560, totalMs: 1500, onsets: { '3:3': [75] } });
+  assert.match(chord, /@keyframes note-lit/);
+  assert.equal((chord.match(/class="note-lit"/g) || []).length, 1);
+  assert.match(chord, /animation-delay:-1425ms/);
+});
+
+test('the b&w export flashes in its own ink', () => {
+  const svg = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, BW_COLORS, true, UKE.openPCs, 0, true, 0,
+    null, null, false, null, null, RUN);
+  assert.match(svg, /drop-shadow\(0 0 5px #000000\)/);
+  assert.ok(!svg.includes('#a44737'), 'no colour leaks into the photocopy');
+});

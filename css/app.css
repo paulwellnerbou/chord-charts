@@ -1197,6 +1197,30 @@
   .note-dot:focus:not(:focus-visible) { outline:none; }
   /* keyboard focus: the ring is the circle's own edge — round, accent-colored */
   .note-dot:focus-visible { outline:none; stroke:var(--accent); stroke-width:3; }
+  /* A note lights up while it is sounding: the dot swells into the accent and
+     throws a halo, then falls back over the length JS gives it (see audio.js),
+     so a scale run reads as one light travelling up the box rather than the
+     whole box coming on at once. */
+  .note-dot.is-sounding{
+    transform-box:fill-box; transform-origin:center;
+    animation:note-lit var(--lit-ms,560ms) ease-out both;
+  }
+  @keyframes note-lit{
+    from{ filter:drop-shadow(0 0 0 transparent); }
+    /* struck, not faded in — the light has to land with the note */
+    14%{
+      fill:var(--accent); stroke:var(--accent); transform:scale(1.17);
+      filter:drop-shadow(0 0 5px var(--accent));
+    }
+    to{ filter:drop-shadow(0 0 5px transparent); }
+  }
+  @media (prefers-reduced-motion:reduce){
+    /* the light is information, not decoration: hold it steady instead of
+       dropping it */
+    .note-dot.is-sounding{
+      animation:none; fill:var(--accent); stroke:var(--accent);
+    }
+  }
   .card-menu-btn{
     position:absolute; top:9px; right:9px; min-height:32px; width:32px; height:32px;
     border-radius:50%; padding:0; display:flex; align-items:center; justify-content:center;

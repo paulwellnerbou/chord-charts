@@ -76,11 +76,15 @@ function playAnimation(el, cls){
   el.addEventListener('animationcancel', done);
 }
 
-function flashButton(btnEl, text){
+// opts.hold keeps the feedback up until the caller flashes again, for work that
+// runs longer than the glance a plain flash is sized for.
+function flashButton(btnEl, text, opts = {}){
   if(btnEl._flashTimeout) clearTimeout(btnEl._flashTimeout);
+  btnEl._flashTimeout = null;
   btnEl.querySelector('.card-menu-btn-label').textContent = text;
   btnEl.classList.add('is-flash');
   btnEl.disabled = true;
+  if(opts.hold) return;
   btnEl._flashTimeout = setTimeout(()=>{
     btnEl.classList.remove('is-flash');
     btnEl.disabled = false;
