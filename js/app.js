@@ -244,8 +244,12 @@ const VIDEO_TYPES = [
 ];
 const VIDEO_FPS = 25, VIDEO_SCALE = 2;
 
+// every way of not being able to record has to answer "none", not throw: the
+// card menu asks this while it is being built, and a browser missing a piece
+// should lose the video item, not the whole menu behind it
 function supportedVideoTypes(){
   if(typeof MediaRecorder === 'undefined') return [];
+  if(typeof MediaRecorder.isTypeSupported !== 'function') return [];
   if(typeof HTMLCanvasElement.prototype.captureStream !== 'function') return [];
   return VIDEO_TYPES.filter(t=> MediaRecorder.isTypeSupported(t.mime));
 }
