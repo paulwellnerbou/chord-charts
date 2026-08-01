@@ -556,11 +556,14 @@
     transition:background-color .18s ease, color .18s ease, box-shadow .18s ease;
   }
   .mode-tab:hover{ color:var(--ink); }
-  .mode-tab[aria-selected="true"]{
+  .mode-tab[aria-selected="true"], .mode-tab[aria-checked="true"]{
     background:var(--card-bg); color:var(--accent);
     box-shadow:0 1px 5px rgba(0,0,0,.16);
   }
   .mode-tab:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  /* The same switch one size down, for the view it picks rather than the mode */
+  .mode-tabs.view-tabs{ margin:0; padding:3px; border-radius:11px; }
+  .view-tabs .mode-tab{ min-height:30px; padding:0 14px; border-radius:8px; font-size:13px; }
   /* Mode gating: .chords-only marks the chord affordances living outside the
      [hidden] chords panel (options, grid footer, tips) plus the chords half of
      mode-gated copy; .scales-only is the scales half of that copy. */
@@ -1052,6 +1055,17 @@
     margin:18px 0 0; padding-top:10px; border-top:1px solid var(--card-border);
   }
   .grid-arrange .switch-wrap[hidden]{ display:none; }
+  /* The scales half of that row, centred under the sheet's single card: which
+     of the two drawings of the scale the chart carries. Both states are spelled
+     out here — .grid-arrange's own display would otherwise outrank the
+     .scales-only hide and leave the switch standing in chords mode. */
+  .grid-arrange.scale-view-row{ display:none; }
+  body.scales-mode .grid-arrange.scale-view-row{ display:flex; justify-content:center; gap:6px 10px; }
+  .scale-view-label{ font-size:12.5px; font-weight:650; color:var(--ink-soft); }
+  /* narrow screens stretch the mode switch to the full width; this one keeps its
+     own so the label stays beside it rather than floating above as a heading */
+  .scale-view-row .view-tabs{ width:max-content; }
+  .scale-view-row .view-tabs .mode-tab{ flex:0 0 auto; }
   /* switch and stepper share one flex cell: a collapsed sibling would still
      get the row's gap, leaving a dangling indent in the right-aligned row */
   .columns-ctl{ display:inline-flex; align-items:center; }
@@ -1127,6 +1141,15 @@
   body.scales-mode .grid{ grid-template-columns:minmax(0,420px); }
   .card.scale-card{ max-width:420px; }
   .scale-card .diagram-slot svg{ width:100%; }
+  /* the whole neck is a far wider picture — the single track widens with it */
+  body.scales-mode.neck-view .grid{ grid-template-columns:minmax(0,760px); }
+  .card.scale-card.neck-card{ max-width:760px; }
+  /* Below that width the frets would shrink past reading: keep the neck at a
+     legible size and let the card scroll it sideways instead. */
+  @media screen and (max-width:700px){
+    .neck-card .diagram-slot{ overflow-x:auto; }
+    .neck-card .diagram-slot svg{ width:660px; max-width:none; }
+  }
   .scale-notes{ font-size:12px; color:var(--ink-soft); margin:6px 0 0; }
   .diagram-slot{ position:relative; }
   .diagram-slot.voicing-anim{ overflow:hidden; }

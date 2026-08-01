@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TUNINGS } from '../js/theory.js';
-import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG } from '../js/diagram.js';
-import { parseScale, scalePositions, scaleNoteNames } from '../js/scales.js';
+import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG } from '../js/diagram.js';
+import { parseScale, scalePositions, scaleNeck, scaleNoteNames } from '../js/scales.js';
 
 const UKE = TUNINGS[0];
 
@@ -150,6 +150,69 @@ test('scaleSVG tints every occurrence of the blue note, fretted and open', () =>
   const plain = scaleSVG(parsed.label, pos.strings, pos.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, parsed.rootPC, false, UKE.openAbs, 0);
   assert.ok(!plain.includes(NICE_COLORS.blueNoteFill), 'no tint without a blue note pc');
   assert.ok(!plain.includes('<title>'), 'no tooltip without a blue note pc');
+});
+
+// C major pentatonic across the whole 15-fret neck of the high-G uke
+const PENTA_NECK = scaleNeck(parseScale('C major pentatonic').pcs, UKE);
+
+test('neckSVG draws a board wider than it is tall, numbered fret by fret', () => {
+  const svg = neckSVG('C Major Pentatonic', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, 0, false, UKE.openAbs);
+  assert.match(svg, /aria-label="C Major Pentatonic scale neck diagram"/);
+  const [, w, h] = svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/).map(Number);
+  assert.ok(w > h * 2, 'the neck lies on its side');
+  // every fret to the 15th is numbered, and the markers sit where the neck has them
+  for(let f = 1; f <= 15; f++) assert.match(svg, new RegExp(`class="fret-num"[^>]*>${f}</text>`));
+  assert.equal((svg.match(/opacity="0\.3"/g) || []).length, 6); // position markers: 3, 5, 7, 10, 12, 15
+});
+
+test('neckSVG lays the strings out low-to-high from the bottom, open notes before the nut', () => {
+  const svg = neckSVG('C Major Pentatonic', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, 0, false, UKE.openAbs);
+  const ys = UKE.labels.map(lab => Number(svg.match(new RegExp(`<text x="11" y="([\\d.]+)"[^>]*>${lab}</text>`))[1]));
+  // string 0 is leftmost on the vertical board, so it is the bottom line here
+  assert.ok(ys[0] > ys[1] && ys[1] > ys[2] && ys[2] > ys[3]);
+  // the four open strings are hollow circles left of the nut, all playable
+  assert.equal((svg.match(/<circle cx="32" cy="[\d.]+" r="8"/g) || []).length, 4);
+  assert.equal((svg.match(/class="note-dot"/g) || []).length, PENTA_NECK.strings.flat().length);
+  assert.ok(svg.includes(`data-abs="${UKE.openAbs[1] + 14}"`), 'the C string\'s 14th-fret D is on the board');
+});
+
+test('neckSVG rings roots, tints blue notes and spells names through the scale map', () => {
+  const parsed = parseScale('F# major');
+  const neck = scaleNeck(parsed.pcs, UKE, 5);
+  const svg = neckSVG(parsed.label, neck.strings, neck.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, parsed.rootPC, true, UKE.openAbs, true, scaleNoteNames(parsed.rootName, parsed.type));
+  assert.match(svg, /class="note-name"[^>]*>E<tspan font-size="7\.5"[^>]*>♯<\/tspan><\/text>/);
+  assert.ok(!/class="note-name"[^>]*>F<\/text>/.test(svg), 'pc 5 must not read as a bare F');
+  const roots = neck.strings.flatMap((frets, i) => frets.filter(f => (UKE.openPCs[i] + f) % 12 === parsed.rootPC));
+  assert.equal((svg.match(new RegExp(`fill="none" stroke="${NICE_COLORS.rootColor}"`, 'g')) || []).length, roots.length);
+
+  const blues = parseScale('A major blues');
+  const blueNeck = scaleNeck(blues.pcs, UKE, 5);
+  const blueSVG = neckSVG(blues.label, blueNeck.strings, blueNeck.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, blues.rootPC, false, UKE.openAbs, false, null, blues.blueNotePC);
+  assert.ok(blueSVG.includes(`fill="${NICE_COLORS.blueNoteFill}"`));
+  assert.match(blueSVG, /<title>Blue note<\/title>/);
+});
+
+test('neckSVG passes string colors through to the board', () => {
+  const colors = Object.assign({}, BW_COLORS, { stringColors: AQUILA_KIDS_STRING_COLORS });
+  const svg = neckSVG('C Major Pentatonic', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, colors, UKE.openPCs, 0, false, undefined);
+  for (const c of AQUILA_KIDS_STRING_COLORS) assert.ok(svg.includes(`stroke="${c}"`));
+  assert.ok(!svg.includes('class="note-dot"'), 'no playable dots without open pitches');
+});
+
+test('exportNeckTileSVG frames the neck at its own width', () => {
+  const svg = exportNeckTileSVG('C Major Pentatonic', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true,
+    'C · D · E · G · A', 'https://chords.example/?scale=C+major+pentatonic&view=neck');
+  assert.match(svg, /<metadata>Scale diagram from https:\/\/chords\.example\/\?scale=C\+major\+pentatonic&amp;view=neck<\/metadata>/);
+  assert.match(svg, /C · D · E · G · A/);
+  assert.match(svg, /stroke="#ddd3c5"/);
+  // the tile is the neck plus the frame's padding, not the position box's width
+  const tileW = Number(svg.match(/viewBox="0 0 ([\d.]+) /)[1]);
+  const neckW = Number(neckSVG('x', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, 0, false).match(/viewBox="0 0 ([\d.]+) /)[1]);
+  assert.equal(tileW, neckW + 28);
+
+  const bare = exportNeckTileSVG('C Major', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, null);
+  assert.ok(!bare.includes('<metadata>'));
+  assert.match(bare, /stroke="none"/);
 });
 
 test('exportScaleTileSVG renders heading, notes footer and source metadata', () => {
