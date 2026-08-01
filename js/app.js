@@ -8,7 +8,7 @@ import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG,
 import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret } from './scales.js';
 import { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash } from './audio.js';
 import {
-  afterNextPaint, animateHeightSwap, flashButton, flashButtonText,
+  afterNextPaint, animateHeightSwap, playAnimation, flashButton, flashButtonText,
   createModal, createMenu, initStepper, bumpValue, setLabelText, setupInfoPopover,
 } from './ui.js';
 
@@ -544,7 +544,14 @@ let currentMode = 'chords';
 // chord sheet but are half the point of a scale box, so scales default on.
 const noteNamesByMode = { chords: false, scales: true };
 
+// Set by setMode until the rebuild it asked for has run, so that one — and no
+// other regenerate() — arrives on the sheet as an animated swap.
+let modeSwitchPending = false;
+
 function setMode(mode, opts){
+  // silent is the initial mode: a starting state, not a switch, so it neither
+  // rebuilds the sheet (the first render does that) nor animates into place
+  const silent = !!(opts && opts.silent);
   currentMode = mode;
   const scales = mode === 'scales';
   document.getElementById('noteNamesToggle').checked = noteNamesByMode[mode];
@@ -555,17 +562,37 @@ function setMode(mode, opts){
   tabScales.setAttribute('aria-selected', String(scales));
   tabChords.tabIndex = scales ? -1 : 0;
   tabScales.tabIndex = scales ? 0 : -1;
-  document.getElementById('chordsPanel').hidden = scales;
-  document.getElementById('scalesPanel').hidden = !scales;
+  const panel = document.getElementById(scales ? 'scalesPanel' : 'chordsPanel');
+  const swapPanels = ()=>{
+    document.getElementById('chordsPanel').hidden = scales;
+    document.getElementById('scalesPanel').hidden = !scales;
+  };
+  if(silent) swapPanels();
+  else {
+    animateHeightSwap(document.getElementById('builderPanels'), swapPanels, { clip:true, duration:300 });
+    playAnimation(panel, 'mode-switch-in');
+  }
   document.getElementById('stage').setAttribute('aria-label', scales ? 'Scale sheet' : 'Chord chart sheet');
-  if(!opts || !opts.silent) regenerate();
+  if(silent) return;
+  // The sheet is the other half of the switch — but rebuilding it is the slow
+  // part, so it waits for the paint that starts the animations above.
+  modeSwitchPending = true;
+  scheduleGenerate();
 }
 
 // Everything that re-renders the sheet without being chord- or scale-specific
 // (tuning, colors, options toggles) routes through this dispatch.
 function regenerate(){
-  if(currentMode === 'scales') generateScale();
-  else generate();
+  const render = ()=>{
+    if(currentMode === 'scales') generateScale();
+    else generate();
+  };
+  if(!modeSwitchPending){ render(); return; }
+  modeSwitchPending = false;
+  const grid = document.getElementById('grid');
+  animateHeightSwap(grid, render, { clip:true, duration:300 });
+  playAnimation(document.querySelector('.stage-heading'), 'mode-switch-in');
+  playAnimation(grid, 'mode-switch-in');
 }
 
 const COLUMNS_MIN = 1, COLUMNS_MAX = 8;
