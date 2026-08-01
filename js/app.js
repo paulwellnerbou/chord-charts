@@ -6,7 +6,11 @@ import {
 } from './theory.js';
 import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG } from './diagram.js';
 import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret } from './scales.js';
-import { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash } from './audio.js';
+import {
+  playNote, playChord, chordPlayDuration, chordNoteTimings,
+  primeAudio, startCapture, stopCapture,
+  flashPlayButton, playChordAndFlash,
+} from './audio.js';
 import {
   afterNextPaint, animateHeightSwap, playAnimation, flashButton, flashButtonText,
   createModal, createMenu, initStepper, bumpValue, setLabelText, setupInfoPopover,
@@ -98,13 +102,52 @@ function accGlyphsHTML(text){
   return escapeXML(text).replace(/[♭♯]/g, g=>`<span class="acc">${g}</span>`);
 }
 
-function chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted){
+function chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted, run){
   const colors = currentColors();
   const sourceURL = new URL(chordPageURL(label, false), window.location.href).href;
   const showBorder = document.getElementById('borderToggle').checked;
   const highlightRoot = document.getElementById('rootToggle').checked;
   const showNoteNames = document.getElementById('noteNamesToggle').checked;
-  return exportTileSVG(formatAccidentals(label), frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames);
+  return exportTileSVG(formatAccidentals(label), frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames, run);
+}
+
+// --- an exported diagram that plays its own run ---
+
+// Where each dot sits and what it sounds: the addresses diagram.js needs to
+// hang the run's lights on, in the "<string>:<fret>" form it looks them up by.
+function chordPlaces(frets, openAbs){
+  return frets.map((fret,i)=> fret===null ? null : { i, fret, abs:openAbs[i]+fret }).filter(Boolean);
+}
+
+function positionPlaces(pos, openAbs){
+  return pos.strings.flatMap((frets,i)=> frets.map(fret=> ({ i, fret, abs:openAbs[i]+fret })));
+}
+
+// The run the export animates, off the very schedule the sheet plays: every
+// place a pitch sits lights at each time that pitch comes round. `seekMs` and
+// `paused` freeze the loop at one moment, which is how frames are grabbed.
+//
+// The loop lasts exactly as long as the sound does, which leaves the finished
+// diagram sitting there while the last note rings out — a rest that reads as
+// the end of a run, and the room a recording needs to catch that ring.
+function playbackRun(places, midiNotes, opts, seekMs){
+  const timings = chordNoteTimings(midiNotes, opts);
+  if(!timings.length) return null;
+  const onsets = {};
+  for(const { midi, at } of timings){
+    for(const place of places){
+      if(place.abs !== midi) continue;
+      const key = `${place.i}:${place.fret}`;
+      (onsets[key] || (onsets[key] = [])).push(at);
+    }
+  }
+  const run = {
+    onsets, midiNotes, opts,
+    litMs: timings[0].ms,
+    totalMs: Math.round(chordPlayDuration(midiNotes, opts)),
+  };
+  if(seekMs !== undefined){ run.seekMs = seekMs; run.paused = true; }
+  return run;
 }
 
 async function svgToPNGBlob(svgStr){
@@ -123,7 +166,10 @@ async function svgToPNGBlob(svgStr){
   return new Promise((resolve,reject)=> canvas.toBlob(blob=> blob ? resolve(blob) : reject(new Error('PNG encoding failed')), 'image/png'));
 }
 
-function chordFileName(label, ext){ return `${label.replace(/[^\w#]/g,'_')}.${ext}`; }
+// the video's extension isn't known until the browser picks a codec, so the
+// stem is nameable on its own
+function chordFileBase(label){ return label.replace(/[^\w#]/g,'_'); }
+function chordFileName(label, ext){ return `${chordFileBase(label)}.${ext}`; }
 
 function downloadBlob(blob, filename){
   const url = URL.createObjectURL(blob);
@@ -169,6 +215,107 @@ async function downloadTilePNG(svgStr, filename, btnEl){
 function downloadTileSVG(svgStr, filename, btnEl){
   try{
     downloadBlob(new Blob([svgStr], { type:'image/svg+xml' }), filename);
+    flashButton(btnEl, 'Saved');
+  }catch(err){
+    console.error(err);
+    flashButton(btnEl, 'Failed');
+  }
+}
+
+// --- video of a run ---
+
+// WebM everywhere it is offered; Safari records MP4 instead. Ordered best-first
+// within each, and the extension follows from whichever the browser takes. The
+// codec pairs come first so the run is recorded with its sound.
+const VIDEO_TYPES = [
+  { mime:'video/webm;codecs=vp9,opus', ext:'webm' },
+  { mime:'video/webm;codecs=vp8,opus', ext:'webm' },
+  { mime:'video/webm', ext:'webm' },
+  { mime:'video/mp4', ext:'mp4' },
+];
+const VIDEO_FPS = 25, VIDEO_SCALE = 2;
+
+function pickVideoType(){
+  if(typeof MediaRecorder === 'undefined') return null;
+  return VIDEO_TYPES.find(t=> MediaRecorder.isTypeSupported(t.mime)) || null;
+}
+
+async function rasterizeFrame(svgStr, ctx, w, h){
+  const img = new Image();
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+  await img.decode();
+  ctx.drawImage(img, 0, 0, w, h);
+}
+
+// Records the run, picture and sound. Each frame is the export SVG seeked to
+// that moment and paused, so what lands in the video is exactly what the
+// animated SVG shows — no second animation to keep in step with the first. The
+// sound is the real thing, played once through a capture node while the frames
+// are taken, which is why the recording runs at the run's own pace.
+async function recordRunVideo(frameSVG, run, type){
+  const probe = frameSVG(0);
+  const vb = probe.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+  if(!vb) throw new Error('export SVG is missing its viewBox');
+  const w = Math.round(parseFloat(vb[1])*VIDEO_SCALE), h = Math.round(parseFloat(vb[2])*VIDEO_SCALE);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if(!ctx) throw new Error('canvas 2d context unavailable');
+  await rasterizeFrame(probe, ctx, w, h);
+
+  // primed first: a context that still has to resume would put its whole
+  // start-up delay between the first frame and the first note
+  await primeAudio();
+  const stream = canvas.captureStream(VIDEO_FPS);
+  try{
+    startCapture().getAudioTracks().forEach(t=> stream.addTrack(t));
+
+    const rec = new MediaRecorder(stream, { mimeType:type.mime, videoBitsPerSecond:6000000 });
+    const chunks = [];
+    rec.ondataavailable = e=>{ if(e.data.size) chunks.push(e.data); };
+    const done = new Promise((resolve,reject)=>{
+      rec.onstop = resolve;
+      rec.onerror = ()=> reject(new Error('recording failed'));
+    });
+
+    rec.start();
+    const started = performance.now();
+    playChord(run.midiNotes, run.opts);
+
+    // Frames are picked by the clock, not counted off: the recorder timestamps
+    // what it samples in real time, so a moment that takes too long to draw has
+    // to be skipped rather than queued. Slow rendering costs smoothness — and
+    // never sync, since the notes are scheduled on the audio clock and don't
+    // wait for the rasteriser. Running the frames in order would cost both.
+    const frameMs = 1000/VIDEO_FPS;
+    for(;;){
+      const at = performance.now() - started;
+      if(at >= run.totalMs) break;
+      await rasterizeFrame(frameSVG(Math.round(at)), ctx, w, h);
+      const spare = frameMs - (performance.now() - started - at);
+      if(spare > 0) await new Promise(r=> setTimeout(r, spare));
+    }
+    // the stream samples the canvas on its own clock, so the closing frames
+    // need to still be up when it looks — stop on their heels and the run's
+    // last rest is clipped, which a looping player shows as a jump
+    await new Promise(r=> setTimeout(r, frameMs*3));
+    rec.stop();
+    await done;
+    return new Blob(chunks, { type:type.mime });
+  } finally {
+    stopCapture();
+    stream.getTracks().forEach(t=> t.stop());
+  }
+}
+
+async function downloadTileVideo(frameSVG, run, baseName, btnEl){
+  const type = pickVideoType();
+  if(!type || !run){ flashButton(btnEl, 'No video'); return; }
+  try{
+    flashButton(btnEl, 'Recording', { hold:true });
+    const blob = await recordRunVideo(frameSVG, run, type);
+    downloadBlob(blob, `${baseName}.${type.ext}`);
     flashButton(btnEl, 'Saved');
   }catch(err){
     console.error(err);
@@ -370,18 +517,28 @@ function openCardMenu(card, btn){
 
   // settings and the shown voicing are read at click time, so the menu can
   // stay prebuilt while the flash feedback lands on the card's own button
-  const tileSVG = ()=>{
+  const tileSVG = (run)=>{
     const tuning = currentTuning();
     const frets = result.voicings[result.altIndex];
     const win = computeFretWindow(frets, shortenThreshold);
     const omitted = document.getElementById('omitToggle').checked ? result.omitted : null;
-    return chordTileSVGString(result.label, frets, win.fretMax, tuning.labels, tuning.openPCs, result.rootPC, win.startFret, omitted);
+    return chordTileSVGString(result.label, frets, win.fretMax, tuning.labels, tuning.openPCs, result.rootPC, win.startFret, omitted, run);
   };
+  // the strum the card plays, drawn into the file; seekMs freezes it for a frame
+  const tileRun = seekMs=>{
+    const tuning = currentTuning();
+    const frets = result.voicings[result.altIndex];
+    return playbackRun(chordPlaces(frets, tuning.openAbs), chordAbsNotes(frets, tuning.openAbs), chordPlayOpts(tuning), seekMs);
+  };
+  const movingSVG = seekMs=> tileSVG(tileRun(seekMs));
   const addAction = addCardMenuAction.bind(null, menu);
 
   addAction(COPY_ICON, 'Copy image', ()=> copyTileImage(tileSVG(), chordFileName(result.label, 'png'), btn));
   addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadTilePNG(tileSVG(), chordFileName(result.label, 'png'), btn));
   addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadTileSVG(tileSVG(), chordFileName(result.label, 'svg'), btn));
+  menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
+  addAction(DOWNLOAD_ICON, 'Download animated SVG', ()=> downloadTileSVG(movingSVG(), chordFileName(`${result.label} animated`, 'svg'), btn));
+  addAction(DOWNLOAD_ICON, 'Download video', ()=> downloadTileVideo(movingSVG, tileRun(), chordFileBase(`${result.label} animated`), btn));
   menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
   addAction(LINK_ICON, 'Copy link to this chord', ()=> copyChordLink(result.label, btn));
   const openItem = cardMenuItem(EXTERNAL_LINK_ICON, 'Open in new tab', chordPageURL(result.label, false));
@@ -431,6 +588,47 @@ function toggleCardMenu(card, btn){
   card._scaleResult ? openScaleCardMenu(card, btn) : openCardMenu(card, btn);
 }
 
+// --- notes lighting up as they sound ---
+
+// Lights one dot for as long as its note leads what you hear. A pitch comes
+// round twice in an up-and-down run, and re-adding a class a dot already
+// carries is no change as far as CSS is concerned — its animation would carry
+// on mid-flight — so a dot that is still lit gets rewound instead.
+function lightNoteDot(dot, ms){
+  dot.style.setProperty('--lit-ms', `${ms}ms`);
+  if(dot.classList.contains('is-sounding')){
+    dot.getAnimations().forEach(a=>{ a.currentTime = 0; });
+  } else {
+    dot.classList.add('is-sounding');
+  }
+  clearTimeout(dot._litTimer);
+  dot._litTimer = setTimeout(()=> dot.classList.remove('is-sounding'), ms);
+}
+
+// Lights the notes of a strum or a run as they sound, so a scale reads as one
+// light travelling up the box. Matched on the exact pitch, never the note name:
+// every string that can sound this very C lights with it, the C an octave up
+// never does. The diagram is looked up when the note comes round rather than up
+// front: one swapped mid-run simply stops lighting, nothing stale left behind.
+function lightNotes(slot, midiNotes, opts, started){
+  if(!slot) return;
+  started.then(()=>{
+    for(const { midi, at, ms } of chordNoteTimings(midiNotes, opts)){
+      setTimeout(()=>{
+        slot.querySelectorAll(`.note-dot[data-abs="${midi}"]`)
+          .forEach(dot=>{ if(!dot.closest('.diagram-ghost')) lightNoteDot(dot, ms); });
+      }, at);
+    }
+  });
+}
+
+// Play a card's own notes: its play button flashes and its diagram lights up.
+function playCardNotes(card, midiNotes, opts){
+  const started = playChord(midiNotes, opts);
+  flashPlayButton(card.querySelector('.play-chord-btn'), started, chordPlayDuration(midiNotes, opts));
+  lightNotes(card.querySelector('.diagram-slot'), midiNotes, opts, started);
+}
+
 function bindNoteDotHandlers(container){
   const card = container.closest('.card');
   const playBtn = card && card.querySelector('.play-chord-btn');
@@ -440,7 +638,9 @@ function bindNoteDotHandlers(container){
     const playThisNote = e=>{
       e.stopPropagation();
       const abs = parseFloat(dot.dataset.abs);
-      flashPlayButton(playBtn, playNote(abs), chordPlayDuration([abs]));
+      const started = playNote(abs);
+      flashPlayButton(playBtn, started, chordPlayDuration([abs]));
+      lightNotes(container, [abs], null, started);
     };
     dot.addEventListener('click', playThisNote);
     dot.addEventListener('keydown', e=>{
@@ -1068,7 +1268,7 @@ function buildCard(result, ctx){
 
   bindNoteDotHandlers(card.querySelector('.diagram-slot'));
   appendCardMenuButton(card, result.label);
-  bindCardPlayHandlers(card, ()=> playChordAndFlash(card.querySelector('.play-chord-btn'), chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs), chordPlayOpts(tuning)));
+  bindCardPlayHandlers(card, ()=> playCardNotes(card, chordAbsNotes(result.voicings[result.altIndex], tuning.openAbs), chordPlayOpts(tuning)));
 
   if(result.expanded){
     card.classList.add('has-alt-voicings');
@@ -1320,7 +1520,7 @@ function renderVoicingTiles(card, result){
       const idx = result.voicings.findIndex(v => v.every((f,j)=> f === frets[j]));
       if(idx >= 0) result.altIndex = idx;
       updateCardDiagram(card, result, tuning, colors, highlightRoot, Math.sign(result.altIndex - prevIndex), showNoteNames);
-      playChord(chordAbsNotes(frets, tuning.openAbs), chordPlayOpts(tuning));
+      playCardNotes(card, chordAbsNotes(frets, tuning.openAbs), chordPlayOpts(tuning));
       closeVoicingChooser();
     });
     const playBtn = document.createElement('button');
@@ -1584,7 +1784,7 @@ function buildScaleCard(parsed, positions, noteNames){
 
   appendCardMenuButton(card, parsed.label);
   // always the up-and-down practice run — a scale strummed at once says nothing
-  bindCardPlayHandlers(card, ()=> playChordAndFlash(card.querySelector('.play-chord-btn'), positionPlaybackMidis(positions[currentPosIndex()]), { arpeggio:true }));
+  bindCardPlayHandlers(card, ()=> playCardNotes(card, positionPlaybackMidis(positions[currentPosIndex()]), { arpeggio:true }));
 
   if(positions.length > 1){
     card.classList.add('has-alt-voicings');
@@ -1607,7 +1807,7 @@ function buildScaleCard(parsed, positions, noteNames){
   return card;
 }
 
-function scaleTileSVGString(card){
+function scaleTileSVGString(card, run){
   const { parsed, positions, noteNames } = card._scaleResult;
   const pos = positions[currentPosIndex()];
   const tuning = currentTuning();
@@ -1618,16 +1818,25 @@ function scaleTileSVGString(card){
   const showNoteNames = document.getElementById('noteNamesToggle').checked;
   if(isNeckView()){
     return exportNeckTileSVG(formatAccidentals(parsed.label), pos.strings, pos.endFret, tuning.labels, colors,
-      showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames, parsed.blueNotePC);
+      showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames, parsed.blueNotePC, run);
   }
   return exportScaleTileSVG(formatAccidentals(parsed.label), pos.strings, pos.endFret, tuning.labels, colors,
-    showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, positionStartFret(pos), scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames, parsed.blueNotePC);
+    showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, positionStartFret(pos), scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames, parsed.blueNotePC, run);
 }
 
-function scaleFileName(card, ext){
-  const { parsed } = card._scaleResult;
-  return chordFileName(`${parsed.label} ${isNeckView() ? 'whole neck' : `position ${currentPosIndex()+1}`}`, ext);
+// the up-and-down practice run the card plays; seekMs freezes it for a frame
+function scaleTileRun(card, seekMs){
+  const pos = card._scaleResult.positions[currentPosIndex()];
+  const openAbs = currentTuning().openAbs;
+  return playbackRun(positionPlaces(pos, openAbs), positionPlaybackMidis(pos), { arpeggio:true }, seekMs);
 }
+
+function scaleFileBase(card){
+  const { parsed } = card._scaleResult;
+  return chordFileBase(`${parsed.label} ${isNeckView() ? 'whole neck' : `position ${currentPosIndex()+1}`}`);
+}
+
+function scaleFileName(card, ext){ return `${scaleFileBase(card)}.${ext}`; }
 
 function openScaleCardMenu(card, btn){
   const menu = ensureCardMenu();
@@ -1638,9 +1847,14 @@ function openScaleCardMenu(card, btn){
 
   const addAction = addCardMenuAction.bind(null, menu);
 
+  const movingSVG = seekMs=> scaleTileSVGString(card, scaleTileRun(card, seekMs));
+
   addAction(COPY_ICON, 'Copy image', ()=> copyTileImage(scaleTileSVGString(card), scaleFileName(card, 'png'), btn));
   addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadTilePNG(scaleTileSVGString(card), scaleFileName(card, 'png'), btn));
   addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadTileSVG(scaleTileSVGString(card), scaleFileName(card, 'svg'), btn));
+  menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
+  addAction(DOWNLOAD_ICON, 'Download animated SVG', ()=> downloadTileSVG(movingSVG(), `${scaleFileBase(card)}_animated.svg`, btn));
+  addAction(DOWNLOAD_ICON, 'Download video', ()=> downloadTileVideo(movingSVG, scaleTileRun(card), `${scaleFileBase(card)}_animated`, btn));
   menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
   addAction(LINK_ICON, 'Copy link to this scale', async ()=>{
     flashButton(btn, await copyLinkText(shareLinkFor(scalePageParams())));
@@ -1676,7 +1890,7 @@ function renderPositionTiles(card){
       const prevIndex = currentPosIndex();
       scaleState.posIndex = i;
       updateScaleCardDiagram(card, Math.sign(i - prevIndex));
-      playChord(positionPlaybackMidis(pos), { arpeggio:true });
+      playCardNotes(card, positionPlaybackMidis(pos), { arpeggio:true });
       positionModal.close();
     });
     const playBtn = document.createElement('button');

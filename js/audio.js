@@ -30,6 +30,25 @@ function lowness(freq){
   return Math.min(1, Math.max(0, Math.log2(LOW_TOP/freq) / Math.log2(LOW_TOP/LOW_BOTTOM)));
 }
 
+// While a run is being recorded, every note is fed here as well as to the
+// speakers, so the video carries the same sound the player hears.
+let captureNode = null;
+
+function startCapture(){
+  captureNode = getAudioCtx().createMediaStreamDestination();
+  return captureNode.stream;
+}
+
+function stopCapture(){ captureNode = null; }
+
+// Gets the context running before it is needed. A suspended context resumes
+// asynchronously with its clock frozen, and that delay would otherwise land
+// between a recording's first frame and its first note.
+function primeAudio(){
+  const ctx = getAudioCtx();
+  return ctx.state === 'running' ? Promise.resolve() : ctx.resume().catch(()=>{});
+}
+
 let resumePromise = null;
 
 // resolves once the note has actually been scheduled — immediately when the
@@ -68,7 +87,9 @@ function scheduleNote(ctx, midi, opts){
   gain.gain.setValueAtTime(0, t0);
   gain.gain.linearRampToValueAtTime(peak*(1 + low*0.25), t0+0.006);
   gain.gain.exponentialRampToValueAtTime(0.0001, t0+1.4);
-  filter.connect(gain).connect(ctx.destination);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  if(captureNode) gain.connect(captureNode);
 
   // triangle up top, crossfading to sawtooth down low for its far richer
   // harmonics — 1/n against the triangle's 1/n²
@@ -105,6 +126,20 @@ function chordPlayDuration(midiNotes, opts){
   return midiNotes.length ? (midiNotes.length-1)*noteGap(opts)*1000 + 1500 : 0;
 }
 
+// How long a note is worth showing as "sounding". Far short of the 1.5s tail:
+// the envelope is already some 14 dB down by the time the next note of a broken
+// chord arrives, so holding a note lit for its whole ring-out would light a
+// scale run end to end instead of one note at a time.
+const NOTE_LIT_MS = 560;
+
+// When each note of a strum or broken chord sounds, in ms from the moment
+// playChord's promise resolves — so the UI can light a note as it arrives
+// without restating the stagger.
+function chordNoteTimings(midiNotes, opts){
+  const gap = noteGap(opts)*1000;
+  return midiNotes.map((midi,i)=> ({ midi, at:Math.round(i*gap), ms:NOTE_LIT_MS }));
+}
+
 // swaps a play button's icon to a "now playing" indicator while the sound
 // rings, then restores it — purely visual, playback itself can't be stopped.
 // `started` is the promise returned by playChord/playNote
@@ -130,4 +165,8 @@ function playChordAndFlash(btn, midiNotes, opts){
   flashPlayButton(btn, playChord(midiNotes, opts), chordPlayDuration(midiNotes, opts));
 }
 
-export { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash };
+export {
+  playNote, playChord, chordPlayDuration, chordNoteTimings,
+  primeAudio, startCapture, stopCapture,
+  flashPlayButton, playChordAndFlash,
+};

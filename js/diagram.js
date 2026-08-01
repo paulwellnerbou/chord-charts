@@ -6,14 +6,14 @@ const EXPORT_HEADING_FONT = "Georgia, 'Times New Roman', serif";
 const NICE_COLORS = {
   ink:'#292621', dotFill:'#554f49', dotStroke:'#37332f',
   cardBg:'#fffcf7', cardBorder:'#ddd3c5', heading:'#a44737', rootColor:'#a44737',
-  blueNoteFill:'#3f6592', blueNoteStroke:'#2d4a6d',
+  blueNoteFill:'#3f6592', blueNoteStroke:'#2d4a6d', litColor:'#a44737',
   lineOpacity:0.55, markerOpacity:0.3, exportHeadingFont:EXPORT_HEADING_FONT
 };
 // The blue note keeps its blue even here — it is the one color with meaning.
 const BW_COLORS = {
   ink:'#000000', dotFill:'#000000', dotStroke:'#000000',
   cardBg:'#ffffff', cardBorder:'#000000', heading:'#000000', rootColor:'#000000',
-  blueNoteFill:'#1e4fa3', blueNoteStroke:'#12356f',
+  blueNoteFill:'#1e4fa3', blueNoteStroke:'#12356f', litColor:'#000000',
   lineOpacity:1, markerOpacity:0.25, exportHeadingFont:EXPORT_HEADING_FONT
 };
 // Aquila Kids educational set: green/red/yellow/blue from 4th to 1st string
@@ -86,6 +86,59 @@ function boardInner(numFrets, startFret, labels, colors){
   return s;
 }
 
+// --- An exported diagram that plays its own run ----------------------------
+// A lit note is drawn as its own disc over the dot rather than by recolouring
+// the dot, so one set of keyframes serves every dot whatever colour it rests
+// at — and a pitch that sounds twice gets a second disc instead of one merged
+// animation. The whole run is a single repeating cycle and each disc is placed
+// in it by a negative delay, which is also how a frame grabber seeks it: shift
+// every delay by the same amount and pause.
+//
+// `run` is { totalMs, litMs, onsets, seekMs?, paused? }, where onsets maps
+// "<string>:<fret>" to the times that dot sounds. Positions rather than
+// pitches, so this module needs to know nothing about tuning.
+const LIT_RISE = 0.14;   // of the lit window: struck, not faded in
+const LIT_SCALE = 1.17, LIT_GLOW = 5;
+
+function pct(n){ return +n.toFixed(3); }
+
+function litCSS(run, colors){
+  const rest = `opacity:0;transform:scale(1);filter:drop-shadow(0 0 ${LIT_GLOW}px transparent)`;
+  return '<style>'
+    + '@keyframes note-lit{'
+    + `0%{${rest}}`
+    + `${pct(LIT_RISE*run.litMs/run.totalMs*100)}%{opacity:1;transform:scale(${LIT_SCALE});`
+      + `filter:drop-shadow(0 0 ${LIT_GLOW}px ${colors.litColor})}`
+    + `${pct(run.litMs/run.totalMs*100)}%{${rest}}`
+    + `100%{${rest}}}`
+    + '.note-lit{transform-box:fill-box;transform-origin:center;'
+    + `animation:note-lit ${run.totalMs}ms linear infinite`
+    // a paused animation still sits at the position its delay names, so a
+    // grabbed frame is exact rather than however late the raster ran
+    + (run.paused ? ';animation-play-state:paused' : '')
+    + '}</style>';
+}
+
+// Where a disc's flash has got to at the moment a frozen frame holds, as a
+// position in the loop: 0 is the strike, litMs the end of it.
+function litPhase(run, at){
+  return (run.totalMs - at + (run.seekMs||0)) % run.totalMs;
+}
+
+function litDiscs(cx, cy, r, colors, run, i, fret){
+  let times = run && run.onsets[`${i}:${fret}`];
+  if(!times) return '';
+  // A frozen frame keeps only the discs actually alight in it. The rest sit at
+  // zero opacity and draw the same either way, but each one still costs the
+  // rasteriser a blur — enough of them and a frame takes longer than the frame
+  // it is meant to be.
+  if(run.paused) times = times.filter(at=> litPhase(run, at) <= run.litMs);
+  return times.map(at=>
+    `<circle class="note-lit" cx="${cx}" cy="${cy}" r="${r}" fill="${colors.litColor}" opacity="0"`
+    + ` style="animation-delay:-${Math.round(run.totalMs - at + (run.seekMs||0))}ms"/>`
+  ).join('');
+}
+
 // Dot sizes per board: the position box draws small dots in a narrow tile, the
 // whole neck larger ones across a wide one. `open` sizes are for the hollow
 // ring an open string gets off the board.
@@ -94,19 +147,22 @@ const NECK_DOTS = { r:11, ring:14.5, name:10, acc:7.5, openR:8, openRing:11.5 };
 
 // One note, wherever it sits: the filled dot carrying its name, or — for an
 // open string, drawn off the board before the nut — the hollow ring. `abs`
-// makes it playable; `name` must already be escaped.
-function noteDot(cx, cy, dots, labels, i, fret, colors, isRoot, abs, name, isBlue){
+// makes it playable; `name` must already be escaped. The lit disc goes over the
+// dot but under its name, so the letter stays readable while the note sounds.
+function noteDot(cx, cy, dots, labels, i, fret, colors, isRoot, abs, name, isBlue, run){
   const blueSuffix = isBlue ? ' (blue note)' : '';
   const blueTitle = isBlue ? '<title>Blue note</title>' : '';
   const noteAttrs = abs!==null ? ` class="note-dot" data-abs="${abs}" tabindex="0" role="button" aria-label="Play ${escapeXML(labels[i])} string, ${escapeXML(String(fret))}${fret===0?' open':''}${blueSuffix}"` : '';
   let s = '';
   if(fret===0){
     s += `<circle cx="${cx}" cy="${cy}" r="${dots.openR}" fill="${colors.cardBg}" stroke="${isBlue ? colors.blueNoteFill : colors.ink}" stroke-width="1.5"${noteAttrs}>${blueTitle}</circle>`;
+    s += litDiscs(cx, cy, dots.openR, colors, run, i, fret);
     if(isRoot){
       s += `<circle cx="${cx}" cy="${cy}" r="${dots.openRing}" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
     }
   } else {
     s += `<circle cx="${cx}" cy="${cy}" r="${dots.r}" fill="${isBlue ? colors.blueNoteFill : colors.dotFill}" stroke="${isBlue ? colors.blueNoteStroke : colors.dotStroke}" stroke-width="1"${noteAttrs}>${blueTitle}</circle>`;
+    s += litDiscs(cx, cy, dots.r, colors, run, i, fret);
     if(name) s += `<text class="note-name" x="${cx}" y="${cy+dots.name*0.375}" text-anchor="middle" font-size="${dots.name}" font-weight="700" fill="${colors.cardBg}" font-family="Arial,sans-serif" pointer-events="none">${accTspans(name, dots.acc)}</text>`;
     if(isRoot){
       s += `<circle cx="${cx}" cy="${cy}" r="${dots.ring}" fill="none" stroke="${colors.rootColor}" stroke-width="1.5" pointer-events="none"/>`;
@@ -115,12 +171,12 @@ function noteDot(cx, cy, dots, labels, i, fret, colors, isRoot, abs, name, isBlu
   return s;
 }
 
-function dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name, isBlue){
+function dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name, isBlue, run){
   const y = fret===0 ? 24 : rowCenter(fret-startFret);
-  return noteDot(XS[i], y, BOX_DOTS, labels, i, fret, colors, isRoot, abs, name, isBlue);
+  return noteDot(XS[i], y, BOX_DOTS, labels, i, fret, colors, isRoot, abs, name, isBlue, run);
 }
 
-function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames){
+function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames, run){
   startFret = startFret || 0;
   let s = boardInner(numFrets, startFret, labels, colors);
   frets.forEach((fret,i)=>{
@@ -135,14 +191,14 @@ function diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highligh
     const abs = openAbs ? openAbs[i]+fret : null;
     // open strings sound their name already, in the tuning label above the nut
     const name = (showNoteNames && fret>0) ? escapeXML(formatAccidentals(spellNote(pc))) : null;
-    s += dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name);
+    s += dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name, false, run);
   });
   return s;
 }
 
 // Scale-position variant of diagramInner: several notes per string, spelled
 // through the scale's own pc → name map (F# major reads E#, not F).
-function scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames, noteNames, blueNotePC){
+function scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, startFret, showNoteNames, noteNames, blueNotePC, run){
   startFret = startFret || 0;
   let s = boardInner(numFrets, startFret, labels, colors);
   stringFrets.forEach((frets,i)=>{
@@ -152,7 +208,7 @@ function scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, high
       const abs = openAbs ? openAbs[i]+fret : null;
       const spelled = (noteNames && noteNames[pc]) || spellNote(pc);
       const name = (showNoteNames && fret>0) ? escapeXML(formatAccidentals(spelled)) : null;
-      s += dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name, blueNotePC!=null && pc===blueNotePC);
+      s += dotSVG(i, fret, startFret, labels, colors, isRoot, abs, name, blueNotePC!=null && pc===blueNotePC, run);
     });
   });
   return s;
@@ -203,7 +259,7 @@ function neckBoard(numFrets, labels, colors){
   return s;
 }
 
-function neckInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, showNoteNames, noteNames, blueNotePC){
+function neckInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, openAbs, showNoteNames, noteNames, blueNotePC, run){
   const count = labels.length;
   let s = neckBoard(numFrets, labels, colors);
   stringFrets.forEach((frets,i)=>{
@@ -216,7 +272,7 @@ function neckInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highl
       // open strings sound their name already, in the label beside the nut
       const name = (showNoteNames && fret>0) ? escapeXML(formatAccidentals(spelled)) : null;
       const x = fret===0 ? NECK_OPEN_X : neckFretX(fret);
-      s += noteDot(x, y, NECK_DOTS, labels, i, fret, colors, isRoot, abs, name, blueNotePC!=null && pc===blueNotePC);
+      s += noteDot(x, y, NECK_DOTS, labels, i, fret, colors, isRoot, abs, name, blueNotePC!=null && pc===blueNotePC, run);
     });
   });
   return s;
@@ -249,7 +305,7 @@ function neckSVG(name, stringFrets, numFrets, labels, colors, openPCs, rootPC, h
 // Card chrome around a diagram for standalone export: rounded paper, heading,
 // optional italic footer line, optional <metadata> source note. The diagram's
 // own size comes in, since a position box and a whole neck share this frame.
-function exportFrame(label, innerSVG, diagW, diagH, colors, showBorder, footerText, metadataText){
+function exportFrame(label, innerSVG, diagW, diagH, colors, showBorder, footerText, metadataText, run){
   const PAD = 14, headerH = 32;
   const footerH = footerText ? 16 : 0;
   const tileW = diagW + PAD*2;
@@ -257,6 +313,7 @@ function exportFrame(label, innerSVG, diagW, diagH, colors, showBorder, footerTe
   const strokeAttr = showBorder ? `stroke="${colors.cardBorder}" stroke-width="2"` : `stroke="none"`;
   let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${tileW} ${tileH}" width="${tileW}" height="${tileH}">`;
   if(metadataText) s += `<metadata>${escapeXML(metadataText)}</metadata>`;
+  if(run) s += litCSS(run, colors);
   s += `<rect x="1" y="1" width="${tileW-2}" height="${tileH-2}" rx="12" fill="${colors.cardBg}" ${strokeAttr}/>`;
   s += `<text x="${tileW/2}" y="${PAD+headerH*0.7}" text-anchor="middle" font-size="21" font-weight="700" fill="${colors.heading}" font-family="${colors.exportHeadingFont}">${accTspans(escapeXML(label), 13)}</text>`;
   s += `<g transform="translate(${PAD},${PAD+headerH})">${innerSVG}</g>`;
@@ -267,25 +324,25 @@ function exportFrame(label, innerSVG, diagW, diagH, colors, showBorder, footerTe
   return s;
 }
 
-function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames){
-  const inner = diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret, showNoteNames);
+function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames, run){
+  const inner = diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret, showNoteNames, run);
   return exportFrame(label, inner, 188, boardBottomY(numFrets, startFret) + 12, colors, showBorder,
     omitted ? `${omitted.label} (${omitted.note}) omitted` : null,
-    sourceURL ? `Chord diagram from ${sourceURL}` : null);
+    sourceURL ? `Chord diagram from ${sourceURL}` : null, run);
 }
 
-function exportScaleTileSVG(label, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, notesLine, sourceURL, showNoteNames, noteNames, blueNotePC){
-  const inner = scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret, showNoteNames, noteNames, blueNotePC);
+function exportScaleTileSVG(label, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, notesLine, sourceURL, showNoteNames, noteNames, blueNotePC, run){
+  const inner = scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret, showNoteNames, noteNames, blueNotePC, run);
   return exportFrame(label, inner, 188, boardBottomY(numFrets, startFret) + 12, colors, showBorder,
     notesLine || null,
-    sourceURL ? `Scale diagram from ${sourceURL}` : null);
+    sourceURL ? `Scale diagram from ${sourceURL}` : null, run);
 }
 
-function exportNeckTileSVG(label, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, notesLine, sourceURL, showNoteNames, noteNames, blueNotePC){
-  const inner = neckInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, showNoteNames, noteNames, blueNotePC);
+function exportNeckTileSVG(label, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, notesLine, sourceURL, showNoteNames, noteNames, blueNotePC, run){
+  const inner = neckInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, showNoteNames, noteNames, blueNotePC, run);
   return exportFrame(label, inner, neckWidth(numFrets), neckHeight(labels.length), colors, showBorder,
     notesLine || null,
-    sourceURL ? `Scale diagram from ${sourceURL}` : null);
+    sourceURL ? `Scale diagram from ${sourceURL}` : null, run);
 }
 
 export {
