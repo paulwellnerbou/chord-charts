@@ -8,7 +8,7 @@ import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG,
 import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret } from './scales.js';
 import {
   playNote, playChord, chordPlayDuration, chordNoteTimings,
-  primeAudio, startCapture, stopCapture,
+  primeAudio, createCapture,
   flashPlayButton, playChordAndFlash,
 } from './audio.js';
 import {
@@ -269,7 +269,8 @@ async function recordRunVideo(frameSVG, run, type){
   await primeAudio();
   const stream = canvas.captureStream(VIDEO_FPS);
   try{
-    startCapture().getAudioTracks().forEach(t=> stream.addTrack(t));
+    const capture = createCapture();
+    capture.stream.getAudioTracks().forEach(t=> stream.addTrack(t));
 
     const rec = new MediaRecorder(stream, { mimeType:type.mime, videoBitsPerSecond:6000000 });
     const chunks = [];
@@ -281,7 +282,7 @@ async function recordRunVideo(frameSVG, run, type){
 
     rec.start();
     const started = performance.now();
-    playChord(run.midiNotes, run.opts);
+    playChord(run.midiNotes, { ...run.opts, capture });
 
     // Frames are picked by the clock, not counted off: the recorder timestamps
     // what it samples in real time, so a moment that takes too long to draw has
@@ -304,14 +305,21 @@ async function recordRunVideo(frameSVG, run, type){
     await done;
     return new Blob(chunks, { type:type.mime });
   } finally {
-    stopCapture();
     stream.getTracks().forEach(t=> t.stop());
   }
 }
 
+// Only the card being recorded has its menu button held disabled, so a second
+// card can still start one — and two recordings would spend the run competing
+// for the rasteriser, each dropping frames the other's pace never needed to
+// lose. One at a time; the sound they capture is already their own.
+let recordingRun = false;
+
 async function downloadTileVideo(frameSVG, run, baseName, btnEl){
   const type = pickVideoType();
   if(!type || !run){ flashButton(btnEl, 'No video'); return; }
+  if(recordingRun){ flashButton(btnEl, 'Busy'); return; }
+  recordingRun = true;
   try{
     flashButton(btnEl, 'Recording', { hold:true });
     const blob = await recordRunVideo(frameSVG, run, type);
@@ -320,6 +328,8 @@ async function downloadTileVideo(frameSVG, run, baseName, btnEl){
   }catch(err){
     console.error(err);
     flashButton(btnEl, 'Failed');
+  }finally{
+    recordingRun = false;
   }
 }
 

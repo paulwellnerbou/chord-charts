@@ -30,16 +30,11 @@ function lowness(freq){
   return Math.min(1, Math.max(0, Math.log2(LOW_TOP/freq) / Math.log2(LOW_TOP/LOW_BOTTOM)));
 }
 
-// While a run is being recorded, every note is fed here as well as to the
-// speakers, so the video carries the same sound the player hears.
-let captureNode = null;
-
-function startCapture(){
-  captureNode = getAudioCtx().createMediaStreamDestination();
-  return captureNode.stream;
-}
-
-function stopCapture(){ captureNode = null; }
+// A tap a recording passes to playChord to hear its own run. Deliberately not
+// a module-level sink: notes route to whichever tap their own call names, so a
+// recording carries its run and never whatever else the page sounds meanwhile
+// — another card being played, or a second export running alongside it.
+function createCapture(){ return getAudioCtx().createMediaStreamDestination(); }
 
 // Gets the context running before it is needed. A suspended context resumes
 // asynchronously with its clock frozen, and that delay would otherwise land
@@ -89,7 +84,7 @@ function scheduleNote(ctx, midi, opts){
   gain.gain.exponentialRampToValueAtTime(0.0001, t0+1.4);
   filter.connect(gain);
   gain.connect(ctx.destination);
-  if(captureNode) gain.connect(captureNode);
+  if(opts && opts.capture) gain.connect(opts.capture);
 
   // triangle up top, crossfading to sawtooth down low for its far richer
   // harmonics — 1/n against the triangle's 1/n²
@@ -117,7 +112,8 @@ function noteGap(opts){
 // resolves once every note has actually been scheduled (see playNote)
 function playChord(midiNotes, opts){
   const gap = noteGap(opts);
-  return Promise.all(midiNotes.map((m,i)=> playNote(m, { delay:i*gap, gain:0.18 })));
+  const capture = opts && opts.capture;
+  return Promise.all(midiNotes.map((m,i)=> playNote(m, { delay:i*gap, gain:0.18, capture })));
 }
 
 // matches scheduleNote's envelope: the last-triggered note starts after
@@ -167,6 +163,6 @@ function playChordAndFlash(btn, midiNotes, opts){
 
 export {
   playNote, playChord, chordPlayDuration, chordNoteTimings,
-  primeAudio, startCapture, stopCapture,
+  primeAudio, createCapture,
   flashPlayButton, playChordAndFlash,
 };
