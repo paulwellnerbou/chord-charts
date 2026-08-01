@@ -128,11 +128,15 @@ function litPhase(run, at){
 function litDiscs(cx, cy, r, colors, run, i, fret){
   let times = run && run.onsets[`${i}:${fret}`];
   if(!times) return '';
-  // A frozen frame keeps only the discs actually alight in it. The rest sit at
-  // zero opacity and draw the same either way, but each one still costs the
-  // rasteriser a blur — enough of them and a frame takes longer than the frame
-  // it is meant to be.
-  if(run.paused) times = times.filter(at=> litPhase(run, at) <= run.litMs);
+  // A frozen frame keeps only the discs actually alight in it — the flash is
+  // at zero opacity at both ends of its window, so neither end counts. The
+  // rest draw the same either way, but each one still costs the rasteriser a
+  // blur, and enough of them make a frame take longer than the frame it is
+  // meant to be.
+  if(run.paused) times = times.filter(at=>{
+    const phase = litPhase(run, at);
+    return phase > 0 && phase < run.litMs;
+  });
   return times.map(at=>
     `<circle class="note-lit" cx="${cx}" cy="${cy}" r="${r}" fill="${colors.litColor}" opacity="0"`
     + ` style="animation-delay:-${Math.round(run.totalMs - at + (run.seekMs||0))}ms"/>`

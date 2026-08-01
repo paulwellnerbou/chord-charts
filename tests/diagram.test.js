@@ -285,6 +285,22 @@ test('a seeked run is frozen at that moment, for grabbing frames', () => {
   assert.ok(!quiet.includes('class="note-lit"'));
 });
 
+test('a frozen frame drops the discs sitting on either end of their flash', () => {
+  const frame = (seekMs)=> exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+    null, null, false, null, null, { ...RUN, seekMs, paused: true });
+
+  // 1060ms is exactly 560ms — one lit window — after the pair struck at 500ms,
+  // where the flash is back to zero opacity. Nothing else is alight either, so
+  // the frame draws no discs rather than two that would only cost it a blur.
+  assert.ok(!frame(1060).includes('class="note-lit"'), 'the far end of a flash is out');
+
+  // and the near end: at 500ms that same pair is struck but still at zero,
+  // while the note from 0ms is 500ms into its window and genuinely alight
+  assert.equal((frame(500).match(/class="note-lit"/g) || []).length, 1);
+  // its delay carries the seek too — a cycle, less its onset, plus 500ms
+  assert.match(frame(500), /animation-delay:-4500ms/);
+});
+
 test('the neck and chord exports animate on the same terms', () => {
   const neck = exportNeckTileSVG('C Major Pentatonic', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true,
     null, null, false, null, null, RUN);
