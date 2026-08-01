@@ -166,7 +166,9 @@ function scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, high
 // leftmost there, is the bottom line here.
 const NECK_FRET_W = 30, NECK_STRING_GAP = 30;
 const NECK_TOP = 18, NECK_NUT_X = 48, NECK_OPEN_X = 32, NECK_LABEL_X = 11;
-const NECK_NUM_DY = 19, NECK_PAD_RIGHT = 12, NECK_PAD_BOTTOM = 8;
+// the numbers hang clear of the root ring around a note on the bottom string,
+// not just of the string line itself
+const NECK_NUM_DY = NECK_DOTS.ring + 12.5, NECK_PAD_RIGHT = 12, NECK_PAD_BOTTOM = 8;
 
 function neckStringY(i, count){ return NECK_TOP + (count-1-i)*NECK_STRING_GAP; }
 function neckFretX(fret){ return NECK_NUT_X + (fret-0.5)*NECK_FRET_W; }
