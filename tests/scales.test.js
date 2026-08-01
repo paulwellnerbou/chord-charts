@@ -242,18 +242,43 @@ test('scalePositions drops a pitch refingered on the neighbouring string but kee
 });
 
 test('scalePositions with a rootPC builds boxes that start and end on the root', () => {
-  const parsed = parseScale('A blues');
-  const anchorString = UKE.openAbs.indexOf(Math.min(...UKE.openAbs));
-  const positions = scalePositions(parsed.pcs, UKE, undefined, parsed.rootPC);
-  assert.ok(positions.length >= 1);
-  for(const pos of positions){
-    assert.equal((UKE.openPCs[anchorString] + pos.startFret) % 12, parsed.rootPC, 'box anchored at the root');
-    assert.equal(pos.midis[0] % 12, parsed.rootPC, 'run starts on the root');
-    assert.equal(pos.midis[pos.midis.length - 1] % 12, parsed.rootPC, 'run ends on the root');
-    assert.ok(pos.midis[pos.midis.length - 1] - pos.midis[0] >= 12, 'spans at least an octave');
+  for(const tuning of TUNINGS){
+    for(const type of ['A blues', 'C major pentatonic', 'D dorian']){
+      const parsed = parseScale(type);
+      const positions = scalePositions(parsed.pcs, tuning, undefined, parsed.rootPC);
+      for(const pos of positions){
+        const where = `${type} on ${tuning.id} at ${pos.startFret}`;
+        assert.equal(pos.midis[0] % 12, parsed.rootPC, `run starts on the root: ${where}`);
+        assert.equal(pos.midis[pos.midis.length - 1] % 12, parsed.rootPC, `run ends on the root: ${where}`);
+        // whole octaves: a mandolin's wide box reaches the root twice over
+        const span = pos.midis[pos.midis.length - 1] - pos.midis[0];
+        assert.ok(span >= 12 && span % 12 === 0, `whole octaves: ${where}`);
+        // the box is the notes it holds, not the window they were found in
+        const used = pos.strings.flat();
+        assert.equal(pos.startFret, Math.min(...used), `box starts where it plays: ${where}`);
+        assert.equal(pos.endFret, Math.max(...used), `box ends where it plays: ${where}`);
+      }
+      // fewer boxes than the every-scale-tone anchoring, and never twice the same run
+      assert.ok(positions.length < scalePositions(parsed.pcs, tuning).length);
+      assert.equal(new Set(positions.map(p => p.midis.join())).size, positions.length);
+    }
   }
-  // far fewer boxes than the every-scale-tone anchoring
-  assert.ok(positions.length < scalePositions(parsed.pcs, UKE).length);
+});
+
+test('scalePositions offers one root box per octave of the root within reach', () => {
+  // C runs C4→C5 from the open C string and C5→C6 from the 12th, so the switch
+  // between them is a real choice; A only reaches A4→A5 on this short neck
+  const c = parseScale('C major pentatonic');
+  assert.deepEqual(
+    scalePositions(c.pcs, UKE, undefined, c.rootPC).map(p => [p.startFret, p.endFret]),
+    [[0, 3], [12, 15]],
+  );
+  const a = parseScale('A minor pentatonic');
+  assert.equal(scalePositions(a.pcs, UKE, undefined, a.rootPC).length, 1);
+  // a root whose octave never fits one hand span leaves no box at all — the
+  // Portuguese cavaquinho's four strings cover less than an octave
+  const pt = TUNINGS.find(t => t.id === 'cavaquinho_pt');
+  assert.deepEqual(scalePositions(c.pcs, pt, undefined, c.rootPC), []);
 });
 
 test('scaleNeck maps every scale tone from the nut to the last fret', () => {
@@ -303,6 +328,27 @@ test('scaleNeck with a rootPC trims the map to its lowest and highest root', () 
   const bb = parseScale('Bb blues');
   assert.deepEqual(scaleNeck(bb.pcs, UKE, 0).midis, [64]);
   assert.deepEqual(scaleNeck(bb.pcs, UKE, 0, bb.rootPC).midis, []);
+  // and so does a single root: trimming to one pitch would draw that lone dot
+  // as the whole scale — the open C string's C, with C5 twelve frets away
+  const c = parseScale('C major');
+  assert.deepEqual(scaleNeck(c.pcs, UKE, 0).midis, [60, 64, 67, 69]);
+  assert.deepEqual(scaleNeck(c.pcs, UKE, 0, c.rootPC).midis, []);
+  // F# never sounds twice on a Portuguese cavaquinho's fifteen frets
+  const pt = TUNINGS.find(t => t.id === 'cavaquinho_pt');
+  const fs = parseScale('F# major');
+  assert.deepEqual(scaleNeck(fs.pcs, pt, undefined, fs.rootPC).midis, []);
+});
+
+test('every root-run map on every tuning runs whole octaves or nothing at all', () => {
+  for(const tuning of TUNINGS){
+    for(const type of ['C major', 'F# major', 'A blues', 'Eb minor pentatonic']){
+      const parsed = parseScale(type);
+      const { midis } = scaleNeck(parsed.pcs, tuning, undefined, parsed.rootPC);
+      if(!midis.length) continue;
+      const span = midis[midis.length - 1] - midis[0];
+      assert.ok(span >= 12 && span % 12 === 0, `${type} on ${tuning.id} spans ${span}`);
+    }
+  }
 });
 
 test('positionPlaybackMidis runs up the box and back down without repeating the top', () => {

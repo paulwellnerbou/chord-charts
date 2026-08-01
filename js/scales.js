@@ -268,19 +268,20 @@ function windowSize(tuning){
 // carries a scale tone, so the box's bottom fret is always playable and open
 // strings belong to the nut box alone. Each position:
 //   { startFret, endFret, strings: number[][] per string, midis: ascending }
-// With a rootPC, boxes are built from the root instead — anchored where the
-// lowest string carries the root and cut off above the box's highest root, so
-// the shape (and its practice run) starts and ends on the root. The window
-// always reaches the next octave: strings cover contiguous pitch (W ≥ the
-// largest open-string gap), so root+12 sits within every box.
+// With a rootPC, a box is instead any window holding a root and the root above
+// it, cut back to the pitches between them: the shape (and its practice run)
+// starts and ends on the root, with every scale tone of the octave in between.
+// Anchoring those windows on the lowest string's root would leave one box per
+// twelve frets — one on a neck this short — so every window is tried, and each
+// octave of the root keeps a single box, its tightest fingering.
 function scalePositions(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = null){
   const pcSet = new Set(scalePCs);
   const W = windowSize(tuning);
   const anchorString = tuning.openAbs.indexOf(Math.min(...tuning.openAbs));
   const positions = [];
+  const runsSeen = new Map();
   for(let s = 0; s + W - 1 <= maxFret; s++){
-    const anchorPC = (tuning.openPCs[anchorString] + s) % 12;
-    if(rootPC === null ? !pcSet.has(anchorPC) : anchorPC !== rootPC) continue;
+    if(rootPC === null && !pcSet.has((tuning.openPCs[anchorString] + s) % 12)) continue;
     const strings = tuning.openPCs.map(openPC => {
       const frets = [];
       for(let f = s; f <= s + W - 1; f++){
@@ -302,19 +303,36 @@ function scalePositions(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = n
         else strings[i] = strings[i].filter(x => x !== f);
       }
     }
+    let startFret = s, endFret = s + W - 1;
     if(rootPC !== null){
-      const all = strings.flatMap((frets, i) => frets.map(f => tuning.openAbs[i] + f));
-      const hiRoot = Math.max(...all.filter(m => m % 12 === rootPC));
+      const roots = strings
+        .flatMap((frets, i) => frets.map(f => tuning.openAbs[i] + f))
+        .filter(m => m % 12 === rootPC);
+      const loRoot = Math.min(...roots), hiRoot = Math.max(...roots);
+      // no root, or a lone one with nowhere to run: no root-to-root box here
+      if(!(hiRoot > loRoot)) continue;
       strings.forEach((frets, i) => {
-        strings[i] = frets.filter(f => tuning.openAbs[i] + f <= hiRoot);
+        strings[i] = frets.filter(f => tuning.openAbs[i] + f >= loRoot && tuning.openAbs[i] + f <= hiRoot);
       });
+      // the trimmed shape rarely fills its window — the box is what is left
+      const used = strings.flat();
+      startFret = Math.min(...used);
+      endFret = Math.max(...used);
     }
     // playback still sounds every pitch once, wherever it is doubled
     const midis = [...new Set(strings.flatMap((frets, i) => frets.map(f => tuning.openAbs[i] + f)))]
       .sort((a, b) => a - b);
-    positions.push({ startFret: s, endFret: s + W - 1, strings, midis });
+    const box = { startFret, endFret, strings, midis };
+    if(rootPC === null){ positions.push(box); continue; }
+    // Neighbouring windows re-finger the same octave of the root over and over.
+    // One octave is one box, in the narrowest fret span that plays it whole.
+    const run = midis.join(',');
+    const kept = runsSeen.get(run);
+    if(!kept || endFret - startFret < kept.endFret - kept.startFret) runsSeen.set(run, box);
   }
-  return positions;
+  return rootPC === null
+    ? positions
+    : [...runsSeen.values()].sort((a, b) => a.startFret - b.startFret);
 }
 
 // The whole neck at once, shaped like a position ({strings, midis}) so the same
@@ -322,7 +340,8 @@ function scalePositions(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = n
 // `maxFret` is kept, including the same pitch on two strings — a neck map is
 // exactly where a player wants to see both places to play a note.
 // With a rootPC the map is trimmed to the lowest and highest root on the neck,
-// so the picture (and its run) still starts and ends on the root.
+// so the picture (and its run) still starts and ends on the root — and stays
+// empty where the neck never reaches a second root to run to.
 function scaleNeck(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = null){
   const pcSet = new Set(scalePCs);
   let strings = tuning.openPCs.map(openPC => {
@@ -336,9 +355,10 @@ function scaleNeck(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = null){
     const roots = strings
       .flatMap((frets, i) => frets.map(f => tuning.openAbs[i] + f))
       .filter(m => m % 12 === rootPC);
-    // no root within reach: nothing here can run root to root, so nothing does
+    // one root, or none, is no run: a map trimmed to a single pitch would draw
+    // that one dot and call it the scale
     const lo = Math.min(...roots), hi = Math.max(...roots);
-    strings = roots.length
+    strings = hi > lo
       ? strings.map((frets, i) => frets.filter(f => tuning.openAbs[i] + f >= lo && tuning.openAbs[i] + f <= hi))
       : strings.map(() => []);
   }
