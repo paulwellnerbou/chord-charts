@@ -124,13 +124,12 @@ function positionPlaces(pos, openAbs){
 }
 
 // The run the export animates, off the very schedule the sheet plays: every
-// place a pitch sits lights at each time that pitch comes round. `seekMs` and
-// `paused` freeze the loop at one moment, which is how frames are grabbed.
+// place a pitch sits lights at each time that pitch comes round.
 //
 // The loop lasts exactly as long as the sound does, which leaves the finished
 // diagram sitting there while the last note rings out — a rest that reads as
 // the end of a run, and the room a recording needs to catch that ring.
-function playbackRun(places, midiNotes, opts, seekMs){
+function playbackRun(places, midiNotes, opts){
   const timings = chordNoteTimings(midiNotes, opts);
   if(!timings.length) return null;
   const onsets = {};
@@ -141,13 +140,19 @@ function playbackRun(places, midiNotes, opts, seekMs){
       (onsets[key] || (onsets[key] = [])).push(at);
     }
   }
-  const run = {
+  return {
     onsets, midiNotes, opts,
     litMs: timings[0].ms,
     totalMs: Math.round(chordPlayDuration(midiNotes, opts)),
   };
-  if(seekMs !== undefined){ run.seekMs = seekMs; run.paused = true; }
-  return run;
+}
+
+// One moment of a run, held. A recording works from the run it was handed
+// rather than reading the card afresh each frame: the card stays live while
+// the recording plays out, and a position or voicing changed halfway through
+// would swap the picture out from under sound already committed to the run.
+function seekRun(run, seekMs){
+  return { ...run, seekMs, paused:true };
 }
 
 async function svgToPNGBlob(svgStr){
@@ -253,7 +258,7 @@ async function rasterizeFrame(svgStr, ctx, w, h){
 // sound is the real thing, played once through a capture node while the frames
 // are taken, which is why the recording runs at the run's own pace.
 async function recordRunVideo(frameSVG, run, type){
-  const probe = frameSVG(0);
+  const probe = frameSVG(seekRun(run, 0));
   const vb = probe.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
   if(!vb) throw new Error('export SVG is missing its viewBox');
   const w = Math.round(parseFloat(vb[1])*VIDEO_SCALE), h = Math.round(parseFloat(vb[2])*VIDEO_SCALE);
@@ -293,7 +298,7 @@ async function recordRunVideo(frameSVG, run, type){
     for(;;){
       const at = performance.now() - started;
       if(at >= run.totalMs) break;
-      await rasterizeFrame(frameSVG(Math.round(at)), ctx, w, h);
+      await rasterizeFrame(frameSVG(seekRun(run, Math.round(at))), ctx, w, h);
       const spare = frameMs - (performance.now() - started - at);
       if(spare > 0) await new Promise(r=> setTimeout(r, spare));
     }
@@ -525,30 +530,35 @@ function openCardMenu(card, btn){
   menu.innerHTML = '';
   menu.setAttribute('aria-label', `Actions for ${result.label}`);
 
-  // settings and the shown voicing are read at click time, so the menu can
-  // stay prebuilt while the flash feedback lands on the card's own button
-  const tileSVG = (run)=>{
+  // Everything a file is made of, settled at the click, so the menu can stay
+  // prebuilt while the flash feedback lands on the card's own button. A
+  // recording renders every frame from what this settled: the sheet stays live
+  // while one plays out, and a voicing cycled halfway through would swap the
+  // picture out from under sound already committed to the run.
+  const settleTile = ()=>{
     const tuning = currentTuning();
     const frets = result.voicings[result.altIndex];
     const win = computeFretWindow(frets, shortenThreshold);
     const omitted = document.getElementById('omitToggle').checked ? result.omitted : null;
-    return chordTileSVGString(result.label, frets, win.fretMax, tuning.labels, tuning.openPCs, result.rootPC, win.startFret, omitted, run);
+    return {
+      svg: run=> chordTileSVGString(result.label, frets, win.fretMax, tuning.labels, tuning.openPCs, result.rootPC, win.startFret, omitted, run),
+      run: playbackRun(chordPlaces(frets, tuning.openAbs), chordAbsNotes(frets, tuning.openAbs), chordPlayOpts(tuning)),
+    };
   };
-  // the strum the card plays, drawn into the file; seekMs freezes it for a frame
-  const tileRun = seekMs=>{
-    const tuning = currentTuning();
-    const frets = result.voicings[result.altIndex];
-    return playbackRun(chordPlaces(frets, tuning.openAbs), chordAbsNotes(frets, tuning.openAbs), chordPlayOpts(tuning), seekMs);
-  };
-  const movingSVG = seekMs=> tileSVG(tileRun(seekMs));
   const addAction = addCardMenuAction.bind(null, menu);
 
-  addAction(COPY_ICON, 'Copy image', ()=> copyTileImage(tileSVG(), chordFileName(result.label, 'png'), btn));
-  addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadTilePNG(tileSVG(), chordFileName(result.label, 'png'), btn));
-  addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadTileSVG(tileSVG(), chordFileName(result.label, 'svg'), btn));
+  addAction(COPY_ICON, 'Copy image', ()=> copyTileImage(settleTile().svg(), chordFileName(result.label, 'png'), btn));
+  addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadTilePNG(settleTile().svg(), chordFileName(result.label, 'png'), btn));
+  addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadTileSVG(settleTile().svg(), chordFileName(result.label, 'svg'), btn));
   menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
-  addAction(DOWNLOAD_ICON, 'Download animated SVG', ()=> downloadTileSVG(movingSVG(), chordFileName(`${result.label} animated`, 'svg'), btn));
-  addAction(DOWNLOAD_ICON, 'Download video', ()=> downloadTileVideo(movingSVG, tileRun(), chordFileBase(`${result.label} animated`), btn));
+  addAction(DOWNLOAD_ICON, 'Download animated SVG', ()=>{
+    const tile = settleTile();
+    downloadTileSVG(tile.svg(tile.run), chordFileName(`${result.label} animated`, 'svg'), btn);
+  });
+  addAction(DOWNLOAD_ICON, 'Download video', ()=>{
+    const tile = settleTile();
+    downloadTileVideo(tile.svg, tile.run, chordFileBase(`${result.label} animated`), btn);
+  });
   menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
   addAction(LINK_ICON, 'Copy link to this chord', ()=> copyChordLink(result.label, btn));
   const openItem = cardMenuItem(EXTERNAL_LINK_ICON, 'Open in new tab', chordPageURL(result.label, false));
@@ -1817,9 +1827,8 @@ function buildScaleCard(parsed, positions, noteNames){
   return card;
 }
 
-function scaleTileSVGString(card, run){
-  const { parsed, positions, noteNames } = card._scaleResult;
-  const pos = positions[currentPosIndex()];
+function scaleTileSVGString(card, pos, run){
+  const { parsed, noteNames } = card._scaleResult;
   const tuning = currentTuning();
   const colors = currentColors();
   const sourceURL = new URL(window.location.pathname + '?' + readableQuery(scalePageParams()), window.location.href).href;
@@ -1834,19 +1843,21 @@ function scaleTileSVGString(card, run){
     showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, positionStartFret(pos), scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames, parsed.blueNotePC, run);
 }
 
-// the up-and-down practice run the card plays; seekMs freezes it for a frame
-function scaleTileRun(card, seekMs){
-  const pos = card._scaleResult.positions[currentPosIndex()];
+// Everything a file is made of, settled at the click. The sheet stays live
+// while a recording plays out — several seconds with the position arrows right
+// there on the card — and reading the card afresh for each frame would swap the
+// picture out from under sound already committed to the run.
+function settleScaleTile(card){
+  const index = currentPosIndex();
+  const pos = card._scaleResult.positions[index];
   const openAbs = currentTuning().openAbs;
-  return playbackRun(positionPlaces(pos, openAbs), positionPlaybackMidis(pos), { arpeggio:true }, seekMs);
-}
-
-function scaleFileBase(card){
   const { parsed } = card._scaleResult;
-  return chordFileBase(`${parsed.label} ${isNeckView() ? 'whole neck' : `position ${currentPosIndex()+1}`}`);
+  return {
+    svg: run=> scaleTileSVGString(card, pos, run),
+    run: playbackRun(positionPlaces(pos, openAbs), positionPlaybackMidis(pos), { arpeggio:true }),
+    base: chordFileBase(`${parsed.label} ${isNeckView() ? 'whole neck' : `position ${index+1}`}`),
+  };
 }
-
-function scaleFileName(card, ext){ return `${scaleFileBase(card)}.${ext}`; }
 
 function openScaleCardMenu(card, btn){
   const menu = ensureCardMenu();
@@ -1857,14 +1868,27 @@ function openScaleCardMenu(card, btn){
 
   const addAction = addCardMenuAction.bind(null, menu);
 
-  const movingSVG = seekMs=> scaleTileSVGString(card, scaleTileRun(card, seekMs));
-
-  addAction(COPY_ICON, 'Copy image', ()=> copyTileImage(scaleTileSVGString(card), scaleFileName(card, 'png'), btn));
-  addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadTilePNG(scaleTileSVGString(card), scaleFileName(card, 'png'), btn));
-  addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadTileSVG(scaleTileSVGString(card), scaleFileName(card, 'svg'), btn));
+  addAction(COPY_ICON, 'Copy image', ()=>{
+    const tile = settleScaleTile(card);
+    copyTileImage(tile.svg(), `${tile.base}.png`, btn);
+  });
+  addAction(DOWNLOAD_ICON, 'Download PNG', ()=>{
+    const tile = settleScaleTile(card);
+    downloadTilePNG(tile.svg(), `${tile.base}.png`, btn);
+  });
+  addAction(DOWNLOAD_ICON, 'Download SVG', ()=>{
+    const tile = settleScaleTile(card);
+    downloadTileSVG(tile.svg(), `${tile.base}.svg`, btn);
+  });
   menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
-  addAction(DOWNLOAD_ICON, 'Download animated SVG', ()=> downloadTileSVG(movingSVG(), `${scaleFileBase(card)}_animated.svg`, btn));
-  addAction(DOWNLOAD_ICON, 'Download video', ()=> downloadTileVideo(movingSVG, scaleTileRun(card), `${scaleFileBase(card)}_animated`, btn));
+  addAction(DOWNLOAD_ICON, 'Download animated SVG', ()=>{
+    const tile = settleScaleTile(card);
+    downloadTileSVG(tile.svg(tile.run), `${tile.base}_animated.svg`, btn);
+  });
+  addAction(DOWNLOAD_ICON, 'Download video', ()=>{
+    const tile = settleScaleTile(card);
+    downloadTileVideo(tile.svg, tile.run, `${tile.base}_animated`, btn);
+  });
   menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
   addAction(LINK_ICON, 'Copy link to this scale', async ()=>{
     flashButton(btn, await copyLinkText(shareLinkFor(scalePageParams())));
