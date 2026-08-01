@@ -261,7 +261,9 @@ function startRecorder(stream){
       return { rec:new MediaRecorder(stream, { mimeType:type.mime, videoBitsPerSecond:6000000 }), type };
     }catch(err){ refusal = err; }
   }
-  throw refusal || new Error('no recordable video type');
+  // running out of candidates is the platform saying no, not a run going wrong,
+  // and the button has separate words for those
+  throw Object.assign(new Error('no recordable video type'), { noRecorder:true, cause:refusal });
 }
 
 async function rasterizeFrame(svgStr, ctx, w, h){
@@ -350,7 +352,7 @@ async function downloadTileVideo(frameSVG, run, baseName, btnEl){
     flashButton(btnEl, 'Saved');
   }catch(err){
     console.error(err);
-    flashButton(btnEl, 'Failed');
+    flashButton(btnEl, err.noRecorder ? 'No video' : 'Failed');
   }finally{
     recordingRun = false;
   }
