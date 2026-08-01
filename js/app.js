@@ -4,8 +4,8 @@ import {
   findVoicings, computeFretWindow, chordAbsNotes, transposeChordText,
   identifyChord, spellNote, formatAccidentals,
 } from './theory.js';
-import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG } from './diagram.js';
-import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, scalePositions, positionPlaybackMidis, positionStartFret } from './scales.js';
+import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG } from './diagram.js';
+import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret } from './scales.js';
 import { playNote, playChord, chordPlayDuration, flashPlayButton, playChordAndFlash } from './audio.js';
 import {
   afterNextPaint, animateHeightSwap, playAnimation, flashButton, flashButtonText,
@@ -618,6 +618,7 @@ function saveSettings(){
     showCardControls: document.getElementById('cardControlsToggle').checked,
     bwMode: document.getElementById('bwToggle').checked,
     highlightRoot: document.getElementById('rootToggle').checked,
+    scaleView: scaleView,
     scaleRootRun: document.getElementById('rootRunToggle').checked,
     scaleSimplifyAccidentals: document.getElementById('simplifyAccidentalsToggle').checked,
     showNoteNames: noteNamesByMode.chords,
@@ -680,7 +681,7 @@ function readableQuery(params){
 // shared link carries two modes at once. The address-bar writers
 // (updateURLParam/updateScaleURLParam) swap only the chart params — a dialog
 // deep-link the page was loaded with stays in the bar, in both modes alike.
-const CHART_PARAMS = ['chords','song','transpose','scale'];
+const CHART_PARAMS = ['chords','song','transpose','scale','view'];
 const MODAL_PARAMS = ['notes','fretboard','findsongs'];
 
 const MASONRY_GAP = 16, MASONRY_MIN_COL_WIDTH = 190;
@@ -1425,6 +1426,25 @@ const positionModalTitleEl = document.getElementById('positionModalTitle');
 let scaleState = null;
 let scaleInputDebounce = null;
 
+// Which drawing of the scale the sheet carries: one position box up the neck,
+// or the whole neck at once. The neck is a single picture, so it rides the
+// position pipeline as a one-entry list — and leaves the remembered box index
+// untouched, so switching views and back lands on the box you left.
+let scaleView = 'position';
+function isNeckView(){ return scaleView === 'neck'; }
+function currentPosIndex(){ return isNeckView() ? 0 : scaleState.posIndex; }
+
+function setScaleView(view, opts){
+  scaleView = view === 'neck' ? 'neck' : 'position';
+  document.body.classList.toggle('neck-view', isNeckView());
+  [['scaleViewBox', 'position'], ['scaleViewNeck', 'neck']].forEach(([id, v])=>{
+    const btn = document.getElementById(id);
+    btn.setAttribute('aria-checked', String(scaleView === v));
+    btn.tabIndex = scaleView === v ? 0 : -1;
+  });
+  if(!opts || !opts.silent) generateScale();
+}
+
 function updateScaleInputClearUI(){
   document.getElementById('scaleInputWrap').classList.toggle('has-value', scaleInputEl.value.trim() !== '');
 }
@@ -1486,12 +1506,20 @@ function packScaleInput(value){
   return String(value).trim().replace(/\s+/g, ' ');
 }
 
+// The position box is the default drawing, so only the neck names itself in a
+// link — and every scale link says which of the two it was copied from.
+function applyScaleViewParam(params){
+  if(isNeckView()) params.set('view', 'neck');
+  else params.delete('view');
+  return params;
+}
+
 function scalePageParams(){
   const params = new URLSearchParams(window.location.search);
   [...CHART_PARAMS, ...MODAL_PARAMS].forEach(p=>params.delete(p));
   params.set('scale', packScaleInput(scaleInputEl.value));
   params.set('tuning', selectedTuningId);
-  return params;
+  return applyScaleViewParam(params);
 }
 
 function updateScaleURLParam(){
@@ -1499,14 +1527,20 @@ function updateScaleURLParam(){
   CHART_PARAMS.forEach(p=>params.delete(p));
   const packed = packScaleInput(scaleInputEl.value);
   if(packed){ params.set('scale', packed); }
+  applyScaleViewParam(params);
   params.set('tuning', selectedTuningId);
   const query = readableQuery(params);
   history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : '') + window.location.hash);
 }
 
 function scaleDiagramHTML(parsed, pos, noteNames, tuning, colors, highlightRoot, showNoteNames, interactive){
+  const openAbs = interactive ? tuning.openAbs : undefined;
+  if(isNeckView()){
+    return neckSVG(parsed.label, pos.strings, pos.endFret, tuning.labels, colors, tuning.openPCs, parsed.rootPC,
+      highlightRoot, openAbs, showNoteNames, noteNames, parsed.blueNotePC);
+  }
   return scaleSVG(parsed.label, pos.strings, pos.endFret, tuning.labels, colors, tuning.openPCs, parsed.rootPC,
-    highlightRoot, interactive ? tuning.openAbs : undefined, positionStartFret(pos), showNoteNames, noteNames, parsed.blueNotePC);
+    highlightRoot, openAbs, positionStartFret(pos), showNoteNames, noteNames, parsed.blueNotePC);
 }
 
 function positionCaption(pos){
@@ -1524,12 +1558,12 @@ function scaleNotesLine(parsed){
 
 function updateScaleNavCount(card){
   const countEl = card.querySelector('.voicing-nav-count');
-  if(countEl) countEl.textContent = `${scaleState.posIndex+1} / ${card._scaleResult.positions.length}`;
+  if(countEl) countEl.textContent = `${currentPosIndex()+1} / ${card._scaleResult.positions.length}`;
 }
 
 function updateScaleCardDiagram(card, slideDir){
   const { parsed, positions, noteNames } = card._scaleResult;
-  const pos = positions[scaleState.posIndex];
+  const pos = positions[currentPosIndex()];
   const html = scaleDiagramHTML(parsed, pos, noteNames, currentTuning(), currentColors(),
     document.getElementById('rootToggle').checked, document.getElementById('noteNamesToggle').checked, true);
   swapDiagramHTML(card.querySelector('.diagram-slot'), html, slideDir);
@@ -1538,14 +1572,14 @@ function updateScaleCardDiagram(card, slideDir){
 
 function buildScaleCard(parsed, positions, noteNames){
   const card = document.createElement('div');
-  card.className = 'card scale-card';
+  card.className = 'card scale-card' + (isNeckView() ? ' neck-card' : '');
   card._scaleResult = { parsed, positions, noteNames };
   card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play the ${escapeXML(parsed.label)} scale up and down" aria-label="Play the ${escapeXML(parsed.label)} scale up and down">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play the ${escapeXML(parsed.label)} scale up and down">${accidentalsHTML(parsed.label)}</h2></div><div class="diagram-slot"></div><p class="scale-notes"></p>`;
   card.querySelector('.scale-notes').innerHTML = accGlyphsHTML(scaleNotesLine(parsed));
 
   appendCardMenuButton(card, parsed.label);
   // always the up-and-down practice run — a scale strummed at once says nothing
-  bindCardPlayHandlers(card, ()=> playChordAndFlash(card.querySelector('.play-chord-btn'), positionPlaybackMidis(positions[scaleState.posIndex]), { arpeggio:true }));
+  bindCardPlayHandlers(card, ()=> playChordAndFlash(card.querySelector('.play-chord-btn'), positionPlaybackMidis(positions[currentPosIndex()]), { arpeggio:true }));
 
   if(positions.length > 1){
     card.classList.add('has-alt-voicings');
@@ -1570,20 +1604,24 @@ function buildScaleCard(parsed, positions, noteNames){
 
 function scaleTileSVGString(card){
   const { parsed, positions, noteNames } = card._scaleResult;
-  const pos = positions[scaleState.posIndex];
+  const pos = positions[currentPosIndex()];
   const tuning = currentTuning();
   const colors = currentColors();
   const sourceURL = new URL(window.location.pathname + '?' + readableQuery(scalePageParams()), window.location.href).href;
   const showBorder = document.getElementById('borderToggle').checked;
   const highlightRoot = document.getElementById('rootToggle').checked;
   const showNoteNames = document.getElementById('noteNamesToggle').checked;
+  if(isNeckView()){
+    return exportNeckTileSVG(formatAccidentals(parsed.label), pos.strings, pos.endFret, tuning.labels, colors,
+      showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames, parsed.blueNotePC);
+  }
   return exportScaleTileSVG(formatAccidentals(parsed.label), pos.strings, pos.endFret, tuning.labels, colors,
     showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, positionStartFret(pos), scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames, parsed.blueNotePC);
 }
 
 function scaleFileName(card, ext){
   const { parsed } = card._scaleResult;
-  return chordFileName(`${parsed.label} position ${scaleState.posIndex+1}`, ext);
+  return chordFileName(`${parsed.label} ${isNeckView() ? 'whole neck' : `position ${currentPosIndex()+1}`}`, ext);
 }
 
 function openScaleCardMenu(card, btn){
@@ -1618,7 +1656,7 @@ function renderPositionTiles(card){
   positionModalGridEl.innerHTML = '';
 
   const tiles = positions.map((pos, i)=>{
-    const isCurrent = i === scaleState.posIndex;
+    const isCurrent = i === currentPosIndex();
     const wrap = document.createElement('div');
     wrap.className = 'voicing-choice-wrap';
     const tile = document.createElement('button');
@@ -1630,7 +1668,7 @@ function renderPositionTiles(card){
       + scaleDiagramHTML(parsed, pos, noteNames, tuning, colors, highlightRoot, showNoteNames, false)
       + `<span class="position-caption">${positionCaption(pos)}</span>`;
     tile.addEventListener('click', ()=>{
-      const prevIndex = scaleState.posIndex;
+      const prevIndex = currentPosIndex();
       scaleState.posIndex = i;
       updateScaleCardDiagram(card, Math.sign(i - prevIndex));
       playChord(positionPlaybackMidis(pos), { arpeggio:true });
@@ -1693,10 +1731,17 @@ function generateScale(){
   errorBox.textContent = '';
 
   const rootRun = document.getElementById('rootRunToggle').checked;
-  const positions = scalePositions(parsed.pcs, tuning, undefined, rootRun ? parsed.rootPC : null);
+  const rootPC = rootRun ? parsed.rootPC : null;
+  // the whole neck is one picture, so it enters the position pipeline as a
+  // single-entry list — nav, chooser and captions fall away on their own
+  const positions = isNeckView()
+    ? [scaleNeck(parsed.pcs, tuning, undefined, rootPC)].filter(neck => neck.midis.length)
+    : scalePositions(parsed.pcs, tuning, undefined, rootPC);
   if(!positions.length){
     // root-run only: the root can miss the anchor string's reachable frets
-    grid.innerHTML = `<p class="empty-hint">No position of this scale starts at the root within ${MAX_FRET_DEFAULT} frets on this tuning — switch off “Start and end at the root” to see every box.</p>`;
+    grid.innerHTML = `<p class="empty-hint">${isNeckView()
+      ? `This scale has no root note within ${MAX_FRET_DEFAULT} frets on this tuning — switch off “Start and end at the root” to see every note.`
+      : `No position of this scale starts at the root within ${MAX_FRET_DEFAULT} frets on this tuning — switch off “Start and end at the root” to see every box.`}</p>`;
     document.getElementById('resultsCount').innerHTML = accGlyphsHTML(formatAccidentals(parsed.label));
     document.getElementById('resultsContext').textContent = 'no root-to-root position';
     positionModal.close({ restoreFocus:false });
@@ -1705,11 +1750,11 @@ function generateScale(){
     return;
   }
   const noteNames = scaleNoteNames(parsed.rootName, parsed.type, simplifyAccidentals());
-  // same scale on the same instrument: stay in the chosen position
+  // same scale on the same instrument: stay in the chosen position. The neck
+  // has none to choose, and leaves the remembered one as it found it.
   const key = `${parsed.label}::${tuning.id}`;
-  const posIndex = (scaleState && scaleState.key === key)
-    ? Math.min(scaleState.posIndex, positions.length - 1) : 0;
-  scaleState = { key, posIndex };
+  const remembered = (scaleState && scaleState.key === key) ? scaleState.posIndex : 0;
+  scaleState = { key, posIndex: isNeckView() ? remembered : Math.min(remembered, positions.length - 1) };
 
   const card = buildScaleCard(parsed, positions, noteNames);
   grid.innerHTML = '';
@@ -1717,12 +1762,21 @@ function generateScale(){
   fitCardTitles();
 
   document.getElementById('resultsCount').innerHTML = accGlyphsHTML(formatAccidentals(parsed.label));
+  // the neck's count is the dots on it: the same pitch played in several places
+  // is several notes to find, which is the whole point of the map
+  const dots = positions[0].strings.reduce((n, frets)=> n + frets.length, 0);
   document.getElementById('resultsContext').textContent =
-    `${positions.length} position${positions.length === 1 ? '' : 's'} up the neck`
+    (isNeckView()
+      ? `${dots} note${dots === 1 ? '' : 's'} up the neck`
+      : `${positions.length} position${positions.length === 1 ? '' : 's'} up the neck`)
     + (parsed.hadRoot ? '' : ' — root defaulted to C');
 
-  // the chooser points at the card that was just replaced; re-bind it
-  if(positionModal.isOpen()) renderPositionTiles(card);
+  // the chooser points at the card that was just replaced; re-bind it — unless
+  // the neck took over, which has no positions to choose between
+  if(positionModal.isOpen()){
+    if(isNeckView()) positionModal.close({ restoreFocus:false });
+    else renderPositionTiles(card);
+  }
   saveSettings();
   updateScaleURLParam();
 }
@@ -1862,6 +1916,21 @@ document.getElementById('scaleTransposeValue').addEventListener('click', ()=>{
   setScaleTransposeOffset(0);
   // the reset control disables itself at 0; keep focus inside the stepper
   document.getElementById('scaleTransposePlus').focus();
+});
+
+// The view switch: same roving-tabindex handling as the chords/scales tabs,
+// spelled as a radio group — both views draw the same scale, they aren't panels.
+document.getElementById('scaleViewBox').addEventListener('click', ()=>{ if(isNeckView()) setScaleView('position'); });
+document.getElementById('scaleViewNeck').addEventListener('click', ()=>{ if(!isNeckView()) setScaleView('neck'); });
+document.getElementById('scaleViewTabs').addEventListener('keydown', e=>{
+  let next = null;
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) next = isNeckView() ? 'position' : 'neck';
+  else if(e.key === 'Home') next = 'position';
+  else if(e.key === 'End') next = 'neck';
+  if(!next || next === scaleView) return;
+  e.preventDefault();
+  setScaleView(next);
+  document.getElementById(next === 'neck' ? 'scaleViewNeck' : 'scaleViewBox').focus();
 });
 
 // --- Custom chord diagram: search fingerings for a free-form set of notes,
@@ -2357,8 +2426,9 @@ document.getElementById('fretboardIdOpenBtn').addEventListener('click', e=> open
 
 function updateURLParam(chordInputValue){
   const params = new URLSearchParams(window.location.search);
-  // a chords-mode URL never carries the scales tab's param (and vice versa)
+  // a chords-mode URL never carries the scales tab's params (and vice versa)
   params.delete('scale');
+  params.delete('view');
   // The URL carries either the song identity or the literal chords, never both:
   // ?song= (plus ?transpose= when shifted as a whole) while the chart is still
   // the song, ?chords= once it diverged — so a link always reproduces what is
@@ -2574,6 +2644,12 @@ createTuningSelect(document.getElementById('tuningSelectWrap'));
 createTuningSelect(document.getElementById('fretboardIdTuningWrap'));
 selectTuning(initialTuningId, { silent:true });
 
+// Same as the mode below: a ?view= link wins, then the last view used.
+const viewParam = new URLSearchParams(window.location.search).get('view');
+setScaleView(viewParam === 'neck' || viewParam === 'position'
+  ? viewParam
+  : savedSettings.scaleView === 'neck' ? 'neck' : 'position', { silent:true });
+
 // The URL wins over the saved mode: a ?scale= link lands on the Scales tab, a
 // ?chords=/?song= link on Chords, and only a bare visit restores the last mode.
 const initialMode = scaleParamExists ? 'scales'
@@ -2584,7 +2660,7 @@ setMode(initialMode, { silent:true });
 document.getElementById('modeTabChords').addEventListener('click', ()=>{ if(currentMode !== 'chords') setMode('chords'); });
 document.getElementById('modeTabScales').addEventListener('click', ()=>{ if(currentMode !== 'scales') setMode('scales'); });
 // roving tabindex: with two tabs both arrows toggle, Home/End pin the ends
-document.querySelector('.mode-tabs').addEventListener('keydown', e=>{
+document.getElementById('modeTabs').addEventListener('keydown', e=>{
   let next = null;
   if(e.key === 'ArrowLeft' || e.key === 'ArrowRight') next = currentMode === 'scales' ? 'chords' : 'scales';
   else if(e.key === 'Home') next = 'chords';
@@ -2600,7 +2676,7 @@ const TIPS_OPT_OUT_KEY = 'chordChartGenerator.tipsOptOut';
 const TIPS_REDUCED_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // chordsOnly tips describe controls the Scales tab hides — they stay out of the
-// rotation while that tab is up.
+// rotation while that tab is up, and scalesOnly tips the other way round.
 const TIPS = [
   { emoji:'🎧', chordsOnly:true, pointerText:"Select a chord's name or a dot on its diagram to hear how it sounds.", touchText:"Tap a chord's name or a dot on its diagram to hear how it sounds." },
   { emoji:'🎸', chordsOnly:true, text:'Use the arrows on a chord card to browse alternate voicings, or tap the number between them to see every voicing at once.' },
@@ -2615,13 +2691,15 @@ const TIPS = [
   { emoji:'🔍', chordsOnly:true, text:'Raise “Search up to fret” in the voicing chooser — tap the number between a card\'s arrows — to unlock alternate voicings further up the neck.' },
   { emoji:'📏', chordsOnly:true, text:'Fingers too short? Lower “Max stretch” in the voicing chooser to skip voicings that need a wide stretch.' },
   { emoji:'🔇', chordsOnly:true, text:'Power chords hard to finger? Switch on “Allow muted strings” in the voicing chooser and two- and three-note chords can skip strings instead of doubling notes.' },
+  { emoji:'🗺️', scalesOnly:true, text:'Switch “Show” to “Whole neck” below the chart for every note of the scale from the nut to the 15th fret, laid out along the neck.' },
 ];
 
 // a shuffled bag (not plain Math.random each time) so every tip is seen before any repeat
 let tipQueue = [];
 let tipLastIndex = -1;
 function nextTipIndex(){
-  const eligible = i => !(currentMode === 'scales' && TIPS[i].chordsOnly);
+  const scales = currentMode === 'scales';
+  const eligible = i => !(scales ? TIPS[i].chordsOnly : TIPS[i].scalesOnly);
   tipQueue = tipQueue.filter(eligible);
   if(!tipQueue.length){
     tipQueue = TIPS.map((_, i)=>i).filter(eligible);
@@ -2833,7 +2911,7 @@ document.getElementById('shareScaleItem').addEventListener('click', ()=> copySha
   const params = new URLSearchParams();
   params.set('scale', packScaleInput(document.getElementById('scaleInput').value));
   params.set('tuning', selectedTuningId);
-  return params;
+  return applyScaleViewParam(params);
 }));
 document.getElementById('shareAppItem').addEventListener('click', ()=> copyShareOption(()=> new URLSearchParams()));
 // not a link, but the same intent — the feedback flashes on the Share button

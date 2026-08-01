@@ -317,6 +317,36 @@ function scalePositions(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = n
   return positions;
 }
 
+// The whole neck at once, shaped like a position ({strings, midis}) so the same
+// diagram, playback and export paths take either. Every scale tone up to
+// `maxFret` is kept, including the same pitch on two strings — a neck map is
+// exactly where a player wants to see both places to play a note.
+// With a rootPC the map is trimmed to the lowest and highest root on the neck,
+// so the picture (and its run) still starts and ends on the root.
+function scaleNeck(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = null){
+  const pcSet = new Set(scalePCs);
+  let strings = tuning.openPCs.map(openPC => {
+    const frets = [];
+    for(let f = 0; f <= maxFret; f++){
+      if(pcSet.has((openPC + f) % 12)) frets.push(f);
+    }
+    return frets;
+  });
+  if(rootPC !== null){
+    const roots = strings
+      .flatMap((frets, i) => frets.map(f => tuning.openAbs[i] + f))
+      .filter(m => m % 12 === rootPC);
+    // no root within reach: nothing here can run root to root, so nothing does
+    const lo = Math.min(...roots), hi = Math.max(...roots);
+    strings = roots.length
+      ? strings.map((frets, i) => frets.filter(f => tuning.openAbs[i] + f >= lo && tuning.openAbs[i] + f <= hi))
+      : strings.map(() => []);
+  }
+  const midis = [...new Set(strings.flatMap((frets, i) => frets.map(f => tuning.openAbs[i] + f)))]
+    .sort((a, b) => a - b);
+  return { startFret: 0, endFret: maxFret, strings, midis };
+}
+
 // The practice run for a position: up the box and back down, top note once.
 function positionPlaybackMidis(position){
   return position.midis.concat(position.midis.slice(0, -1).reverse());
@@ -331,5 +361,5 @@ function positionStartFret(position){
 export {
   SCALE_TYPES, scaleDisplayName, parseScale, scaleCompletions, transposeScaleText,
   spellScale, scaleNoteNames,
-  windowSize, scalePositions, positionPlaybackMidis, positionStartFret,
+  windowSize, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret,
 };
