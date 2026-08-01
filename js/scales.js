@@ -269,10 +269,11 @@ function windowSize(tuning){
 // strings belong to the nut box alone. Each position:
 //   { startFret, endFret, strings: number[][] per string, midis: ascending }
 // With a rootPC, a box is instead any window holding a root and the root above
-// it, cut down to the two: the shape (and its practice run) starts and ends on
-// the root. Anchoring those windows on the lowest string's root would leave one
-// box per twelve frets — one on a neck this short — so every window is tried
-// and each octave of the root keeps a single box, its tightest fingering.
+// it, cut back to the pitches between them: the shape (and its practice run)
+// starts and ends on the root, with every scale tone of the octave in between.
+// Anchoring those windows on the lowest string's root would leave one box per
+// twelve frets — one on a neck this short — so every window is tried, and each
+// octave of the root keeps a single box, its tightest fingering.
 function scalePositions(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = null){
   const pcSet = new Set(scalePCs);
   const W = windowSize(tuning);
@@ -339,7 +340,8 @@ function scalePositions(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = n
 // `maxFret` is kept, including the same pitch on two strings — a neck map is
 // exactly where a player wants to see both places to play a note.
 // With a rootPC the map is trimmed to the lowest and highest root on the neck,
-// so the picture (and its run) still starts and ends on the root.
+// so the picture (and its run) still starts and ends on the root — and stays
+// empty where the neck never reaches a second root to run to.
 function scaleNeck(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = null){
   const pcSet = new Set(scalePCs);
   let strings = tuning.openPCs.map(openPC => {
@@ -353,9 +355,10 @@ function scaleNeck(scalePCs, tuning, maxFret = MAX_FRET_DEFAULT, rootPC = null){
     const roots = strings
       .flatMap((frets, i) => frets.map(f => tuning.openAbs[i] + f))
       .filter(m => m % 12 === rootPC);
-    // no root within reach: nothing here can run root to root, so nothing does
+    // one root, or none, is no run: a map trimmed to a single pitch would draw
+    // that one dot and call it the scale
     const lo = Math.min(...roots), hi = Math.max(...roots);
-    strings = roots.length
+    strings = hi > lo
       ? strings.map((frets, i) => frets.filter(f => tuning.openAbs[i] + f >= lo && tuning.openAbs[i] + f <= hi))
       : strings.map(() => []);
   }

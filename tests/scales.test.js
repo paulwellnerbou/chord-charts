@@ -328,6 +328,27 @@ test('scaleNeck with a rootPC trims the map to its lowest and highest root', () 
   const bb = parseScale('Bb blues');
   assert.deepEqual(scaleNeck(bb.pcs, UKE, 0).midis, [64]);
   assert.deepEqual(scaleNeck(bb.pcs, UKE, 0, bb.rootPC).midis, []);
+  // and so does a single root: trimming to one pitch would draw that lone dot
+  // as the whole scale — the open C string's C, with C5 twelve frets away
+  const c = parseScale('C major');
+  assert.deepEqual(scaleNeck(c.pcs, UKE, 0).midis, [60, 64, 67, 69]);
+  assert.deepEqual(scaleNeck(c.pcs, UKE, 0, c.rootPC).midis, []);
+  // F# never sounds twice on a Portuguese cavaquinho's fifteen frets
+  const pt = TUNINGS.find(t => t.id === 'cavaquinho_pt');
+  const fs = parseScale('F# major');
+  assert.deepEqual(scaleNeck(fs.pcs, pt, undefined, fs.rootPC).midis, []);
+});
+
+test('every root-run map on every tuning runs whole octaves or nothing at all', () => {
+  for(const tuning of TUNINGS){
+    for(const type of ['C major', 'F# major', 'A blues', 'Eb minor pentatonic']){
+      const parsed = parseScale(type);
+      const { midis } = scaleNeck(parsed.pcs, tuning, undefined, parsed.rootPC);
+      if(!midis.length) continue;
+      const span = midis[midis.length - 1] - midis[0];
+      assert.ok(span >= 12 && span % 12 === 0, `${type} on ${tuning.id} spans ${span}`);
+    }
+  }
 });
 
 test('positionPlaybackMidis runs up the box and back down without repeating the top', () => {

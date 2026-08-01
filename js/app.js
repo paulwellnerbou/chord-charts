@@ -1746,7 +1746,7 @@ function generateScale(){
     // root-run only: the root can be out of reach, or its octave too far for
     // one box — a tuning spanning less than an octave never runs root to root
     grid.innerHTML = `<p class="empty-hint">${isNeckView()
-      ? `This scale has no root note within ${MAX_FRET_DEFAULT} frets on this tuning — switch off “Start and end at the root” to see every note.`
+      ? `This scale never reaches a second root within ${MAX_FRET_DEFAULT} frets on this tuning — switch off “Start and end at the root” to see every note.`
       : `No box on this tuning runs root to root within ${MAX_FRET_DEFAULT} frets — switch off “Start and end at the root” to see every position.`}</p>`;
     document.getElementById('resultsCount').innerHTML = accGlyphsHTML(formatAccidentals(parsed.label));
     document.getElementById('resultsContext').textContent = 'no root-to-root position';
