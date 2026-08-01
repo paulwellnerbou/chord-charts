@@ -229,14 +229,16 @@ function downloadTileSVG(svgStr, filename, btnEl){
 
 // --- video of a run ---
 
-// WebM everywhere it is offered; Safari records MP4 instead. Ordered best-first
-// within each, and the extension follows from whichever the browser takes. The
-// codec pairs come first so the run is recorded with its sound.
+// MP4 first: it is the one an editor, a phone or a chat window all take without
+// asking. Chromium and Safari both record it; Firefox has no MP4 muxer and so
+// falls back to WebM. The extension follows from whichever the browser takes,
+// and the codec pairs come first so the run is recorded with its sound.
 const VIDEO_TYPES = [
+  { mime:'video/mp4;codecs=avc1,mp4a.40.2', ext:'mp4' },
+  { mime:'video/mp4', ext:'mp4' },
   { mime:'video/webm;codecs=vp9,opus', ext:'webm' },
   { mime:'video/webm;codecs=vp8,opus', ext:'webm' },
   { mime:'video/webm', ext:'webm' },
-  { mime:'video/mp4', ext:'mp4' },
 ];
 const VIDEO_FPS = 25, VIDEO_SCALE = 2;
 
