@@ -242,9 +242,24 @@ const VIDEO_TYPES = [
 ];
 const VIDEO_FPS = 25, VIDEO_SCALE = 2;
 
-function pickVideoType(){
-  if(typeof MediaRecorder === 'undefined') return null;
-  return VIDEO_TYPES.find(t=> MediaRecorder.isTypeSupported(t.mime)) || null;
+function supportedVideoTypes(){
+  if(typeof MediaRecorder === 'undefined') return [];
+  if(typeof HTMLCanvasElement.prototype.captureStream !== 'function') return [];
+  return VIDEO_TYPES.filter(t=> MediaRecorder.isTypeSupported(t.mime));
+}
+
+// isTypeSupported is a claim, not a promise — Safari has a history of accepting
+// a string its recorder then refuses. The winner is settled by construction
+// against the stream that will actually be recorded, so a codec pair the audio
+// track turns out to break falls through to the plainer type behind it.
+function startRecorder(stream){
+  let refusal;
+  for(const type of supportedVideoTypes()){
+    try{
+      return { rec:new MediaRecorder(stream, { mimeType:type.mime, videoBitsPerSecond:6000000 }), type };
+    }catch(err){ refusal = err; }
+  }
+  throw refusal || new Error('no recordable video type');
 }
 
 async function rasterizeFrame(svgStr, ctx, w, h){
@@ -259,7 +274,7 @@ async function rasterizeFrame(svgStr, ctx, w, h){
 // animated SVG shows — no second animation to keep in step with the first. The
 // sound is the real thing, played once through a capture node while the frames
 // are taken, which is why the recording runs at the run's own pace.
-async function recordRunVideo(frameSVG, run, type){
+async function recordRunVideo(frameSVG, run){
   const probe = frameSVG(seekRun(run, 0));
   const vb = probe.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
   if(!vb) throw new Error('export SVG is missing its viewBox');
@@ -279,7 +294,7 @@ async function recordRunVideo(frameSVG, run, type){
     const capture = createCapture();
     capture.stream.getAudioTracks().forEach(t=> stream.addTrack(t));
 
-    const rec = new MediaRecorder(stream, { mimeType:type.mime, videoBitsPerSecond:6000000 });
+    const { rec, type } = startRecorder(stream);
     const chunks = [];
     rec.ondataavailable = e=>{ if(e.data.size) chunks.push(e.data); };
     const done = new Promise((resolve,reject)=>{
@@ -310,7 +325,7 @@ async function recordRunVideo(frameSVG, run, type){
     await new Promise(r=> setTimeout(r, frameMs*3));
     rec.stop();
     await done;
-    return new Blob(chunks, { type:type.mime });
+    return { blob:new Blob(chunks, { type:type.mime }), ext:type.ext };
   } finally {
     stream.getTracks().forEach(t=> t.stop());
   }
@@ -323,14 +338,13 @@ async function recordRunVideo(frameSVG, run, type){
 let recordingRun = false;
 
 async function downloadTileVideo(frameSVG, run, baseName, btnEl){
-  const type = pickVideoType();
-  if(!type || !run){ flashButton(btnEl, 'No video'); return; }
+  if(!run || !supportedVideoTypes().length){ flashButton(btnEl, 'No video'); return; }
   if(recordingRun){ flashButton(btnEl, 'Busy'); return; }
   recordingRun = true;
   try{
     flashButton(btnEl, 'Recording', { hold:true });
-    const blob = await recordRunVideo(frameSVG, run, type);
-    downloadBlob(blob, `${baseName}.${type.ext}`);
+    const { blob, ext } = await recordRunVideo(frameSVG, run);
+    downloadBlob(blob, `${baseName}.${ext}`);
     flashButton(btnEl, 'Saved');
   }catch(err){
     console.error(err);
@@ -557,7 +571,10 @@ function openCardMenu(card, btn){
     const tile = settleTile();
     downloadTileSVG(tile.svg(tile.run), chordFileName(`${result.label} animated`, 'svg'), btn);
   });
-  addAction(DOWNLOAD_ICON, 'Download video', ()=>{
+  // offered only where something can be recorded — the animated SVG above it
+  // already covers the run, so a browser without a recorder is better off not
+  // being shown a way out that only ends in "No video"
+  if(supportedVideoTypes().length) addAction(DOWNLOAD_ICON, 'Download video', ()=>{
     const tile = settleTile();
     downloadTileVideo(tile.svg, tile.run, chordFileBase(`${result.label} animated`), btn);
   });
@@ -1887,7 +1904,7 @@ function openScaleCardMenu(card, btn){
     const tile = settleScaleTile(card);
     downloadTileSVG(tile.svg(tile.run), `${tile.base}_animated.svg`, btn);
   });
-  addAction(DOWNLOAD_ICON, 'Download video', ()=>{
+  if(supportedVideoTypes().length) addAction(DOWNLOAD_ICON, 'Download video', ()=>{
     const tile = settleScaleTile(card);
     downloadTileVideo(tile.svg, tile.run, `${tile.base}_animated`, btn);
   });
