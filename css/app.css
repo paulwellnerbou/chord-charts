@@ -546,45 +546,45 @@
      lit chip; the other stays part of the desk until hovered. */
   .mode-tabs{
     /* a grid, not a flex row: equal 1fr tracks keep both tabs the width of the
-       longer label, which is what lets the chip below be pure percentages */
+       longer label, which is what lets the chip below be pure percentages.
+       The three lengths are variables because the switch comes in two sizes. */
+    --switch-pad:4px; --switch-gap:4px; --switch-radius:9px;
     position:relative;
-    display:grid; grid-template-columns:repeat(2,1fr); gap:4px;
-    width:max-content; margin:0 0 16px; padding:4px;
+    display:grid; grid-template-columns:repeat(2,1fr); gap:var(--switch-gap);
+    width:max-content; margin:0 0 16px; padding:var(--switch-pad);
     background:var(--page-bg); border:1px solid var(--panel-border); border-radius:13px;
   }
   .mode-tab{
     position:relative;
-    min-height:36px; padding:0 20px; border:none; border-radius:9px;
+    min-height:36px; padding:0 20px; border:none; border-radius:var(--switch-radius);
     background:transparent; color:var(--ink-soft);
     font-family:inherit; font-size:14px; font-weight:650;
     cursor:pointer;
-    transition:background-color .18s ease, color .18s ease, box-shadow .18s ease;
+    transition:color .18s ease;
   }
   /* the background restates transparent to outrank the generic filled-button
      hover: hovering a tab darkens its label, it doesn't paint over the chip */
   .mode-tab:hover{ background:transparent; color:var(--ink); }
-  /* Two switches, two chips: the mode tabs carry theirs as the sliding element
-     below, so their selected tab takes only the accent, while the view switch
-     — which has no thumb — keeps the raised chip on the tab itself. */
-  .mode-tab[aria-selected="true"]{ color:var(--accent); }
-  .mode-tab[aria-checked="true"]{
-    background:var(--card-bg); color:var(--accent);
-    box-shadow:0 1px 5px rgba(0,0,0,.16);
-  }
+  /* the chip is the thumb below, so a picked tab only takes the accent —
+     aria-selected on the tablist, aria-checked on the radiogroup */
+  .mode-tab[aria-selected="true"], .mode-tab[aria-checked="true"]{ color:var(--accent); }
   .mode-tab:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
-  /* The chip itself: half the switch minus the 4px padding on both sides and
-     the 4px gap it slides across (widths resolve against the padding box). */
+  /* The chip itself: half the switch minus the padding on both sides and half
+     the gap it slides across (widths resolve against the padding box). */
   .mode-tab-thumb{
-    position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 6px);
-    border-radius:9px; background:var(--card-bg); box-shadow:0 1px 5px rgba(0,0,0,.16);
+    position:absolute; top:var(--switch-pad); bottom:var(--switch-pad); left:var(--switch-pad);
+    width:calc(50% - var(--switch-pad) - var(--switch-gap)/2);
+    border-radius:var(--switch-radius);
+    background:var(--card-bg); box-shadow:0 1px 5px rgba(0,0,0,.16);
     pointer-events:none;
     transition:transform .3s cubic-bezier(.4,0,.2,1);
   }
-  /* scoped to the switch it belongs to: a thumb follows its own selection */
-  body.scales-mode #modeTabs .mode-tab-thumb{ transform:translateX(calc(100% + 4px)); }
+  /* each thumb is scoped to its own switch, and travels a tab plus the gap */
+  body.scales-mode #modeTabs .mode-tab-thumb,
+  body.neck-view #scaleViewTabs .mode-tab-thumb{ transform:translateX(calc(100% + var(--switch-gap))); }
   /* The same switch one size down, for the view it picks rather than the mode */
-  .mode-tabs.view-tabs{ margin:0; padding:3px; border-radius:11px; }
-  .view-tabs .mode-tab{ min-height:30px; padding:0 14px; border-radius:8px; font-size:13px; }
+  .mode-tabs.view-tabs{ --switch-pad:3px; --switch-radius:8px; margin:0; border-radius:11px; }
+  .view-tabs .mode-tab{ min-height:30px; padding:0 14px; font-size:13px; }
   /* Mode gating: .chords-only marks the chord affordances living outside the
      [hidden] chords panel (options, grid footer, tips) plus the chords half of
      mode-gated copy; .scales-only is the scales half of that copy. */
@@ -595,20 +595,21 @@
   /* A switch reads as a move sideways: the arriving builder slides in from the
      side its own tab sits on while the panels' shared box eases between the two
      heights, and the sheet below fades back in as its height follows (both eased
-     from js/app.js). Class-driven rather than :not([hidden]) so it plays on a
-     switch and not on load, and one keyframe serves every piece — the direction
-     is a per-element custom property, absent (so: a plain fade) on the sheet. */
-  .mode-switch-in{ animation:mode-switch-in .3s cubic-bezier(.2,.7,.2,1); }
-  #chordsPanel.mode-switch-in{ --switch-from:-14px; }
-  #scalesPanel.mode-switch-in{ --switch-from:14px; }
+     from js/app.js). The view switch borrows the sheet half of that. Class-driven
+     rather than :not([hidden]) so it plays on a switch and not on load, and one
+     keyframe serves every piece — the direction is a per-element custom property,
+     absent (so: a plain fade) on the sheet. */
+  .switch-in{ animation:switch-in .3s cubic-bezier(.2,.7,.2,1); }
+  #chordsPanel.switch-in{ --switch-from:-14px; }
+  #scalesPanel.switch-in{ --switch-from:14px; }
   /* opacity lands well before the slide does: nothing that replaces content
      outright should spend the whole animation being read through */
-  @keyframes mode-switch-in{
+  @keyframes switch-in{
     from{ opacity:0; transform:translateX(var(--switch-from,0)); }
     55%{ opacity:1; }
   }
   @media (prefers-reduced-motion:reduce){
-    .mode-switch-in{ animation:none; }
+    .switch-in{ animation:none; }
     .mode-tab-thumb{ transition:none; }
   }
   .scale-field{ min-width:0; }

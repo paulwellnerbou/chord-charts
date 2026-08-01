@@ -570,7 +570,7 @@ function setMode(mode, opts){
   if(silent) swapPanels();
   else {
     animateHeightSwap(document.getElementById('builderPanels'), swapPanels, { clip:true, duration:300 });
-    playAnimation(panel, 'mode-switch-in');
+    playAnimation(panel, 'switch-in');
   }
   document.getElementById('stage').setAttribute('aria-label', scales ? 'Scale sheet' : 'Chord chart sheet');
   if(silent) return;
@@ -591,8 +591,8 @@ function regenerate(){
   modeSwitchPending = false;
   const grid = document.getElementById('grid');
   animateHeightSwap(grid, render, { clip:true, duration:300 });
-  playAnimation(document.querySelector('.stage-heading'), 'mode-switch-in');
-  playAnimation(grid, 'mode-switch-in');
+  playAnimation(document.querySelector('.stage-heading'), 'switch-in');
+  playAnimation(grid, 'switch-in');
 }
 
 const COLUMNS_MIN = 1, COLUMNS_MAX = 8;
@@ -1442,7 +1442,12 @@ function setScaleView(view, opts){
     btn.setAttribute('aria-checked', String(scaleView === v));
     btn.tabIndex = scaleView === v ? 0 : -1;
   });
-  if(!opts || !opts.silent) generateScale();
+  if(opts && opts.silent) return;
+  // A view is a switch too: the box and the neck are differently sized pictures
+  // of the same scale, so the sheet eases between them instead of jumping.
+  const grid = document.getElementById('grid');
+  animateHeightSwap(grid, generateScale, { clip:true, duration:300 });
+  playAnimation(grid, 'switch-in');
 }
 
 function updateScaleInputClearUI(){
