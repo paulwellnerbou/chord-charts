@@ -1151,7 +1151,16 @@
   .grid.no-border .card,
   .grid.no-border .card:hover{ border-color:transparent; box-shadow:none; }
   /* side padding must clear the corner buttons — it is also the budget fitCardTitles() shrinks long names into */
-  .chord-title-row{ display:flex; align-items:center; justify-content:center; gap:8px; min-height:30px; margin-bottom:4px; padding:0 33px; }
+  .chord-title-row{ display:flex; align-items:center; justify-content:center; gap:8px; min-height:30px; margin-bottom:1px; padding:0 33px; }
+  /* the sheet heading's own pairing, card-sized — it clears the corner buttons
+     by sitting below the title row, so it may use the card's full width */
+  .card-sub{
+    margin:0 0 6px; font-size:9.5px; font-weight:700; line-height:1.2;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft);
+    /* shrunk to fit first (see fitCardTitles); the ellipsis is what's left for
+       a hand-set column count too narrow for even the smallest size */
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
   .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--accent); cursor:pointer; min-width:0; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:opacity var(--hover-fade) ease; }
   .card h2:hover { opacity:.72; }
   /* :not(:focus-visible) keeps the rule inert in browsers without :focus-visible,
@@ -1608,6 +1617,7 @@
     .card{ padding:11px 5px 10px; border-radius:14px; }
     .card.has-alt-voicings{ padding-bottom:44px; }
     .card h2{ font-size:20px; }
+    .card-sub{ font-size:9px; letter-spacing:.1em; margin-bottom:5px; }
     .play-chord-btn,.card-menu-btn{ top:7px; width:30px; height:30px; min-height:30px; }
     .play-chord-btn{ left:6px; }
     .card-menu-btn{ right:6px; }
@@ -1648,6 +1658,6 @@
        reflows the grid to the paper's width on its own schedule, so a size
        picked for the screen's columns can still overflow here — let long
        names wrap onto a second line instead of ellipsizing. */
-    .card h2{ white-space:normal; overflow:visible; overflow-wrap:break-word; }
+    .card h2, .card-sub{ white-space:normal; overflow:visible; overflow-wrap:break-word; }
     .no-print{ display:none !important; }
   }
