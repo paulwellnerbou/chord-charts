@@ -319,8 +319,10 @@ async function rasterizeFrame(svgStr, ctx, w, h){
 // that moment and paused, so what lands in the video is exactly what the
 // animated SVG shows — no second animation to keep in step with the first. The
 // sound is the real thing, played once through a capture node while the frames
-// are taken, which is why the recording runs at the run's own pace.
-async function recordRunVideo(frameSVG, run){
+// are taken, which is why the recording runs at the run's own pace — and why
+// `slot`, the card's own diagram, lights along with it: the run is audibly
+// playing, and a card that sat still through it would read as a hang.
+async function recordRunVideo(frameSVG, run, slot){
   const probe = frameSVG(seekRun(run, 0));
   const vb = probe.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
   if(!vb) throw new Error('export SVG is missing its viewBox');
@@ -350,7 +352,7 @@ async function recordRunVideo(frameSVG, run){
 
     rec.start();
     const started = performance.now();
-    playChord(run.midiNotes, { ...run.opts, capture });
+    lightNotes(slot, run.midiNotes, run.opts, playChord(run.midiNotes, { ...run.opts, capture }));
 
     // Frames are picked by the clock, not counted off: the recorder timestamps
     // what it samples in real time, so a moment that takes too long to draw has
@@ -387,9 +389,10 @@ async function downloadTileVideo(frameSVG, run, baseName, btnEl){
   if(!run || !supportedVideoTypes().length){ flashButton(btnEl, 'No video'); return; }
   if(recordingRun){ flashButton(btnEl, 'Busy'); return; }
   recordingRun = true;
+  const card = btnEl.closest('.card');
   try{
     flashButton(btnEl, 'Recording', { hold:true });
-    const { blob, ext } = await recordRunVideo(frameSVG, run);
+    const { blob, ext } = await recordRunVideo(frameSVG, run, card && card.querySelector('.diagram-slot'));
     downloadBlob(blob, `${baseName}.${ext}`);
     flashButton(btnEl, 'Saved');
   }catch(err){
