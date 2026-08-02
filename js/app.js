@@ -129,9 +129,13 @@ function measureAccidentalBearings(){
 measureAccidentalBearings();
 
 // The page title's own pairing, on every card: a card is all a copied image or
-// a recorded video carries, and a diagram means nothing without its neck.
+// a recorded video carries, and a diagram means nothing without its neck. Empty
+// when switched off — a whole sheet copied at once says the neck once already,
+// and the line only repeats it card after card.
 function instrumentLine(tuning){
-  return `${tuning.name} · ${formatAccidentals(tuning.tuningLabel)}`;
+  return document.getElementById('instrumentLineToggle').checked
+    ? `${tuning.name} · ${formatAccidentals(tuning.tuningLabel)}`
+    : '';
 }
 
 // `tuning` is the caller's settled one, not currentTuning(): a recording draws
@@ -904,6 +908,7 @@ function saveSettings(){
     scaleSimplifyAccidentals: document.getElementById('simplifyAccidentalsToggle').checked,
     showNoteNames: noteNamesByMode.chords,
     scaleShowNoteNames: noteNamesByMode.scales,
+    showInstrumentLine: document.getElementById('instrumentLineToggle').checked,
     aquilaStrings: document.getElementById('aquilaToggle').checked,
     columns: columnsValue,
     masonry: document.getElementById('masonryToggle').checked,
@@ -2927,6 +2932,9 @@ if(typeof savedSettings.showNoteNames === 'boolean'){
 if(typeof savedSettings.scaleShowNoteNames === 'boolean'){
   noteNamesByMode.scales = savedSettings.scaleShowNoteNames;
 }
+if(typeof savedSettings.showInstrumentLine === 'boolean'){
+  document.getElementById('instrumentLineToggle').checked = savedSettings.showInstrumentLine;
+}
 if(typeof savedSettings.aquilaStrings === 'boolean'){
   document.getElementById('aquilaToggle').checked = savedSettings.aquilaStrings;
 }
@@ -3372,6 +3380,7 @@ document.getElementById('noteNamesToggle').addEventListener('change', e=>{
   noteNamesByMode[currentMode] = e.target.checked;
   regenerate();
 });
+document.getElementById('instrumentLineToggle').addEventListener('change', regenerate);
 document.getElementById('aquilaToggle').addEventListener('change', regenerate);
 document.getElementById('autoColumnsToggle').addEventListener('change', e=>{
   columnsValue = e.target.checked ? 'auto' : currentRenderedColumns();

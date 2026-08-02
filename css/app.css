@@ -1170,6 +1170,8 @@
        a hand-set column count too narrow for even the smallest size */
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
+  /* switched off, the line leaves no gap of its own above the diagram */
+  .card-sub:empty{ display:none; }
   .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--accent); cursor:pointer; min-width:0; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:opacity var(--hover-fade) ease; }
   .card h2:hover { opacity:.72; }
   /* :not(:focus-visible) keeps the rule inert in browsers without :focus-visible,
