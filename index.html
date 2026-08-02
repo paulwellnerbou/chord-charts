@@ -294,11 +294,15 @@
               <span class="switch-track"><span class="switch-thumb"></span></span>
               <span>Show note names</span>
             </label>
-            <label class="switch scales-only" title="Giving every scale degree its own letter costs a double accidental in some keys — the 6th of Gb blues is Bbb. When on, those notes take their simpler name instead (A), the same pitch either way.">
-              <input type="checkbox" id="simplifyAccidentalsToggle" checked>
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-              <span>Simplify double accidentals</span>
-            </label>
+            <div class="switch-wrap scales-only" id="simplifyInfoWrap" hidden>
+              <label class="switch" title="Replaces double accidentals with their enharmonic equivalent — the same pitch, a simpler name.">
+                <input type="checkbox" id="simplifyAccidentalsToggle" checked>
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <span>Simplify double accidentals <span class="switch-eg" id="simplifyExample"></span></span>
+              </label>
+              <button type="button" class="info-btn" id="simplifyInfoBtn" aria-label="About simplified double accidentals" aria-expanded="false">i</button>
+              <div class="info-popover" id="simplifyInfoPopover" role="tooltip">Replaces double accidentals with their enharmonic equivalent — the same pitch, a simpler name. They turn up because every scale degree takes its own letter.</div>
+            </div>
             <div class="switch-wrap" id="aquilaInfoWrap">
               <label class="switch" title="Colour the strings like the Aquila Kids educational set — green, red, yellow and blue.">
                 <input type="checkbox" id="aquilaToggle">

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   SCALE_TYPES, scaleDisplayName, parseScale, scaleCompletions, transposeScaleText,
-  spellScale, scaleNoteNames,
+  spellScale, scaleNoteNames, doubleAccidentalExample,
   windowSize, scalePositions, scaleNeck, positionPlaybackMidis,
 } from '../js/scales.js';
 import { TUNINGS } from '../js/theory.js';
@@ -131,6 +131,17 @@ test('spellScale can trade the letter-per-degree rule for names without double a
   assert.deepEqual(spellScale('A', 'blues', true), spellScale('A', 'blues'));
   assert.deepEqual(spellScale('F#', 'major', true), spellScale('F#', 'major'));
   assert.equal(spellScale('H', 'major', true), null);
+});
+
+test('doubleAccidentalExample names the rename, for exactly the scales that get one', () => {
+  assert.deepEqual(doubleAccidentalExample('Gb', 'blues'), { from:'Bbb', to:'A' });
+  // the first one up the scale, though A# major goes on to spell F## and G## too
+  assert.deepEqual(doubleAccidentalExample('A#', 'major'), { from:'C##', to:'D' });
+  assert.equal(doubleAccidentalExample('A', 'blues'), null);
+  assert.equal(doubleAccidentalExample('F#', 'major'), null);
+  // the fallback families never spell one, and unreadable input names no scale
+  assert.equal(doubleAccidentalExample('Db', 'whole tone'), null);
+  assert.equal(doubleAccidentalExample('H', 'major'), null);
 });
 
 test('scaleNoteNames carries the simplification through to the dot labels', () => {

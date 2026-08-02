@@ -5,7 +5,7 @@ import {
   identifyChord, spellNote, formatAccidentals,
 } from './theory.js';
 import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, setAccidentalBearings, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG } from './diagram.js';
-import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret } from './scales.js';
+import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, doubleAccidentalExample, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret } from './scales.js';
 import {
   playNote, playChord, chordPlayDuration, chordNoteTimings,
   primeAudio, createCapture,
@@ -1843,6 +1843,20 @@ function simplifyAccidentals(){
   return document.getElementById('simplifyAccidentalsToggle').checked;
 }
 
+// The switch is on offer only where it changes a name: most keys never reach a
+// double accidental, and an option that does nothing is one more thing to read.
+// The scale's own rename rides in the label, which beats any fixed example —
+// the switch is only ever read next to a scale it applies to. The setting
+// itself is untouched, and keeps its state for the next scale that needs it.
+function updateSimplifyVisibility(parsed){
+  const example = parsed && doubleAccidentalExample(parsed.rootName, parsed.type);
+  document.getElementById('simplifyInfoWrap').hidden = !example;
+  if(example){
+    document.getElementById('simplifyExample').innerHTML =
+      accGlyphsHTML(`${formatAccidentals(example.from)} → ${formatAccidentals(example.to)}`);
+  }
+}
+
 function scaleNotesLine(parsed){
   const spelled = spellScale(parsed.rootName, parsed.type, simplifyAccidentals());
   return spelled ? spelled.map(formatAccidentals).join(' · ') : '';
@@ -2034,6 +2048,7 @@ function generateScale(){
   resetGridLayout();
 
   const parsed = raw.trim() ? parseScale(raw) : null;
+  updateSimplifyVisibility(parsed);
   if(!parsed){
     // an open completion menu means the name is still being typed — offering
     // suggestions and calling the input unreadable at once would be noise
@@ -2855,6 +2870,7 @@ setupInfoPopover('omitInfoWrap', 'omitInfoBtn');
 setupInfoPopover('thresholdInfoWrap', 'thresholdInfoBtn');
 setupInfoPopover('cardControlsInfoWrap', 'cardControlsInfoBtn');
 setupInfoPopover('arpeggioInfoWrap', 'arpeggioInfoBtn');
+setupInfoPopover('simplifyInfoWrap', 'simplifyInfoBtn');
 
 const savedSettings = loadSettings();
 
