@@ -32,6 +32,29 @@ function escapeXML(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// None of the faces here carry ♭ or ♯, so both arrive from whatever font the
+// system falls back to — and that font draws them on a full em square with far
+// more side bearing than ink, a flat worst of all. Left as it comes, a double
+// flat reads as two loose glyphs standing a letter's width off their note. Each
+// accidental is therefore pulled back by the bearing between it and whatever
+// precedes it, leaving ACC_GAP of air. Side bearings are fractions of the
+// glyph's own em; the defaults are what Apple platforms fall back to, and
+// setAccidentalBearings replaces them with what the browser really renders.
+const ACC_GAP = 0.06;
+const ACC_BEARINGS = {
+  '♭': { left:0.351, right:0.267 },
+  '♯': { left:0.023, right:0.022 },
+};
+
+function setAccidentalBearings(measured){
+  for(const glyph of Object.keys(ACC_BEARINGS)){
+    const m = measured && measured[glyph];
+    if(m && Number.isFinite(m.left) && Number.isFinite(m.right)){
+      ACC_BEARINGS[glyph] = { left:m.left, right:m.right };
+    }
+  }
+}
+
 // Accidental glyphs draw smaller, raised and tucked against their note letter,
 // engraving-style — the SVG twin of the HTML .acc treatment. dy shifts are
 // cumulative in SVG, so any text after the accidental drops back down in a
@@ -39,17 +62,19 @@ function escapeXML(s){
 function accTspans(escaped, size){
   const raise = size*0.18;
   const parts = String(escaped).split(/([♭♯])/);
-  let out = '', raised = false;
+  let out = '', prev = null;
   for(const part of parts){
     if(part === '♭' || part === '♯'){
-      // a hair of air, so the glyph never touches the note letter (or the glyph
-      // before it in a double flat). A second glyph in a run keeps the same
-      // baseline — the dy that raised the first one still applies.
-      out += `<tspan font-size="${size}" dx="${size*0.05}"${raised ? '' : ` dy="${-raise}"`}>${part}</tspan>`;
-      raised = true;
+      // the letter before an accidental keeps its own (slim) right bearing —
+      // only a glyph from the wide fallback font is worth measuring away
+      const tuck = ACC_GAP - ACC_BEARINGS[part].left - (prev ? ACC_BEARINGS[prev].right : 0);
+      // a second glyph in a run keeps the same baseline — the dy that raised
+      // the first one still applies
+      out += `<tspan font-size="${size}" dx="${+(size*tuck).toFixed(3)}"${prev ? '' : ` dy="${-raise}"`}>${part}</tspan>`;
+      prev = part;
     } else if(part){
-      out += raised ? `<tspan dy="${raise}">${part}</tspan>` : part;
-      raised = false;
+      out += prev ? `<tspan dy="${raise}">${part}</tspan>` : part;
+      prev = null;
     }
   }
   return out;
@@ -371,6 +396,6 @@ function exportNeckTileSVG(label, instrument, stringFrets, numFrets, labels, col
 
 export {
   NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS,
-  escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG,
+  escapeXML, setAccidentalBearings, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG,
   neckSVG, exportNeckTileSVG,
 };

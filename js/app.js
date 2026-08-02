@@ -4,7 +4,7 @@ import {
   findVoicings, computeFretWindow, chordAbsNotes, transposeChordText,
   identifyChord, spellNote, formatAccidentals,
 } from './theory.js';
-import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG } from './diagram.js';
+import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, setAccidentalBearings, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG } from './diagram.js';
 import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret } from './scales.js';
 import {
   playNote, playChord, chordPlayDuration, chordNoteTimings,
@@ -101,6 +101,32 @@ function accidentalsHTML(name){
 function accGlyphsHTML(text){
   return escapeXML(text).replace(/[♭♯]/g, g=>`<span class="acc">${g}</span>`);
 }
+
+const ACC_MEASURE_EM = 100;
+// How much empty room this browser's ♭ and ♯ carry either side of their ink,
+// as a fraction of their em. Neither the board's face nor the heading's has the
+// glyphs, so both fall back to the same system font and one measurement serves
+// them — but which font that is, and how loosely it sets them, is the
+// platform's business. Measured before the first card is drawn; diagram.js
+// keeps its own defaults for anything that can't answer.
+function measureAccidentalBearings(){
+  const ctx = document.createElement('canvas').getContext('2d');
+  if(!ctx) return;
+  ctx.font = `700 ${ACC_MEASURE_EM}px Arial, sans-serif`;
+  const measured = {};
+  for(const glyph of ['♭','♯']){
+    const m = ctx.measureText(glyph);
+    if(!m || !m.width) return;
+    // the tucks are a fraction of the glyph's font size, not of its advance —
+    // the fallback ♭ and ♯ don't even share one
+    measured[glyph] = {
+      left: -m.actualBoundingBoxLeft/ACC_MEASURE_EM,
+      right: (m.width - m.actualBoundingBoxRight)/ACC_MEASURE_EM,
+    };
+  }
+  setAccidentalBearings(measured);
+}
+measureAccidentalBearings();
 
 // The page title's own pairing, on every card: a card is all a copied image or
 // a recorded video carries, and a diagram means nothing without its neck.
