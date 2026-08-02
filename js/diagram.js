@@ -308,11 +308,28 @@ function neckSVG(name, stringFrets, numFrets, labels, colors, openPCs, rootPC, h
   return s;
 }
 
+// The instrument line under the heading, small caps: an exported tile travels
+// on its own, and "Am" says nothing about which neck it was drawn for. Long
+// names shrink onto the line rather than run off it — Arial caps average about
+// SUB_EM of the em, close enough for a line this short.
+const SUB_SIZE = 9.5, SUB_TRACK = 0.12, SUB_EM = 0.62;
+
+function subLine(text, cx, y, maxW, colors){
+  const caps = escapeXML(String(text).toUpperCase());
+  const est = caps.length * SUB_SIZE * (SUB_EM + SUB_TRACK);
+  const size = est > maxW ? SUB_SIZE*maxW/est : SUB_SIZE;
+  return `<text x="${cx}" y="${y}" text-anchor="middle" font-size="${+size.toFixed(2)}"`
+    + ` letter-spacing="${+(size*SUB_TRACK).toFixed(2)}" font-weight="700" fill="${colors.ink}"`
+    + ` opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${accTspans(caps, +(size*0.68).toFixed(2))}</text>`;
+}
+
 // Card chrome around a diagram for standalone export: rounded paper, heading,
-// optional italic footer line, optional <metadata> source note. The diagram's
-// own size comes in, since a position box and a whole neck share this frame.
-function exportFrame(label, innerSVG, diagW, diagH, colors, showBorder, footerText, metadataText, run){
-  const PAD = 14, headerH = 32;
+// optional instrument line, optional italic footer line, optional <metadata>
+// source note. The diagram's own size comes in, since a position box and a
+// whole neck share this frame.
+function exportFrame(label, instrument, innerSVG, diagW, diagH, colors, showBorder, footerText, metadataText, run){
+  const PAD = 14, titleH = 32, subH = instrument ? 13 : 0;
+  const headerH = titleH + subH;
   const footerH = footerText ? 16 : 0;
   const tileW = diagW + PAD*2;
   const tileH = PAD + headerH + diagH + footerH + PAD;
@@ -321,7 +338,8 @@ function exportFrame(label, innerSVG, diagW, diagH, colors, showBorder, footerTe
   if(metadataText) s += `<metadata>${escapeXML(metadataText)}</metadata>`;
   if(run) s += litCSS(run, colors);
   s += `<rect x="1" y="1" width="${tileW-2}" height="${tileH-2}" rx="12" fill="${colors.cardBg}" ${strokeAttr}/>`;
-  s += `<text x="${tileW/2}" y="${PAD+headerH*0.7}" text-anchor="middle" font-size="21" font-weight="700" fill="${colors.heading}" font-family="${colors.exportHeadingFont}">${accTspans(escapeXML(label), 13)}</text>`;
+  s += `<text x="${tileW/2}" y="${PAD+titleH*0.7}" text-anchor="middle" font-size="21" font-weight="700" fill="${colors.heading}" font-family="${colors.exportHeadingFont}">${accTspans(escapeXML(label), 13)}</text>`;
+  if(instrument) s += subLine(instrument, tileW/2, PAD+titleH*0.7+11.5, diagW, colors);
   s += `<g transform="translate(${PAD},${PAD+headerH})">${innerSVG}</g>`;
   if(footerText){
     s += `<text x="${tileW/2}" y="${PAD+headerH+diagH+11}" text-anchor="middle" font-size="9" font-style="italic" fill="${colors.ink}" opacity="${colors.lineOpacity}" font-family="Arial,sans-serif">${accTspans(escapeXML(footerText), 6.5)}</text>`;
@@ -330,23 +348,23 @@ function exportFrame(label, innerSVG, diagW, diagH, colors, showBorder, footerTe
   return s;
 }
 
-function exportTileSVG(label, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames, run){
+function exportTileSVG(label, instrument, frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames, run){
   const inner = diagramInner(frets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret, showNoteNames, run);
-  return exportFrame(label, inner, 188, boardBottomY(numFrets, startFret) + 12, colors, showBorder,
+  return exportFrame(label, instrument, inner, 188, boardBottomY(numFrets, startFret) + 12, colors, showBorder,
     omitted ? `${omitted.label} (${omitted.note}) omitted` : null,
     sourceURL ? `Chord diagram from ${sourceURL}` : null, run);
 }
 
-function exportScaleTileSVG(label, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, notesLine, sourceURL, showNoteNames, noteNames, blueNotePC, run){
+function exportScaleTileSVG(label, instrument, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, notesLine, sourceURL, showNoteNames, noteNames, blueNotePC, run){
   const inner = scaleInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, startFret, showNoteNames, noteNames, blueNotePC, run);
-  return exportFrame(label, inner, 188, boardBottomY(numFrets, startFret) + 12, colors, showBorder,
+  return exportFrame(label, instrument, inner, 188, boardBottomY(numFrets, startFret) + 12, colors, showBorder,
     notesLine || null,
     sourceURL ? `Scale diagram from ${sourceURL}` : null, run);
 }
 
-function exportNeckTileSVG(label, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, notesLine, sourceURL, showNoteNames, noteNames, blueNotePC, run){
+function exportNeckTileSVG(label, instrument, stringFrets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, notesLine, sourceURL, showNoteNames, noteNames, blueNotePC, run){
   const inner = neckInner(stringFrets, numFrets, labels, colors, openPCs, rootPC, highlightRoot, undefined, showNoteNames, noteNames, blueNotePC, run);
-  return exportFrame(label, inner, neckWidth(numFrets), neckHeight(labels.length), colors, showBorder,
+  return exportFrame(label, instrument, inner, neckWidth(numFrets), neckHeight(labels.length), colors, showBorder,
     notesLine || null,
     sourceURL ? `Scale diagram from ${sourceURL}` : null, run);
 }

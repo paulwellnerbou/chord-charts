@@ -102,13 +102,21 @@ function accGlyphsHTML(text){
   return escapeXML(text).replace(/[♭♯]/g, g=>`<span class="acc">${g}</span>`);
 }
 
-function chordTileSVGString(label, frets, numFrets, labels, openPCs, rootPC, startFret, omitted, run){
+// The page title's own pairing, on every card: a card is all a copied image or
+// a recorded video carries, and a diagram means nothing without its neck.
+function instrumentLine(tuning){
+  return `${tuning.name} · ${formatAccidentals(tuning.tuningLabel)}`;
+}
+
+// `tuning` is the caller's settled one, not currentTuning(): a recording draws
+// every frame through here, and the neck it names must stay the neck it draws.
+function chordTileSVGString(label, frets, numFrets, tuning, rootPC, startFret, omitted, run){
   const colors = currentColors();
   const sourceURL = new URL(chordPageURL(label, false), window.location.href).href;
   const showBorder = document.getElementById('borderToggle').checked;
   const highlightRoot = document.getElementById('rootToggle').checked;
   const showNoteNames = document.getElementById('noteNamesToggle').checked;
-  return exportTileSVG(formatAccidentals(label), frets, numFrets, labels, colors, showBorder, openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames, run);
+  return exportTileSVG(formatAccidentals(label), instrumentLine(tuning), frets, numFrets, tuning.labels, colors, showBorder, tuning.openPCs, rootPC, highlightRoot, startFret, omitted, sourceURL, showNoteNames, run);
 }
 
 // --- an exported diagram that plays its own run ---
@@ -357,7 +365,7 @@ async function copyAllChordsAsImage(btnEl){
       const result = cardEl._chordResult;
       const frets = result.voicings[result.altIndex];
       const { fretMax, startFret } = computeFretWindow(frets, shortenThreshold);
-      const svgStr = exportTileSVG(formatAccidentals(result.label), frets, fretMax, tuning.labels, colors, showBorder, tuning.openPCs, result.rootPC, highlightRoot, startFret, showOmitted ? result.omitted : null, new URL(chordPageURL(result.label, false), window.location.href).href, showNoteNames);
+      const svgStr = exportTileSVG(formatAccidentals(result.label), instrumentLine(tuning), frets, fretMax, tuning.labels, colors, showBorder, tuning.openPCs, result.rootPC, highlightRoot, startFret, showOmitted ? result.omitted : null, new URL(chordPageURL(result.label, false), window.location.href).href, showNoteNames);
       const rect = cardEl.getBoundingClientRect();
       return { svgStr, x: rect.left-gridRect.left, y: rect.top-gridRect.top, w: rect.width, h: rect.height };
     });
@@ -541,7 +549,7 @@ function openCardMenu(card, btn){
     const win = computeFretWindow(frets, shortenThreshold);
     const omitted = document.getElementById('omitToggle').checked ? result.omitted : null;
     return {
-      svg: run=> chordTileSVGString(result.label, frets, win.fretMax, tuning.labels, tuning.openPCs, result.rootPC, win.startFret, omitted, run),
+      svg: run=> chordTileSVGString(result.label, frets, win.fretMax, tuning, result.rootPC, win.startFret, omitted, run),
       run: playbackRun(chordPlaces(frets, tuning.openAbs), chordAbsNotes(frets, tuning.openAbs), chordPlayOpts(tuning)),
     };
   };
@@ -963,40 +971,46 @@ function layoutCards(cardEls){
   });
 }
 
-// Long names ("Cmaj7add9") overflow the space between the corner buttons on
-// narrow cards; shrink each title just enough to fit. Runs after every render,
-// on resize (card widths are fluid) and once webfonts land (metrics change).
-const TITLE_FONT_MIN = 13;
-function fitCardTitles(){
-  const heads = Array.from(document.querySelectorAll('#grid .card h2'));
-  if(!heads.length) return;
-  heads.forEach(h2=>{ if(h2.style.fontSize) h2.style.fontSize = ''; });
+// Long names ("Cmaj7add9", "Cavaquinho (Portugal)") overflow the space between
+// the corner buttons on narrow cards; shrink each line just enough to fit.
+// Runs after every render, on resize (card widths are fluid) and once webfonts
+// land (metrics change).
+const TITLE_FONT_MIN = 13, SUB_FONT_MIN = 7;
+function fitCardLines(selector, minSize){
+  const lines = Array.from(document.querySelectorAll(selector));
+  if(!lines.length) return;
+  lines.forEach(el=>{ if(el.style.fontSize) el.style.fontSize = ''; });
   const range = document.createRange();
-  const measure = h2=>{
-    range.selectNodeContents(h2);
+  const measure = el=>{
+    range.selectNodeContents(el);
     return range.getBoundingClientRect().width;
   };
   // batch reads apart from writes so each pass costs one reflow
-  let pending = heads.map(h2=>{
-    const avail = h2.clientWidth;
-    const needed = measure(h2);
+  let pending = lines.map(el=>{
+    const avail = el.clientWidth;
+    const needed = measure(el);
     return (avail && needed - avail > 0.5)
-      ? { h2, avail, needed, size: parseFloat(getComputedStyle(h2).fontSize) }
+      ? { el, avail, needed, size: parseFloat(getComputedStyle(el).fontSize) }
       : null;
   }).filter(Boolean);
   // Fraunces' optical sizing makes text width slightly nonlinear in font-size,
   // so one proportional step can leave a sliver of overflow — iterate.
   for(let i=0; i<4 && pending.length; i++){
     pending.forEach(job=>{
-      job.size = Math.max(TITLE_FONT_MIN, job.size * job.avail / job.needed);
-      job.h2.style.fontSize = job.size.toFixed(2) + 'px';
+      job.size = Math.max(minSize, job.size * job.avail / job.needed);
+      job.el.style.fontSize = job.size.toFixed(2) + 'px';
     });
     pending = pending.filter(job=>{
-      if(job.size <= TITLE_FONT_MIN) return false;
-      job.needed = measure(job.h2);
+      if(job.size <= minSize) return false;
+      job.needed = measure(job.el);
       return job.needed - job.avail > 0.5;
     });
   }
+}
+
+function fitCardTitles(){
+  fitCardLines('#grid .card h2', TITLE_FONT_MIN);
+  fitCardLines('#grid .card .card-sub', SUB_FONT_MIN);
 }
 
 // generate() blocks the main thread long enough (voicing search × chords) that
@@ -1284,7 +1298,7 @@ function buildCard(result, ctx){
   const card = document.createElement('div');
   card.className = 'card';
   card._chordResult = result;
-  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${accidentalsHTML(result.label)}</h2></div><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret, showNoteNames)}</div>${omitHTML}`;
+  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play ${escapeXML(result.label)} chord" aria-label="Play ${escapeXML(result.label)} chord">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play ${escapeXML(result.label)} chord">${accidentalsHTML(result.label)}</h2></div><p class="card-sub">${accGlyphsHTML(instrumentLine(tuning))}</p><div class="diagram-slot">${chordSVG(result.label, result.voicings[result.altIndex], fretMax, tuning.labels, colors, tuning.openPCs, result.rootPC, highlightRoot, tuning.openAbs, startFret, showNoteNames)}</div>${omitHTML}`;
 
   bindNoteDotHandlers(card.querySelector('.diagram-slot'));
   appendCardMenuButton(card, result.label);
@@ -1799,7 +1813,7 @@ function buildScaleCard(parsed, positions, noteNames){
   const card = document.createElement('div');
   card.className = 'card scale-card' + (isNeckView() ? ' neck-card' : '');
   card._scaleResult = { parsed, positions, noteNames };
-  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play the ${escapeXML(parsed.label)} scale up and down" aria-label="Play the ${escapeXML(parsed.label)} scale up and down">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play the ${escapeXML(parsed.label)} scale up and down">${accidentalsHTML(parsed.label)}</h2></div><div class="diagram-slot"></div><p class="scale-notes"></p>`;
+  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play the ${escapeXML(parsed.label)} scale up and down" aria-label="Play the ${escapeXML(parsed.label)} scale up and down">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play the ${escapeXML(parsed.label)} scale up and down">${accidentalsHTML(parsed.label)}</h2></div><p class="card-sub">${accGlyphsHTML(instrumentLine(currentTuning()))}</p><div class="diagram-slot"></div><p class="scale-notes"></p>`;
   card.querySelector('.scale-notes').innerHTML = accGlyphsHTML(scaleNotesLine(parsed));
 
   appendCardMenuButton(card, parsed.label);
@@ -1827,19 +1841,20 @@ function buildScaleCard(parsed, positions, noteNames){
   return card;
 }
 
-function scaleTileSVGString(card, pos, run){
+// `tuning` is the caller's settled one, not currentTuning(): a recording draws
+// every frame through here, and the neck it names must stay the neck it draws.
+function scaleTileSVGString(card, pos, tuning, run){
   const { parsed, noteNames } = card._scaleResult;
-  const tuning = currentTuning();
   const colors = currentColors();
   const sourceURL = new URL(window.location.pathname + '?' + readableQuery(scalePageParams()), window.location.href).href;
   const showBorder = document.getElementById('borderToggle').checked;
   const highlightRoot = document.getElementById('rootToggle').checked;
   const showNoteNames = document.getElementById('noteNamesToggle').checked;
   if(isNeckView()){
-    return exportNeckTileSVG(formatAccidentals(parsed.label), pos.strings, pos.endFret, tuning.labels, colors,
+    return exportNeckTileSVG(formatAccidentals(parsed.label), instrumentLine(tuning), pos.strings, pos.endFret, tuning.labels, colors,
       showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames, parsed.blueNotePC, run);
   }
-  return exportScaleTileSVG(formatAccidentals(parsed.label), pos.strings, pos.endFret, tuning.labels, colors,
+  return exportScaleTileSVG(formatAccidentals(parsed.label), instrumentLine(tuning), pos.strings, pos.endFret, tuning.labels, colors,
     showBorder, tuning.openPCs, parsed.rootPC, highlightRoot, positionStartFret(pos), scaleNotesLine(parsed), sourceURL, showNoteNames, noteNames, parsed.blueNotePC, run);
 }
 
@@ -1850,11 +1865,11 @@ function scaleTileSVGString(card, pos, run){
 function settleScaleTile(card){
   const index = currentPosIndex();
   const pos = card._scaleResult.positions[index];
-  const openAbs = currentTuning().openAbs;
+  const tuning = currentTuning();
   const { parsed } = card._scaleResult;
   return {
-    svg: run=> scaleTileSVGString(card, pos, run),
-    run: playbackRun(positionPlaces(pos, openAbs), positionPlaybackMidis(pos), { arpeggio:true }),
+    svg: run=> scaleTileSVGString(card, pos, tuning, run),
+    run: playbackRun(positionPlaces(pos, tuning.openAbs), positionPlaybackMidis(pos), { arpeggio:true }),
     base: chordFileBase(`${parsed.label} ${isNeckView() ? 'whole neck' : `position ${index+1}`}`),
   };
 }

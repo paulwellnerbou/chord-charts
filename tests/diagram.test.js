@@ -51,19 +51,19 @@ test('string colors override the plain string lines when provided', () => {
 });
 
 test('exportTileSVG renders border, omitted footer and source metadata on demand', () => {
-  const full = exportTileSVG('C9', [0, 0, 0, 1], 3, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+  const full = exportTileSVG('C9', null, [0, 0, 0, 1], 3, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
     { label: '5th', note: 'G' }, 'https://chords.example/?chords=C9');
   assert.match(full, /<metadata>Chord diagram from https:\/\/chords\.example\/\?chords=C9<\/metadata>/);
   assert.match(full, /5th \(G\) omitted/);
   assert.match(full, /stroke="#ddd3c5"/);
   assert.ok(!full.includes('class="note-name"'), 'no note-name labels without the toggle');
 
-  const bare = exportTileSVG('C', [0, 0, 0, 3], 3, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, 0, null);
+  const bare = exportTileSVG('C', null, [0, 0, 0, 3], 3, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, 0, null);
   assert.ok(!bare.includes('<metadata>'));
   assert.ok(!bare.includes('omitted'));
   assert.match(bare, /stroke="none"/);
 
-  const named = exportTileSVG('C9', [0, 0, 0, 1], 3, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+  const named = exportTileSVG('C9', null, [0, 0, 0, 1], 3, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
     { label: '5th', note: 'G' }, 'https://chords.example/?chords=C9', true);
   assert.equal((named.match(/class="note-name"/g) || []).length, 1);
   // the accidental renders as a smaller tspan raised beside its letter
@@ -106,7 +106,7 @@ test('scaleSVG spells dot names through the scale map, not the chord-root table'
   assert.match(svg, /class="note-name"[^>]*>E<tspan font-size="6"[^>]*>♯<\/tspan><\/text>/);
   assert.ok(!/class="note-name"[^>]*>F<\/text>/.test(svg), 'pc 5 must not read as a bare F');
   // heading-style text after an accidental drops back to the baseline
-  const tile = exportScaleTileSVG('F♯ Major', pos.strings, pos.endFret, UKE.labels, NICE_COLORS, false, UKE.openPCs, parsed.rootPC, false, 0, null);
+  const tile = exportScaleTileSVG('F♯ Major', null, pos.strings, pos.endFret, UKE.labels, NICE_COLORS, false, UKE.openPCs, parsed.rootPC, false, 0, null);
   assert.match(tile, /<tspan font-size="13"[^>]*>♯<\/tspan><tspan dy="[\d.]+"> Major<\/tspan>/);
   // the glyph stands off its letter rather than tucking under it
   assert.match(svg, /class="note-name"[^>]*>E<tspan font-size="6" dx="0\.[\d]+"/);
@@ -200,7 +200,7 @@ test('neckSVG passes string colors through to the board', () => {
 });
 
 test('exportNeckTileSVG frames the neck at its own width', () => {
-  const svg = exportNeckTileSVG('C Major Pentatonic', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true,
+  const svg = exportNeckTileSVG('C Major Pentatonic', null, PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true,
     'C · D · E · G · A', 'https://chords.example/?scale=C+major+pentatonic&view=neck');
   assert.match(svg, /<metadata>Scale diagram from https:\/\/chords\.example\/\?scale=C\+major\+pentatonic&amp;view=neck<\/metadata>/);
   assert.match(svg, /C · D · E · G · A/);
@@ -210,21 +210,54 @@ test('exportNeckTileSVG frames the neck at its own width', () => {
   const neckW = Number(neckSVG('x', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, UKE.openPCs, 0, false).match(/viewBox="0 0 ([\d.]+) /)[1]);
   assert.equal(tileW, neckW + 28);
 
-  const bare = exportNeckTileSVG('C Major', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, null);
+  const bare = exportNeckTileSVG('C Major', null, PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, null);
   assert.ok(!bare.includes('<metadata>'));
   assert.match(bare, /stroke="none"/);
 });
 
 test('exportScaleTileSVG renders heading, notes footer and source metadata', () => {
-  const svg = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+  const svg = exportScaleTileSVG('C Major Pentatonic', null, PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
     'C · D · E · G · A', 'https://chords.example/?scale=C+major+pentatonic');
   assert.match(svg, /<metadata>Scale diagram from https:\/\/chords\.example\/\?scale=C\+major\+pentatonic<\/metadata>/);
   assert.match(svg, /C · D · E · G · A/);
   assert.match(svg, /stroke="#ddd3c5"/);
 
-  const bare = exportScaleTileSVG('C Major', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, 0, null);
+  const bare = exportScaleTileSVG('C Major', null, PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, 0, null);
   assert.ok(!bare.includes('<metadata>'));
   assert.match(bare, /stroke="none"/);
+});
+
+test('the instrument line rides under the heading, in caps, and grows the tile', () => {
+  const bare = exportTileSVG('C', null, [0, 0, 0, 3], 3, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, 0, null);
+  const named = exportTileSVG('C', 'Ukulele (low G) · GCEA', [0, 0, 0, 3], 3, UKE.labels, NICE_COLORS, false, UKE.openPCs, 0, false, 0, null);
+  assert.match(named, /UKULELE \(LOW G\) · GCEA/);
+  assert.ok(!bare.includes('UKULELE'));
+
+  const box = svg=> svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/).slice(1).map(Number);
+  assert.equal(box(named)[1], box(bare)[1] + 13);
+  assert.equal(box(named)[0], box(bare)[0], 'the line rides inside the tile, it does not widen it');
+
+  // it sits between the heading and the board, and the board moves down with it
+  const headY = Number(named.match(/y="([\d.]+)" text-anchor="middle" font-size="21"/)[1]);
+  const subY = Number(named.match(/y="([\d.]+)" text-anchor="middle" font-size="9.5"/)[1]);
+  const boardY = Number(named.match(/<g transform="translate\(14,([\d.]+)\)"/)[1]);
+  assert.ok(headY < subY && subY < boardY, `expected ${headY} < ${subY} < ${boardY}`);
+  assert.equal(boardY - Number(bare.match(/<g transform="translate\(14,([\d.]+)\)"/)[1]), 13);
+});
+
+test('a long instrument name shrinks onto its line rather than off the tile', () => {
+  const tile = name=> exportScaleTileSVG('C Major', name, PENTA_POS.strings, PENTA_POS.endFret, UKE.labels,
+    NICE_COLORS, false, UKE.openPCs, 0, false, 0, null);
+  const size = svg=> Number(svg.match(/text-anchor="middle" font-size="([\d.]+)" letter-spacing/)[1]);
+  const track = svg=> Number(svg.match(/letter-spacing="([\d.]+)"/)[1]);
+
+  assert.equal(size(tile('Mandolin · GDAE')), 9.5, 'a name that fits keeps the full size');
+  const long = tile('Cavaquinho (Portugal) · CGAD tuning, re-entrant');
+  assert.ok(size(long) < 9.5, 'a name too wide for the tile is shrunk');
+  // tracking is part of the width, so it has to shrink with the glyphs
+  assert.ok(track(long) < track(tile('Mandolin · GDAE')));
+  // the estimate the shrink works from must land the line inside the diagram width
+  assert.ok('CAVAQUINHO (PORTUGAL) · CGAD TUNING, RE-ENTRANT'.length * (size(long)*0.62 + track(long)) <= 188.5);
 });
 
 // --- the animated export ---
@@ -240,14 +273,14 @@ const RUN = {
 };
 
 test('a still export carries no animation', () => {
-  const svg = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+  const svg = exportScaleTileSVG('C Major Pentatonic', null, PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
     null, null);
   assert.ok(!svg.includes('<style>'), 'no stylesheet without a run');
   assert.ok(!svg.includes('note-lit'), 'no lit discs without a run');
 });
 
 test('an animated export loops the whole run once per cycle', () => {
-  const svg = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+  const svg = exportScaleTileSVG('C Major Pentatonic', null, PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
     null, null, false, null, null, RUN);
   assert.match(svg, /animation:note-lit 4000ms linear infinite/);
   // the flash occupies its lit window at the head of the cycle: struck at 14%
@@ -257,7 +290,7 @@ test('an animated export loops the whole run once per cycle', () => {
 });
 
 test('each sounding of a note gets its own disc, placed by a negative delay', () => {
-  const svg = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+  const svg = exportScaleTileSVG('C Major Pentatonic', null, PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
     null, null, false, null, null, RUN);
   // five soundings over three dots: a pitch heard twice gets a second disc
   // rather than one animation carrying both flashes
@@ -270,7 +303,7 @@ test('each sounding of a note gets its own disc, placed by a negative delay', ()
 });
 
 test('a seeked run is frozen at that moment, for grabbing frames', () => {
-  const frame = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+  const frame = exportScaleTileSVG('C Major Pentatonic', null, PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
     null, null, false, null, null, { ...RUN, seekMs: 700, paused: true });
   assert.match(frame, /animation-play-state:paused/);
   // 700ms in, only the pair struck at 500ms is still alight — 200ms into their
@@ -280,13 +313,13 @@ test('a seeked run is frozen at that moment, for grabbing frames', () => {
   assert.ok(!frame.includes('animation-delay:-4700ms'), 'a note no longer sounding costs the frame nothing');
 
   // and a moment with nothing sounding draws no discs at all
-  const quiet = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+  const quiet = exportScaleTileSVG('C Major Pentatonic', null, PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
     null, null, false, null, null, { ...RUN, seekMs: 3500, paused: true });
   assert.ok(!quiet.includes('class="note-lit"'));
 });
 
 test('a frozen frame drops the discs sitting on either end of their flash', () => {
-  const frame = (seekMs)=> exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
+  const frame = (seekMs)=> exportScaleTileSVG('C Major Pentatonic', null, PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0,
     null, null, false, null, null, { ...RUN, seekMs, paused: true });
 
   // 1060ms is exactly 560ms — one lit window — after the pair struck at 500ms,
@@ -302,12 +335,12 @@ test('a frozen frame drops the discs sitting on either end of their flash', () =
 });
 
 test('the neck and chord exports animate on the same terms', () => {
-  const neck = exportNeckTileSVG('C Major Pentatonic', PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true,
+  const neck = exportNeckTileSVG('C Major Pentatonic', null, PENTA_NECK.strings, PENTA_NECK.endFret, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true,
     null, null, false, null, null, RUN);
   assert.match(neck, /@keyframes note-lit/);
   assert.ok(neck.includes('class="note-lit"'));
 
-  const chord = exportTileSVG('C', [0, 0, 0, 3], 3, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0, null, null, false,
+  const chord = exportTileSVG('C', null, [0, 0, 0, 3], 3, UKE.labels, NICE_COLORS, true, UKE.openPCs, 0, true, 0, null, null, false,
     { litMs: 560, totalMs: 1500, onsets: { '3:3': [75] } });
   assert.match(chord, /@keyframes note-lit/);
   assert.equal((chord.match(/class="note-lit"/g) || []).length, 1);
@@ -315,7 +348,7 @@ test('the neck and chord exports animate on the same terms', () => {
 });
 
 test('the b&w export flashes in its own ink', () => {
-  const svg = exportScaleTileSVG('C Major Pentatonic', PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, BW_COLORS, true, UKE.openPCs, 0, true, 0,
+  const svg = exportScaleTileSVG('C Major Pentatonic', null, PENTA_POS.strings, PENTA_POS.endFret, UKE.labels, BW_COLORS, true, UKE.openPCs, 0, true, 0,
     null, null, false, null, null, RUN);
   assert.match(svg, /drop-shadow\(0 0 5px #000000\)/);
   assert.ok(!svg.includes('#a44737'), 'no colour leaks into the photocopy');
