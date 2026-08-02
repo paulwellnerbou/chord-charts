@@ -587,11 +587,11 @@
   .view-tabs .mode-tab{ min-height:30px; padding:0 14px; font-size:13px; }
   /* Mode gating: .chords-only marks the chord affordances living outside the
      [hidden] chords panel (options, grid footer, tips) plus the chords half of
-     mode-gated copy; .scales-only is the scales half of that copy. */
-  .scales-only{ display:none; }
+     mode-gated copy; .scales-only is the scales half of that copy. Both hides
+     are written against the body so they outrank the display a switch or a wrap
+     sets for itself — the mode a control belongs to beats the shape it takes. */
+  body:not(.scales-mode) .scales-only{ display:none; }
   body.scales-mode .chords-only{ display:none; }
-  body.scales-mode .scales-only{ display:inline; }
-  body.scales-mode .switch.scales-only{ display:inline-flex; }
   /* A switch reads as a move sideways: the arriving builder slides in from the
      side its own tab sits on while the panels' shared box eases between the two
      heights, and the sheet below fades back in as its height follows (both eased
