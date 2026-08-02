@@ -587,11 +587,11 @@
   .view-tabs .mode-tab{ min-height:30px; padding:0 14px; font-size:13px; }
   /* Mode gating: .chords-only marks the chord affordances living outside the
      [hidden] chords panel (options, grid footer, tips) plus the chords half of
-     mode-gated copy; .scales-only is the scales half of that copy. */
-  .scales-only{ display:none; }
+     mode-gated copy; .scales-only is the scales half of that copy. Both hides
+     are written against the body so they outrank the display a switch or a wrap
+     sets for itself — the mode a control belongs to beats the shape it takes. */
+  body:not(.scales-mode) .scales-only{ display:none; }
   body.scales-mode .chords-only{ display:none; }
-  body.scales-mode .scales-only{ display:inline; }
-  body.scales-mode .switch.scales-only{ display:inline-flex; }
   /* A switch reads as a move sideways: the arriving builder slides in from the
      side its own tab sits on while the panels' shared box eases between the two
      heights, and the sheet below fades back in as its height follows (both eased
@@ -830,6 +830,14 @@
   .switch-side-icon{ width:16px; height:16px; flex-shrink:0; opacity:.4; transition:opacity .2s ease; }
   .switch input:not(:checked) ~ .icon-layout-grid,
   .switch input:checked ~ .icon-layout-masonry{ opacity:1; color:var(--accent); }
+  /* the worked example a switch carries in its own label — quieter than the
+     setting it stands for, and never broken across the arrow */
+  .switch-eg{ font-size:.86em; opacity:.8; margin-left:.15em; white-space:nowrap; }
+  /* an options row is one line: wrapped, the label loses the column's rhythm and
+     the toggle floats against two lines of text it no longer reads as labelling.
+     On a narrow phone the longest of them gives way by a size, never a line. */
+  .options-group .switch{ white-space:nowrap; }
+  @media (max-width:400px){ .options-group .switch{ font-size:14px; } }
   /* compact variant for the slim page-arrangement rows */
   .switch-sm{ font-size:11.5px; gap:6px; }
   .switch-sm .switch-track{ width:28px; height:16px; border-radius:8px; }
@@ -841,6 +849,8 @@
   @media (prefers-reduced-motion:reduce){ .label-swap{ transition:none; } }
 
   .switch-wrap{ position:relative; display:inline-flex; align-items:center; gap:6px; }
+  /* an option only some charts can answer collapses rather than sits dead */
+  .switch-wrap[hidden]{ display:none; }
   .info-btn{
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
     min-height:24px; width:24px; height:24px; padding:0; border-radius:50%;
@@ -1090,7 +1100,6 @@
     display:flex; justify-content:flex-end; align-items:center; gap:8px 20px; flex-wrap:wrap;
     margin:18px 0 0; padding-top:10px; border-top:1px solid var(--card-border);
   }
-  .grid-arrange .switch-wrap[hidden]{ display:none; }
   /* The scales half of that row, centred under the sheet's single card: which
      of the two drawings of the scale the chart carries. Both states are spelled
      out here — .grid-arrange's own display would otherwise outrank the
@@ -1161,6 +1170,8 @@
        a hand-set column count too narrow for even the smallest size */
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
+  /* switched off, the line leaves no gap of its own above the diagram */
+  .card-sub:empty{ display:none; }
   .card h2 { font-family:var(--heading-font); font-weight:600; font-size:22px; margin:0; color:var(--accent); cursor:pointer; min-width:0; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:opacity var(--hover-fade) ease; }
   .card h2:hover { opacity:.72; }
   /* :not(:focus-visible) keeps the rule inert in browsers without :focus-visible,

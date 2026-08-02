@@ -108,7 +108,8 @@ test('scaleSVG spells dot names through the scale map, not the chord-root table'
   // heading-style text after an accidental drops back to the baseline
   const tile = exportScaleTileSVG('F♯ Major', null, pos.strings, pos.endFret, UKE.labels, NICE_COLORS, false, UKE.openPCs, parsed.rootPC, false, 0, null);
   assert.match(tile, /<tspan font-size="13"[^>]*>♯<\/tspan><tspan dy="[\d.]+"> Major<\/tspan>/);
-  // the glyph stands off its letter rather than tucking under it
+  // ♯ arrives with almost no side bearing to tuck away, so it keeps standing a
+  // hair off its letter rather than being pulled under it like ♭ is
   assert.match(svg, /class="note-name"[^>]*>E<tspan font-size="6" dx="0\.[\d]+"/);
 });
 
@@ -126,7 +127,11 @@ test('scaleSVG draws a double flat as two glyphs on one raised baseline', () => 
   assert.ok(!/class="note-name"[^>]*>[A-G]<tspan[^>]*>♭<\/tspan>b/.test(svg), 'no ASCII flat survives beside the glyph');
   // second glyph of the run carries no dy — SVG shifts are cumulative, so it
   // would otherwise climb a second time above its neighbour
-  assert.match(svg, /class="note-name"[^>]*>B<tspan font-size="6" dx="0\.[\d]+" dy="-[\d.]+">♭<\/tspan><tspan font-size="6" dx="0\.[\d]+">♭<\/tspan><\/text>/);
+  const run = svg.match(/class="note-name"[^>]*>B<tspan font-size="6" dx="(-[\d.]+)" dy="-[\d.]+">♭<\/tspan><tspan font-size="6" dx="(-[\d.]+)">♭<\/tspan><\/text>/);
+  assert.ok(run, 'a double flat draws as two tucked glyphs on one raised baseline');
+  // both are pulled back through the fallback font's side bearings, the second
+  // further: it clears the trailing air of the flat before it as well as its own
+  assert.ok(parseFloat(run[2]) < parseFloat(run[1]), 'the second flat tucks harder than the first');
 });
 
 test('scaleSVG passes string colors through to the board', () => {

@@ -4,8 +4,8 @@ import {
   findVoicings, computeFretWindow, chordAbsNotes, transposeChordText,
   identifyChord, spellNote, formatAccidentals,
 } from './theory.js';
-import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG } from './diagram.js';
-import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret } from './scales.js';
+import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, setAccidentalBearings, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG } from './diagram.js';
+import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, doubleAccidentalExample, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret } from './scales.js';
 import {
   playNote, playChord, chordPlayDuration, chordNoteTimings,
   primeAudio, createCapture,
@@ -102,10 +102,40 @@ function accGlyphsHTML(text){
   return escapeXML(text).replace(/[♭♯]/g, g=>`<span class="acc">${g}</span>`);
 }
 
+const ACC_MEASURE_EM = 100;
+// How much empty room this browser's ♭ and ♯ carry either side of their ink,
+// as a fraction of their em. Neither the board's face nor the heading's has the
+// glyphs, so both fall back to the same system font and one measurement serves
+// them — but which font that is, and how loosely it sets them, is the
+// platform's business. Measured before the first card is drawn; diagram.js
+// keeps its own defaults for anything that can't answer.
+function measureAccidentalBearings(){
+  const ctx = document.createElement('canvas').getContext('2d');
+  if(!ctx) return;
+  ctx.font = `700 ${ACC_MEASURE_EM}px Arial, sans-serif`;
+  const measured = {};
+  for(const glyph of ['♭','♯']){
+    const m = ctx.measureText(glyph);
+    if(!m || !m.width) return;
+    // the tucks are a fraction of the glyph's font size, not of its advance —
+    // the fallback ♭ and ♯ don't even share one
+    measured[glyph] = {
+      left: -m.actualBoundingBoxLeft/ACC_MEASURE_EM,
+      right: (m.width - m.actualBoundingBoxRight)/ACC_MEASURE_EM,
+    };
+  }
+  setAccidentalBearings(measured);
+}
+measureAccidentalBearings();
+
 // The page title's own pairing, on every card: a card is all a copied image or
-// a recorded video carries, and a diagram means nothing without its neck.
+// a recorded video carries, and a diagram means nothing without its neck. Empty
+// when switched off — a whole sheet copied at once says the neck once already,
+// and the line only repeats it card after card.
 function instrumentLine(tuning){
-  return `${tuning.name} · ${formatAccidentals(tuning.tuningLabel)}`;
+  return document.getElementById('instrumentLineToggle').checked
+    ? `${tuning.name} · ${formatAccidentals(tuning.tuningLabel)}`
+    : '';
 }
 
 // `tuning` is the caller's settled one, not currentTuning(): a recording draws
@@ -289,8 +319,10 @@ async function rasterizeFrame(svgStr, ctx, w, h){
 // that moment and paused, so what lands in the video is exactly what the
 // animated SVG shows — no second animation to keep in step with the first. The
 // sound is the real thing, played once through a capture node while the frames
-// are taken, which is why the recording runs at the run's own pace.
-async function recordRunVideo(frameSVG, run){
+// are taken, which is why the recording runs at the run's own pace — and why
+// `slot`, the card's own diagram, lights along with it: the run is audibly
+// playing, and a card that sat still through it would read as a hang.
+async function recordRunVideo(frameSVG, run, slot){
   const probe = frameSVG(seekRun(run, 0));
   const vb = probe.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
   if(!vb) throw new Error('export SVG is missing its viewBox');
@@ -320,7 +352,7 @@ async function recordRunVideo(frameSVG, run){
 
     rec.start();
     const started = performance.now();
-    playChord(run.midiNotes, { ...run.opts, capture });
+    lightNotes(slot, run.midiNotes, run.opts, playChord(run.midiNotes, { ...run.opts, capture }));
 
     // Frames are picked by the clock, not counted off: the recorder timestamps
     // what it samples in real time, so a moment that takes too long to draw has
@@ -357,9 +389,10 @@ async function downloadTileVideo(frameSVG, run, baseName, btnEl){
   if(!run || !supportedVideoTypes().length){ flashButton(btnEl, 'No video'); return; }
   if(recordingRun){ flashButton(btnEl, 'Busy'); return; }
   recordingRun = true;
+  const card = btnEl.closest('.card');
   try{
     flashButton(btnEl, 'Recording', { hold:true });
-    const { blob, ext } = await recordRunVideo(frameSVG, run);
+    const { blob, ext } = await recordRunVideo(frameSVG, run, card && card.querySelector('.diagram-slot'));
     downloadBlob(blob, `${baseName}.${ext}`);
     flashButton(btnEl, 'Saved');
   }catch(err){
@@ -878,6 +911,7 @@ function saveSettings(){
     scaleSimplifyAccidentals: document.getElementById('simplifyAccidentalsToggle').checked,
     showNoteNames: noteNamesByMode.chords,
     scaleShowNoteNames: noteNamesByMode.scales,
+    showInstrumentLine: document.getElementById('instrumentLineToggle').checked,
     aquilaStrings: document.getElementById('aquilaToggle').checked,
     columns: columnsValue,
     masonry: document.getElementById('masonryToggle').checked,
@@ -1817,6 +1851,20 @@ function simplifyAccidentals(){
   return document.getElementById('simplifyAccidentalsToggle').checked;
 }
 
+// The switch is on offer only where it changes a name: most keys never reach a
+// double accidental, and an option that does nothing is one more thing to read.
+// The scale's own rename rides in the label, which beats any fixed example —
+// the switch is only ever read next to a scale it applies to. The setting
+// itself is untouched, and keeps its state for the next scale that needs it.
+function updateSimplifyVisibility(parsed){
+  const example = parsed && doubleAccidentalExample(parsed.rootName, parsed.type);
+  document.getElementById('simplifyInfoWrap').hidden = !example;
+  if(example){
+    document.getElementById('simplifyExample').innerHTML =
+      accGlyphsHTML(`${formatAccidentals(example.from)} → ${formatAccidentals(example.to)}`);
+  }
+}
+
 function scaleNotesLine(parsed){
   const spelled = spellScale(parsed.rootName, parsed.type, simplifyAccidentals());
   return spelled ? spelled.map(formatAccidentals).join(' · ') : '';
@@ -2008,6 +2056,7 @@ function generateScale(){
   resetGridLayout();
 
   const parsed = raw.trim() ? parseScale(raw) : null;
+  updateSimplifyVisibility(parsed);
   if(!parsed){
     // an open completion menu means the name is still being typed — offering
     // suggestions and calling the input unreadable at once would be noise
@@ -2829,6 +2878,7 @@ setupInfoPopover('omitInfoWrap', 'omitInfoBtn');
 setupInfoPopover('thresholdInfoWrap', 'thresholdInfoBtn');
 setupInfoPopover('cardControlsInfoWrap', 'cardControlsInfoBtn');
 setupInfoPopover('arpeggioInfoWrap', 'arpeggioInfoBtn');
+setupInfoPopover('simplifyInfoWrap', 'simplifyInfoBtn');
 
 const savedSettings = loadSettings();
 
@@ -2884,6 +2934,9 @@ if(typeof savedSettings.showNoteNames === 'boolean'){
 }
 if(typeof savedSettings.scaleShowNoteNames === 'boolean'){
   noteNamesByMode.scales = savedSettings.scaleShowNoteNames;
+}
+if(typeof savedSettings.showInstrumentLine === 'boolean'){
+  document.getElementById('instrumentLineToggle').checked = savedSettings.showInstrumentLine;
 }
 if(typeof savedSettings.aquilaStrings === 'boolean'){
   document.getElementById('aquilaToggle').checked = savedSettings.aquilaStrings;
@@ -3330,6 +3383,7 @@ document.getElementById('noteNamesToggle').addEventListener('change', e=>{
   noteNamesByMode[currentMode] = e.target.checked;
   regenerate();
 });
+document.getElementById('instrumentLineToggle').addEventListener('change', regenerate);
 document.getElementById('aquilaToggle').addEventListener('change', regenerate);
 document.getElementById('autoColumnsToggle').addEventListener('change', e=>{
   columnsValue = e.target.checked ? 'auto' : currentRenderedColumns();

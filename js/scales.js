@@ -236,6 +236,17 @@ function spellScale(rootName, type, simplifyDoubles){
   return names;
 }
 
+// The first double accidental letter-per-degree spelling costs this scale, as
+// { from, to } with the enharmonic name simplifying gives it — null where the
+// scale never reaches one, which is also the only case where the choice is
+// worth offering at all.
+function doubleAccidentalExample(rootName, type){
+  const strict = spellScale(rootName, type);
+  if(!strict) return null;
+  const i = strict.findIndex(name => name.length > 2);
+  return i === -1 ? null : { from: strict[i], to: spellScale(rootName, type, true)[i] };
+}
+
 // pc → spelled name for a scale, for labelling diagram dots.
 function scaleNoteNames(rootName, type, simplifyDoubles){
   const names = spellScale(rootName, type, simplifyDoubles);
@@ -380,6 +391,6 @@ function positionStartFret(position){
 
 export {
   SCALE_TYPES, scaleDisplayName, parseScale, scaleCompletions, transposeScaleText,
-  spellScale, scaleNoteNames,
+  spellScale, scaleNoteNames, doubleAccidentalExample,
   windowSize, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret,
 };
