@@ -252,7 +252,7 @@
       <div class="options-card">
         <div class="options-group" role="group" aria-label="Style and color options">
           <h3 class="settings-section-title">Style &amp; color</h3>
-          <p class="options-group-desc">Borders, card controls and color scheme</p>
+          <p class="options-group-desc">Borders, card controls, labels and color scheme</p>
           <div class="controls">
             <label class="switch">
               <input type="checkbox" id="borderToggle" checked>
@@ -268,6 +268,11 @@
               <button type="button" class="info-btn" id="cardControlsInfoBtn" aria-label="About chord card controls" aria-expanded="false">i</button>
               <div class="info-popover" id="cardControlsInfoPopover" role="tooltip">Turn this off to remove the play button, the actions menu, and alternative-voicing arrows from chord cards for clean screenshots.</div>
             </div>
+            <label class="switch" title="Names the instrument and its tuning under each card's title, so a copied card or a recorded video carries its neck with it.">
+              <input type="checkbox" id="instrumentLineToggle" checked>
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span>Show instrument &amp; tuning</span>
+            </label>
             <label class="switch">
               <input type="checkbox" id="bwToggle">
               <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -303,11 +308,6 @@
               <button type="button" class="info-btn" id="simplifyInfoBtn" aria-label="About simplified double accidentals" aria-expanded="false">i</button>
               <div class="info-popover" id="simplifyInfoPopover" role="tooltip">Replaces double accidentals with their enharmonic equivalent — the same pitch, a simpler name. They turn up because every scale degree takes its own letter.</div>
             </div>
-            <label class="switch">
-              <input type="checkbox" id="instrumentLineToggle" checked>
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-              <span>Show instrument &amp; tuning</span>
-            </label>
             <div class="switch-wrap" id="aquilaInfoWrap">
               <label class="switch" title="Colour the strings like the Aquila Kids educational set — green, red, yellow and blue.">
                 <input type="checkbox" id="aquilaToggle">
