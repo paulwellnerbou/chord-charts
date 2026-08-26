@@ -6,20 +6,27 @@
   :root{
     color-scheme:dark;
 
-    /* Warm workshop dark the sheet is lit against. */
-    --bg-0:#191009;
-    --bg-1:#251610;
-    --glow:rgba(224,122,80,.16);
+    /* A dim workshop, lit from one side. Glow = a hot core plus a wide halo,
+       not one broad wash: the core sits out in the left margin at 9% where
+       nothing is set, so it can burn brighter without lifting the ground under
+       the labels; the halo carries the light at an alpha the text still clears. */
+    --bg-0:#0e1114;
+    --bg-1:#1d2531;
+    --glow:rgba(233,140,96,.34);
     --backdrop:
-      radial-gradient(115% 75% at 50% -8%, var(--glow), transparent 55%),
-      radial-gradient(80% 55% at 50% 4%, rgba(180,84,50,.10), transparent 60%),
-      linear-gradient(180deg, var(--bg-1), var(--bg-0) 62%);
+      radial-gradient(38% 26% at 9% -6%, rgba(255,196,158,.58), transparent 70%),
+      radial-gradient(150% 105% at 20% -14%, var(--glow), transparent 68%),
+      radial-gradient(95% 64% at 74% 0%, rgba(186,96,60,.17), transparent 66%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-0) 66%);
     --grain-opacity:.05;
     --grain-blend:overlay;
 
     --page-bg:var(--bg-0);
-    --ink:#f4ecdd;
-    --ink-soft:#b3a28f;
+    --ink:#e9ecf1;
+    /* Sized against the ground at its BRIGHTEST — the lamp lifts the top-left,
+       where the controls sit, far above --bg-0. Sizing this against the token
+       instead is how a quiet tier ends up at 2:1 under the glow. */
+    --ink-soft:#cad1da;
 
     /* Signature rust accent, lit for dark ground. */
     --accent:#e0765a;
@@ -27,60 +34,89 @@
     --accent-soft:rgba(224,118,90,.15);
 
     --card-bg:rgba(255,255,255,.05);  /* raised fill: inputs, ghost buttons, pills */
-    --card-border:rgba(233,209,177,.16);
-    --control-border:rgba(233,209,177,.32);
+    --card-border:rgba(190,206,226,.18);
+    --control-border:rgba(190,206,226,.34);
     --btn-bg:#bc4a31;
     --btn-fg:#fff6ec;
     --error:#f89d84;
 
-    --surface:#2d1e15;               /* popover menus and floating panels */
+    --surface:#1b222b;               /* popover menus and floating panels */
     --shadow-pop:0 18px 44px rgba(0,0,0,.55);
-    --scrim:rgba(12,7,4,.62);
+    --scrim:rgba(8,11,15,.66);
 
-    --panel-bg:linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.16));
+    /* --- Panel construction ------------------------------------------------
+       Every raised surface — the stage under the tiles, the console, the promo
+       button — is built HERE, once. A panel is the ground with light played
+       across it: the lamp re-lit from the corner it comes from on the page,
+       then a vertical pass that lifts the top edge and settles just under the
+       ground at the foot. The themes below override ONLY these five colours,
+       never the geometry — hand-tuning each theme is what let them drift.
+
+       Tune --sink and --cast per theme by RENDERED effect, not by matching the
+       number: the same alpha shifts a bright ground many times further than a
+       near-black one.
+
+       Anything using these MUST also set `background-origin:border-box`. The
+       default origin is the padding box while the clip is the border box, so
+       the 1px border strip paints the START of the repeated tile — --lift —
+       drawing a light hairline round the bottom and sides. */
+    --lamp:    rgba(224,122,80,.16);
+    --lift:    rgba(255,255,255,.035);
+    --sink:    rgba(0,0,0,.30);
+    --cast:    rgba(0,0,0,.8);
+    --edge-hi: rgba(255,255,255,.05);
+    /* Hover lights the button with this theme's own light. */
+    --promo-lit:linear-gradient(180deg, rgba(224,122,80,.17), rgba(224,122,80,.07));
+
+    /* Short boxes get gentler stops: the same ramp compressed into a fraction
+       of the stage's height changes far too fast per pixel, and --sink at 210%
+       means a short card only shows its first half and never reaches ground. */
+    --panel-bg:
+      radial-gradient(160% 420% at 42% -150%, var(--lamp), transparent 66%),
+      linear-gradient(180deg, var(--lift), var(--sink) 210%);
     --panel-border:var(--card-border);
-    --panel-shadow:0 20px 44px -28px rgba(0,0,0,.7);
+    --panel-shadow:0 20px 44px -28px var(--cast), inset 0 1px 0 var(--edge-hi);
 
-    /* Dark stage under the lit paper tiles — the raised panel, not the paper,
-       darkens with the chrome. */
     --stage-border:rgba(233,209,177,.13);
-    --stage-shadow:0 34px 70px -34px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.05);
+    --stage-shadow:0 34px 70px -34px var(--cast), inset 0 1px 0 var(--edge-hi);
     --stage-bg-color:transparent;
     --stage-bg-image:
-      radial-gradient(120% 120% at 50% -20%, rgba(224,122,80,.09), transparent 58%),
-      linear-gradient(180deg, rgba(255,255,255,.035), rgba(0,0,0,.16));
+      radial-gradient(130% 140% at 44% -14%, var(--lamp), transparent 62%),
+      linear-gradient(180deg, var(--lift), var(--sink));
 
     --heading-font:'Fraunces', Georgia, serif;
     --body-font:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --h1-size:clamp(1.5rem, 3.7vw, 2.2rem);
     --control-h:48px;
     --builder-control-h:66px;
     --hover-fade:.35s;
   }
-  :root[data-theme="light"]{
+  /* WARM — daylight. Amber paper, and the lamp is amber too: warm over warm
+     never passes through the khaki that makes an amber bloom unusable on a
+     cool ground, so here the bloom stays. */
+  :root[data-theme="warm"]{
     color-scheme:light;
 
-    /* Same spotlight, inverted: the lit core is the brightest point, so the
-       paper deepens into amber and shades off at the edges for it to read. */
-    --bg-0:#e4d3b7;
-    --bg-1:#f0e4cf;
-    --glow:rgba(255,253,247,1);
+    --bg-0:#e1d0b3;
+    --bg-1:#f6ecdb;
+    --glow:rgba(255,253,246,1);
     --backdrop:
-      radial-gradient(86% 55% at 50% -6%, var(--glow), transparent 66%),
-      radial-gradient(122% 82% at 50% -8%, rgba(219,124,78,.4), transparent 66%),
-      radial-gradient(140% 110% at 50% 22%, transparent 38%, rgba(118,82,42,.18)),
-      linear-gradient(180deg, var(--bg-1), var(--bg-0) 76%);
+      radial-gradient(92% 62% at 26% -6%, var(--glow), transparent 66%),
+      radial-gradient(128% 90% at 24% -12%, rgba(246,182,92,.54), transparent 70%),
+      radial-gradient(150% 115% at 58% 28%, transparent 34%, rgba(112,82,40,.18)),
+      linear-gradient(180deg, var(--bg-1), var(--bg-0) 78%);
     --grain-opacity:.035;
     --grain-blend:multiply;
 
     --page-bg:var(--bg-0);
-    --ink:#2d241a;
-    --ink-soft:#6f6250;
+    --ink:#2c2318;
+    --ink-soft:#4f4939;
 
     --accent:#a44737;
     --accent-strong:#83382a;
     --accent-soft:rgba(164,71,55,.13);
 
-    --card-bg:#fffaf0;
+    --card-bg:rgba(255,252,244,.82);
     --card-border:rgba(74,54,26,.16);
     --control-border:rgba(74,54,26,.34);
     --btn-bg:#a44737;
@@ -91,16 +127,65 @@
     --shadow-pop:0 14px 34px -8px rgba(80,60,25,.28), 0 2px 8px rgba(80,60,25,.12);
     --scrim:rgba(64,44,22,.42);
 
-    --panel-bg:linear-gradient(180deg, #fffaf0, #f6ecd9);
+    --lamp:    rgba(255,247,229,.90);
+    --lift:    rgba(255,252,244,.34);
+    --sink:    rgba(92,64,26,.045);
+    --cast:    rgba(80,60,25,.13);
+    --edge-hi: rgba(255,255,255,.5);
+    --promo-lit:linear-gradient(180deg, rgba(238,172,88,.24), rgba(238,172,88,.10));
     --panel-border:rgba(74,54,26,.14);
-    --panel-shadow:0 18px 40px -26px rgba(80,60,25,.35);
-
     --stage-border:rgba(74,54,26,.16);
-    --stage-shadow:0 34px 64px -34px rgba(85,60,25,.55), 0 10px 30px -18px rgba(85,60,25,.35);
-    --stage-bg-color:#fffcf7;
-    --stage-bg-image:
-      radial-gradient(120% 90% at 50% -12%, rgba(164,71,55,.06), transparent 55%),
-      linear-gradient(180deg, #fffdf8, #f5ecdd);
+    --stage-bg-color:transparent;
+  }
+  /* COOL — overcast. The ground is blue-grey on purpose: amber over a
+     green-grey interpolates through khaki and the whole midsection turns
+     muddy; over blue it passes through neutral. The accent is cool here too —
+     a rust toggle on a blue-grey page was the last warm thing in the chrome.
+     The chord tiles keep their paper palette regardless; they are what prints. */
+  :root[data-theme="cool"]{
+    color-scheme:light;
+
+    --bg-0:#d4d9df;
+    --bg-1:#f1f4f8;
+    --glow:rgba(255,255,255,1);
+    --backdrop:
+      radial-gradient(104% 70% at 24% -8%, var(--glow), transparent 68%),
+      radial-gradient(150% 115% at 60% 30%, transparent 32%, rgba(30,44,62,.19)),
+      linear-gradient(180deg, var(--bg-1), var(--bg-0) 78%);
+    --grain-opacity:.035;
+    --grain-blend:multiply;
+
+    --page-bg:var(--bg-0);
+    --ink:#1f242b;
+    --ink-soft:#474e58;
+
+    --accent:#21527f;
+    --accent-strong:#2f6ba8;
+    --accent-soft:rgba(37,90,144,.13);
+
+    --card-bg:rgba(255,255,255,.72);
+    --card-border:rgba(34,46,66,.16);
+    --control-border:rgba(34,46,66,.34);
+    --btn-bg:#2f6ba8;
+    --btn-fg:#ffffff;
+    --error:#9e2a20;
+
+    --surface:#f2f5f9;
+    --shadow-pop:0 14px 34px -8px rgba(32,42,60,.28), 0 2px 8px rgba(32,42,60,.12);
+    --scrim:rgba(28,38,52,.44);
+
+    /* The re-played light is WHITE here, not the accent: a coloured wash on a
+       cool ground shifts temperature across a single card. */
+    --lamp:    rgba(255,255,255,.95);
+    --lift:    rgba(255,255,255,.34);
+    --sink:    rgba(28,42,60,.045);
+    --cast:    rgba(34,46,66,.13);
+    --edge-hi: rgba(255,255,255,.5);
+    /* white, not the accent — a coloured wash on a cool ground reads warm */
+    --promo-lit:linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.36));
+    --panel-border:rgba(34,46,66,.14);
+    --stage-border:rgba(34,46,66,.16);
+    --stage-bg-color:transparent;
   }
   /* The printed artefacts — chord tiles and the dialogs that stage them —
      keep the letterpress paper palette in both themes, so what's on a card is
@@ -202,34 +287,64 @@
     transition:opacity .28s ease, rotate .4s cubic-bezier(.2,.8,.2,1), scale .3s ease;
   }
   /* Show the icon for the theme you'd switch TO. */
-  :root[data-theme="dark"]  .ic-sun { opacity:1; rotate:0deg;   scale:1;  }
-  :root[data-theme="dark"]  .ic-moon{ opacity:0; rotate:-90deg; scale:.4; }
-  :root[data-theme="light"] .ic-sun { opacity:0; rotate:90deg;  scale:.4; }
-  :root[data-theme="light"] .ic-moon{ opacity:1; rotate:0deg;   scale:1;  }
+  /* The button carries the theme you are IN — sun for warm daylight, cloud for
+     the cooler overcast one, moon for night. Only that one is visible. */
+  .theme-toggle .ic{ opacity:0; rotate:-90deg; scale:.4; }
+  :root[data-theme="warm"] .ic-warm{ opacity:1; rotate:0deg; scale:1; }
+  :root[data-theme="cool"] .ic-cool{ opacity:1; rotate:0deg; scale:1; }
+  :root[data-theme="dark"] .ic-dark{ opacity:1; rotate:0deg; scale:1; }
+
+  /* --- Theme menu --- */
+  .theme-cbx{ position:relative; }
+  .theme-menu{
+    position:absolute; z-index:70;
+    top:calc(100% + 8px); right:0;
+    width:max-content; min-width:152px; list-style:none; margin:0; padding:5px;
+    background:var(--surface); border:1px solid var(--card-border); border-radius:12px;
+    box-shadow:var(--shadow-pop);
+    opacity:0; visibility:hidden; translate:0 -6px; scale:.97;
+    transform-origin:top right;
+    transition:opacity .16s ease, translate .16s ease, scale .16s ease, visibility 0s linear .16s;
+  }
+  .theme-menu.open{
+    opacity:1; visibility:visible; translate:0 0; scale:1;
+    transition:opacity .16s ease, translate .16s ease, scale .16s ease;
+  }
+  .theme-opt{
+    display:grid; grid-template-columns:1.35em 1fr auto; align-items:center;
+    gap:9px; padding:8px 11px; border-radius:8px; cursor:pointer;
+    color:var(--ink); font-weight:600; font-size:.95rem;
+    transition:background .13s ease, color .13s ease;
+  }
+  .theme-opt .ic-glyph{ font-size:1.05em; line-height:1; text-align:center; }
+  .theme-opt::after{ content:""; font-size:.85em; color:var(--accent); }
+  .theme-opt[aria-selected="true"]::after{ content:"✓"; }
+  .theme-opt:hover, .theme-opt.active{ background:var(--accent-soft); color:var(--accent-strong); }
 
   /* --- centered brand header --- */
-  .topbar{ text-align:center; margin:4px 0 24px; }
+  /* A masthead, not a hero: the fretboard mark sits in the left margin of the
+     title block, which starts on the same column the console and sheet below
+     line up on. */
+  .topbar{
+    display:grid; grid-template-columns:auto 1fr;
+    column-gap:clamp(10px,1.6vw,15px); row-gap:7px; align-items:start;
+    margin:4px 0 24px;
+  }
   h1{ margin:0; }
   .brand-mark{
-    display:grid; place-items:center; width:52px; height:52px; margin:0 auto 12px;
-    color:var(--accent); background:var(--accent-soft);
-    border:1px solid color-mix(in srgb,var(--accent) 28%,transparent);
-    border-radius:15px;
+    grid-row:1; display:grid; place-items:center;
+    /* the title's own first line box, so the mark centres on the words */
+    height:calc(var(--h1-size) * 1.06);
+    color:var(--accent);
   }
-  .brand-mark svg{ width:32px; height:32px; }
+  .brand-mark svg{ width:clamp(30px,3.9vw,40px); height:auto; display:block; }
   .brand-title{
-    font-family:var(--heading-font); font-weight:600;
-    font-size:clamp(1.9rem, 4.6vw, 2.65rem); line-height:1.05; letter-spacing:-.015em;
-    background:linear-gradient(168deg, var(--ink) 30%, var(--accent) 115%);
-    -webkit-background-clip:text; background-clip:text;
-    color:transparent; -webkit-text-fill-color:transparent;
+    grid-column:2;
+    font-family:'Bevan', Georgia, serif; font-weight:400;
+    font-size:var(--h1-size); line-height:1.06; letter-spacing:-.005em;
+    color:var(--ink);
   }
-  .brand-tagline{ margin:8px auto 0; max-width:52ch; color:var(--ink-soft); font-size:.95rem; }
-  .topbar::after{
-    content:""; display:block; width:64px; height:3px; margin:14px auto 0;
-    border-radius:2px;
-    background:linear-gradient(90deg, transparent, var(--accent), transparent);
-  }
+  .brand-tagline{ grid-column:2; margin:0; color:var(--ink-soft); font-size:.95rem; line-height:1.45; }
   /* The console: a glass desk-panel above the lit sheet. Narrower than the
      sheet, so the layout funnels the eye toward the stage below. */
   .settings-section{
@@ -239,6 +354,7 @@
     position:relative; z-index:20;
     max-width:880px; margin:0 auto 20px; padding:18px clamp(14px,2.4vw,22px) 20px;
     background:var(--panel-bg);
+    background-origin:border-box;
     border:1px solid var(--panel-border); border-radius:18px;
     box-shadow:var(--panel-shadow);
     transition:background .4s ease, border-color .4s ease;
@@ -376,6 +492,7 @@
     border-radius:22px;
     background-color:var(--stage-bg-color);
     background-image:var(--stage-bg-image);
+    background-origin:border-box;
     border:1px solid var(--stage-border);
     box-shadow:var(--stage-shadow);
     transition:background-color .4s ease, border-color .4s ease, box-shadow .4s ease;
@@ -641,19 +758,35 @@
 
   /* --- cross-promo card for the sibling harmonica app --- */
   .harp-promo{
+    position:relative;
+    isolation:isolate;   /* keeps the lit overlay behind the content, not the page */
     display:flex; align-items:center; gap:16px;
-    max-width:880px; margin:22px auto 0; padding:16px 18px;
-    background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:16px;
+    max-width:880px; margin:22px auto 0; padding:18px 20px;
+    background:var(--panel-bg); background-origin:border-box;
+    border:1px solid var(--panel-border); border-radius:16px;
     box-shadow:var(--panel-shadow);
-    text-decoration:none; color:inherit;
-    transition:border-color var(--hover-fade), background var(--hover-fade);
+    text-decoration:none; color:inherit; cursor:pointer;
+    transition:border-color .22s ease, transform .1s ease, box-shadow .22s ease;
   }
-  .harp-promo:hover{ border-color:color-mix(in srgb,var(--accent) 40%,var(--card-border)); }
-  .harp-promo:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  /* The lit state is an overlay whose opacity animates, not a second background:
+     --promo-lit holds a gradient, and gradients do not interpolate — a
+     `transition:background` on it would simply snap. */
+  .harp-promo::before{
+    content:""; position:absolute; inset:0; z-index:-1;
+    border-radius:inherit; background:var(--promo-lit);
+    opacity:0; transition:opacity .22s ease;
+  }
+  .harp-promo:hover{
+    border-color:var(--accent);
+    transform:translateY(-1px);
+    box-shadow:0 12px 24px -16px rgba(0,0,0,.5);
+  }
+  .harp-promo:hover::before{ opacity:1; }
+  .harp-promo:active{ transform:translateY(0); box-shadow:none; }
+  .harp-promo:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
   .harp-promo-mark{
-    display:grid; place-items:center; flex:0 0 auto; width:52px; height:52px;
-    color:var(--accent); background:var(--accent-soft);
-    border:1px solid color-mix(in srgb,var(--accent) 22%,transparent); border-radius:13px;
+    display:grid; place-items:center; flex:0 0 auto; width:44px; height:44px;
+    color:var(--accent);
   }
   .harp-promo-mark svg{ width:34px; height:34px; }
   .harp-promo-body{ flex:1 1 auto; min-width:0; }
@@ -664,13 +797,12 @@
   .harp-promo-desc{ display:block; margin-top:5px; font-size:13px; color:var(--ink-soft); }
   .harp-promo-desc b{ color:var(--ink); font-weight:600; }
   .harp-promo-go{
-    flex:0 0 auto; display:grid; place-items:center; width:38px; height:38px; border-radius:50%;
-    color:var(--accent); background:var(--accent-soft);
-    border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);
-    transition:background var(--hover-fade), color var(--hover-fade), border-color var(--hover-fade);
+    flex:0 0 auto; display:grid; place-items:center; width:30px; height:30px;
+    color:var(--accent);
+    transition:color .18s ease, transform .18s ease;
   }
   .harp-promo-go svg{ width:17px; height:17px; }
-  .harp-promo:hover .harp-promo-go{ background:var(--accent); color:var(--btn-fg); border-color:var(--accent); }
+  .harp-promo:hover .harp-promo-go{ color:var(--accent-strong); transform:translateX(4px); }
 
   /* --- custom instrument select --- */
   .tuning-select{ position:relative; font-family:inherit; }
@@ -1553,12 +1685,7 @@
     .fb-card-slot{ display:none; }
     body{ padding:14px 10px 32px; }
     .topbar{ margin:2px 0 18px; }
-    /* clear the fixed corner buttons, which the narrow width pulls inwards */
-    .topbar .brand-mark{ margin-top:4px; }
-    .brand-mark{ width:44px; height:44px; border-radius:13px; }
-    .brand-mark svg{ width:27px; height:27px; }
     .brand-tagline{ display:none; }
-    .topbar::after{ margin-top:11px; }
     .theme-toggle, .icon-link{ width:40px; height:40px; }
     .page-title-main{ font-size:19px; }
     .stage{ border-radius:18px; }
@@ -1643,13 +1770,9 @@
        invisible first frame */
     *, *::before, *::after{ animation:none !important; transition:none !important; }
     /* one quiet credit line — the sheet title below is what leads the page */
-    .topbar{ margin:0 0 10px; }
-    .topbar::after{ display:none; }
+    .topbar{ display:block; margin:0 0 10px; }
     .brand-mark, .brand-tagline{ display:none; }
-    .brand-title{
-      font-size:15px; background:none;
-      -webkit-text-fill-color:currentColor; color:#716a61;
-    }
+    .brand-title{ font-family:var(--body-font); font-size:15px; font-weight:600; color:#716a61; }
     .stage{
       background:none; border:none; box-shadow:none;
       padding:0; border-radius:0; margin:0;

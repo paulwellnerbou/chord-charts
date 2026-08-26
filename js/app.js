@@ -3354,28 +3354,73 @@ document.getElementById('bwToggle').addEventListener('change', e=>{
   syncThemeUI();
   regenerate();
 });
-// Theme switches the page chrome only — the sheet keeps its paper palette.
+// Theme switches the page chrome only — the sheet keeps its paper palette, so
+// what prints is the same in all three. Warm daylight, cooler overcast, night.
 // The pre-paint script in index.html applies the saved theme before first render.
+const THEMES = ['warm','cool','dark'];
+const THEME_BAR = { warm:'#f6ecdb', cool:'#f1f4f8', dark:'#1d2531' };
 const themeColorMeta = document.querySelector('meta[name="theme-color"]');
 const themeToggleBtn = document.getElementById('themeToggleBtn');
+const themeMenu = document.getElementById('themeMenu');
+const themeOpts = ()=>[...themeMenu.querySelectorAll('.theme-opt')];
+let themeMenuOpen = false, themeActiveIndex = 0;
+
 function syncThemeUI(){
-  const light = document.documentElement.dataset.theme === 'light';
+  const theme = document.documentElement.dataset.theme;
   if(themeColorMeta){
     themeColorMeta.content = document.body.classList.contains('bw-mode') ? '#ffffff'
-      : light ? '#f0e4cf' : '#191009';
+      : (THEME_BAR[theme] || THEME_BAR.dark);
   }
-  // names the state it switches TO, matching the sun/moon icon shown
-  const label = light ? 'Switch to dark theme' : 'Switch to light theme';
+  const label = `Theme: ${theme[0].toUpperCase()}${theme.slice(1)}`;
   themeToggleBtn.setAttribute('aria-label', label);
   themeToggleBtn.title = label;
+  themeOpts().forEach(li=>li.setAttribute('aria-selected', String(li.dataset.theme === theme)));
 }
-syncThemeUI();
-themeToggleBtn.addEventListener('click', ()=>{
-  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-  document.documentElement.dataset.theme = next;
-  try{ localStorage.setItem('chords-theme', next); }catch(err){}
+function setThemeActive(i){
+  const list = themeOpts();
+  themeActiveIndex = (i + list.length) % list.length;
+  list.forEach((li,n)=>li.classList.toggle('active', n === themeActiveIndex));
+}
+function openThemeMenu(){
+  themeMenuOpen = true;
+  themeMenu.classList.add('open');
+  themeToggleBtn.setAttribute('aria-expanded','true');
+  setThemeActive(Math.max(0, themeOpts().findIndex(li=>li.dataset.theme === document.documentElement.dataset.theme)));
+}
+function closeThemeMenu(focus){
+  themeMenuOpen = false;
+  themeMenu.classList.remove('open');
+  themeToggleBtn.setAttribute('aria-expanded','false');
+  if(focus) themeToggleBtn.focus();
+}
+function chooseTheme(theme){
+  document.documentElement.dataset.theme = theme;
+  try{ localStorage.setItem('chords-theme', theme); }catch(err){}
   syncThemeUI();
+  closeThemeMenu(true);
+}
+if(!THEMES.includes(document.documentElement.dataset.theme)) document.documentElement.dataset.theme = 'dark';
+syncThemeUI();
+themeToggleBtn.addEventListener('click', ()=>{ themeMenuOpen ? closeThemeMenu() : openThemeMenu(); });
+themeMenu.addEventListener('click', e=>{
+  const li = e.target.closest('.theme-opt');
+  if(li) chooseTheme(li.dataset.theme);
 });
+themeToggleBtn.addEventListener('keydown', e=>{
+  if(!themeMenuOpen){
+    if(['ArrowDown','ArrowUp','Enter',' '].includes(e.key)){ e.preventDefault(); openThemeMenu(); }
+    return;
+  }
+  switch(e.key){
+    case 'ArrowDown': e.preventDefault(); setThemeActive(themeActiveIndex + 1); break;
+    case 'ArrowUp':   e.preventDefault(); setThemeActive(themeActiveIndex - 1); break;
+    case 'Home':      e.preventDefault(); setThemeActive(0); break;
+    case 'End':       e.preventDefault(); setThemeActive(themeOpts().length - 1); break;
+    case 'Enter': case ' ': e.preventDefault(); chooseTheme(themeOpts()[themeActiveIndex].dataset.theme); break;
+    case 'Escape': case 'Tab': closeThemeMenu(e.key === 'Escape'); break;
+  }
+});
+document.addEventListener('click', e=>{ if(themeMenuOpen && !e.target.closest('#themeCbx')) closeThemeMenu(); });
 document.getElementById('rootToggle').addEventListener('change', regenerate);
 document.getElementById('rootRunToggle').addEventListener('change', regenerate);
 document.getElementById('simplifyAccidentalsToggle').addEventListener('change', regenerate);
