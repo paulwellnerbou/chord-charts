@@ -66,6 +66,12 @@
        gradient still shows through, so a tall panel is modelled by the page
        rather than by itself — continuous with it instead of restarting.
 
+       --lamp lights the TOP EDGE of each box and must fade out inside it: the
+       body below stays at a constant --lift, so a box is lit at its start and
+       then flat. What must never come back is a ramp running the box's whole
+       height — two stacked boxes then read as bright / dark / bright / dark,
+       and that sawtooth is what put a cut across the console's lower half.
+
        Themes override ONLY the colours below, never the geometry.
 
        Anything using these MUST also set `background-origin:border-box`. The
@@ -77,17 +83,25 @@
        matching the number: the same alpha shifts a bright ground many times
        further than a near-black one. */
     --lift:    rgba(255,255,255,.045);
+    /* Warm and stronger than the light themes''' lamps. A pale tint at low alpha
+       over a near-black box reads as slightly-less-black, not as light; the
+       glow has to carry colour here to read as one. */
+    --lamp:    rgba(240,150,104,.17);
     --cast:    rgba(0,0,0,.8);
     --edge-hi: rgba(255,255,255,.05);
 
-    --panel-bg:linear-gradient(var(--lift), var(--lift));
+    --panel-bg:
+      radial-gradient(120% 60% at 40% -12%, var(--lamp), transparent 70%),
+      linear-gradient(var(--lift), var(--lift));
     --panel-border:var(--card-border);
     --panel-shadow:0 20px 44px -28px var(--cast), inset 0 1px 0 var(--edge-hi);
 
     --stage-border:rgba(233,209,177,.13);
     --stage-shadow:0 34px 70px -34px var(--cast), inset 0 1px 0 var(--edge-hi);
     --stage-bg-color:transparent;
-    --stage-bg-image:linear-gradient(var(--lift), var(--lift));
+    --stage-bg-image:
+      radial-gradient(120% 60% at 40% -12%, var(--lamp), transparent 70%),
+      linear-gradient(var(--lift), var(--lift));
 
     --heading-font:'Fraunces', Georgia, serif;
     --body-font:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -102,13 +116,16 @@
   :root[data-theme="warm"]{
     color-scheme:light;
 
+    /* No vignette layer. A `transparent NN%` core in a viewport-fixed radial
+       is a bright ellipse sitting over the middle of the page, not shading at
+       the edges — it laid a visible band across both boxes and darkened the
+       console top-to-bottom. The linear pass below does the shading. */
     --bg-0:#e1d0b3;
     --bg-1:#f6ecdb;
     --glow:rgba(255,253,246,1);
     --backdrop:
       radial-gradient(92% 62% at 26% -6%, var(--glow), transparent 66%),
       radial-gradient(128% 90% at 24% -12%, rgba(246,182,92,.54), transparent 70%),
-      radial-gradient(150% 115% at 58% 28%, transparent 34%, rgba(112,82,40,.18)),
       linear-gradient(180deg, var(--bg-1), var(--bg-0) 78%);
     --grain-opacity:.035;
     --grain-blend:multiply;
@@ -133,6 +150,7 @@
     --scrim:rgba(64,44,22,.42);
 
     --lift:    rgba(255,252,244,.30);
+    --lamp:    rgba(255,250,238,.55);
     --cast:    rgba(80,60,25,.13);
     --edge-hi: rgba(255,255,255,.5);
     --promo-lit:linear-gradient(180deg, rgba(238,172,88,.24), rgba(238,172,88,.10));
@@ -153,7 +171,6 @@
     --glow:rgba(255,255,255,1);
     --backdrop:
       radial-gradient(104% 70% at 24% -8%, var(--glow), transparent 68%),
-      radial-gradient(150% 115% at 60% 30%, transparent 32%, rgba(30,44,62,.19)),
       linear-gradient(180deg, var(--bg-1), var(--bg-0) 78%);
     --grain-opacity:.035;
     --grain-blend:multiply;
@@ -178,6 +195,7 @@
     --scrim:rgba(28,38,52,.44);
 
     --lift:    rgba(255,255,255,.30);
+    --lamp:    rgba(255,255,255,.60);
     --cast:    rgba(34,46,66,.13);
     --edge-hi: rgba(255,255,255,.5);
     /* white, not the accent — a coloured wash on a cool ground reads warm */
@@ -497,11 +515,12 @@
     transition:background-color .4s ease, border-color .4s ease, box-shadow .4s ease;
   }
   /* The spotlight halo follows the sheet, not the top of the page. */
-  .stage::before{
-    content:""; position:absolute; inset:-46px -34px auto; height:240px; z-index:-1;
-    background:radial-gradient(58% 100% at 50% 20%, var(--glow), transparent 72%);
-    pointer-events:none;
-  }
+  /* There was a `.stage::before` here: a 240px glow slab bleeding 46px ABOVE
+     the stage and 34px either side, painting --glow at full strength. In warm
+     that token is opaque white, so it laid a bright band across the stage's top
+     and up into the gap between the two boxes — light flaring outside the box
+     that owns it. The stage is defined by its border, shadow and raise; it does
+     not need a halo as well. */
   .stage-head{
     display:flex; align-items:flex-end; justify-content:space-between; gap:10px 18px; flex-wrap:wrap;
     padding-bottom:12px; margin-bottom:14px; border-bottom:1px solid var(--card-border);
@@ -1778,7 +1797,6 @@
       /* the stage is themed on screen; on paper its text must be ink */
       --ink:#292621; --ink-soft:#716a61; --accent:#a44737;
     }
-    .stage::before{ display:none; }
     .stage-head{ border-bottom:none; padding-bottom:0; margin-bottom:10px; }
     .grid{ gap:12px; }
     .grid.masonry{ gap:12px; }
