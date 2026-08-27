@@ -60,7 +60,11 @@
        default origin is the padding box while the clip is the border box, so
        the 1px border strip paints the START of the repeated tile — --lift —
        drawing a light hairline round the bottom and sides. */
-    --lamp:    rgba(224,122,80,.16);
+    /* Weaker and cooler than the page glow that inspires it. The stage begins
+       well below the lamp's reach, on ground that has gone neutral, so a rust
+       re-play at full strength put a warm island there — a hue shift reads as a
+       seam even when the luminance matches. Mostly light, a little rust. */
+    --lamp:    rgba(255,222,206,.055);
     --lift:    rgba(255,255,255,.035);
     --sink:    rgba(0,0,0,.30);
     --cast:    rgba(0,0,0,.8);
@@ -81,7 +85,7 @@
     --stage-shadow:0 34px 70px -34px var(--cast), inset 0 1px 0 var(--edge-hi);
     --stage-bg-color:transparent;
     --stage-bg-image:
-      radial-gradient(130% 140% at 44% -14%, var(--lamp), transparent 62%),
+      radial-gradient(150% 210% at 40% -55%, var(--lamp), transparent 66%),
       linear-gradient(180deg, var(--lift), var(--sink));
 
     --heading-font:'Fraunces', Georgia, serif;
