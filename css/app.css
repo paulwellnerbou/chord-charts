@@ -54,47 +54,40 @@
 
     /* --- Panel construction ------------------------------------------------
        Every raised surface — the stage under the tiles, the console, the promo
-       button — is built HERE, once. A panel is the ground with light played
-       across it: the lamp re-lit from the corner it comes from on the page,
-       then a vertical pass that lifts the top edge and settles just under the
-       ground at the foot. The themes below override ONLY these five colours,
-       never the geometry — hand-tuning each theme is what let them drift.
+       button — is built HERE, once, and it is deliberately FLAT: one uniform
+       translucent raise over the page, no gradient of its own.
 
-       Tune --sink and --cast per theme by RENDERED effect, not by matching the
-       number: the same alpha shifts a bright ground many times further than a
-       near-black one.
+       It used to carry a vertical lift→sink pass plus a re-played lamp. Both
+       had to go. A per-box gradient restarts at every box, so stacking two
+       gave bright-top / dark-foot / bright-top again — a sawtooth down the
+       page, and the cut across the console's lower half. The lamp compounded
+       it by lighting each box from inside, which read as a flare hanging over
+       them. Because the raise is translucent, the page's own top-to-bottom
+       gradient still shows through, so a tall panel is modelled by the page
+       rather than by itself — continuous with it instead of restarting.
+
+       Themes override ONLY the colours below, never the geometry.
 
        Anything using these MUST also set `background-origin:border-box`. The
        default origin is the padding box while the clip is the border box, so
-       the 1px border strip paints the START of the repeated tile — --lift —
-       drawing a light hairline round the bottom and sides. */
-    /* Weaker and cooler than the page glow that inspires it. The stage begins
-       well below the lamp's reach, on ground that has gone neutral, so a rust
-       re-play at full strength put a warm island there — a hue shift reads as a
-       seam even when the luminance matches. Mostly light, a little rust. */
-    --lamp:    rgba(255,222,206,.055);
-    --lift:    rgba(255,255,255,.035);
-    --sink:    rgba(0,0,0,.30);
+       the 1px border strip paints the START of the repeated tile, drawing a
+       light hairline round the bottom and sides.
+
+       --cast and --edge-hi are tuned per theme by RENDERED effect, not by
+       matching the number: the same alpha shifts a bright ground many times
+       further than a near-black one. */
+    --lift:    rgba(255,255,255,.045);
     --cast:    rgba(0,0,0,.8);
     --edge-hi: rgba(255,255,255,.05);
-    /* Hover lights the button with this theme's own light. */
-    --promo-lit:linear-gradient(180deg, rgba(224,122,80,.17), rgba(224,122,80,.07));
 
-    /* Short boxes get gentler stops: the same ramp compressed into a fraction
-       of the stage's height changes far too fast per pixel, and --sink at 210%
-       means a short card only shows its first half and never reaches ground. */
-    --panel-bg:
-      radial-gradient(160% 420% at 42% -150%, var(--lamp), transparent 66%),
-      linear-gradient(180deg, var(--lift), var(--sink) 210%);
+    --panel-bg:linear-gradient(var(--lift), var(--lift));
     --panel-border:var(--card-border);
     --panel-shadow:0 20px 44px -28px var(--cast), inset 0 1px 0 var(--edge-hi);
 
     --stage-border:rgba(233,209,177,.13);
     --stage-shadow:0 34px 70px -34px var(--cast), inset 0 1px 0 var(--edge-hi);
     --stage-bg-color:transparent;
-    --stage-bg-image:
-      radial-gradient(150% 210% at 40% -55%, var(--lamp), transparent 66%),
-      linear-gradient(180deg, var(--lift), var(--sink));
+    --stage-bg-image:linear-gradient(var(--lift), var(--lift));
 
     --heading-font:'Fraunces', Georgia, serif;
     --body-font:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -139,9 +132,7 @@
     --shadow-pop:0 14px 34px -8px rgba(80,60,25,.28), 0 2px 8px rgba(80,60,25,.12);
     --scrim:rgba(64,44,22,.42);
 
-    --lamp:    rgba(255,247,229,.90);
-    --lift:    rgba(255,252,244,.34);
-    --sink:    rgba(92,64,26,.045);
+    --lift:    rgba(255,252,244,.30);
     --cast:    rgba(80,60,25,.13);
     --edge-hi: rgba(255,255,255,.5);
     --promo-lit:linear-gradient(180deg, rgba(238,172,88,.24), rgba(238,172,88,.10));
@@ -186,11 +177,7 @@
     --shadow-pop:0 14px 34px -8px rgba(32,42,60,.28), 0 2px 8px rgba(32,42,60,.12);
     --scrim:rgba(28,38,52,.44);
 
-    /* The re-played light is WHITE here, not the accent: a coloured wash on a
-       cool ground shifts temperature across a single card. */
-    --lamp:    rgba(255,255,255,.95);
-    --lift:    rgba(255,255,255,.34);
-    --sink:    rgba(28,42,60,.045);
+    --lift:    rgba(255,255,255,.30);
     --cast:    rgba(34,46,66,.13);
     --edge-hi: rgba(255,255,255,.5);
     /* white, not the accent — a coloured wash on a cool ground reads warm */
