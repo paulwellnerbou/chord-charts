@@ -351,6 +351,41 @@
             </div>
           </div>
         </div>
+        <div class="options-group chords-only" role="group" aria-label="Voicing search options">
+          <h3 class="settings-section-title">Voicing search</h3>
+          <p class="options-group-desc">Which fingerings the search may offer, on every chord</p>
+          <div class="controls">
+            <div class="switch-wrap" id="voicingSearchMaxFretInfoWrap">
+              <div class="stepper" id="voicingSearchMaxFretStepper" title="Highest fret considered when searching for voicings. Raise it to unlock higher positions and more alternatives.">
+                <span class="stepper-label">Search up to fret</span>
+                <button type="button" class="stepper-btn" id="voicingSearchMaxFretMinus" aria-label="Lower the fret search limit">−</button>
+                <span class="stepper-value" id="voicingSearchMaxFretValue" aria-live="polite"></span>
+                <button type="button" class="stepper-btn" id="voicingSearchMaxFretPlus" aria-label="Raise the fret search limit">+</button>
+              </div>
+              <button type="button" class="info-btn" id="voicingSearchMaxFretInfoBtn" aria-label="About the fret search limit" aria-expanded="false">i</button>
+              <div class="info-popover" id="voicingSearchMaxFretInfoPopover" role="tooltip">Highest fret considered when searching for voicings. Raise it to unlock higher positions and more alternatives. Applies to every chord on the sheet and to the voicing chooser, which carries the same three controls.</div>
+            </div>
+            <div class="switch-wrap" id="voicingSearchMaxSpanInfoWrap">
+              <div class="stepper" id="voicingSearchMaxSpanStepper" title="Widest stretch a fingering may cover, counted in frets from its lowest to its highest fretted note — voicings needing a wider reach are discarded.">
+                <span class="stepper-label">Max stretch</span>
+                <button type="button" class="stepper-btn" id="voicingSearchMaxSpanMinus" aria-label="Allow a narrower stretch">−</button>
+                <span class="stepper-value" id="voicingSearchMaxSpanValue" aria-live="polite"></span>
+                <button type="button" class="stepper-btn" id="voicingSearchMaxSpanPlus" aria-label="Allow a wider stretch">+</button>
+              </div>
+              <button type="button" class="info-btn" id="voicingSearchMaxSpanInfoBtn" aria-label="About the maximum stretch" aria-expanded="false">i</button>
+              <div class="info-popover" id="voicingSearchMaxSpanInfoPopover" role="tooltip">Widest stretch a fingering may cover, counted in frets from its lowest to its highest fretted note — voicings needing a wider reach are discarded. Lower it if a shape asks for more reach than your hand has.</div>
+            </div>
+            <div class="switch-wrap" id="voicingSearchMutedInfoWrap">
+              <label class="switch" title="Let chords with only two notes (power chords) or three notes use voicings that mute strings (marked ×) instead of doubling notes.">
+                <input type="checkbox" id="voicingSearchMuted">
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <span>Allow muted strings</span>
+              </label>
+              <button type="button" class="info-btn" id="voicingSearchMutedInfoBtn" aria-label="About muted strings" aria-expanded="false">i</button>
+              <div class="info-popover" id="voicingSearchMutedInfoPopover" role="tooltip">Lets chords with only two notes (power chords) or three notes skip strings — drawn × above the nut — instead of doubling a note onto them. Often an easier grip; the sound is thinner.</div>
+            </div>
+          </div>
+        </div>
         <div class="options-group chords-only" role="group" aria-label="Playback options" id="playbackOptionsGroup">
           <h3 class="settings-section-title">Playback</h3>
           <p class="options-group-desc">How chords sound when you hit ▶</p>
