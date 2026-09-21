@@ -25,6 +25,11 @@ test('resolveQuality maps aliases to canonical keys', () => {
   assert.equal(resolveQuality('°7'), 'dim7');
   assert.equal(resolveQuality('+'), 'aug');
   assert.equal(resolveQuality('sus'), 'sus4');
+  assert.equal(resolveQuality('7sus4'), 'dom7sus4');
+  assert.equal(resolveQuality('7sus'), 'dom7sus4');
+  assert.equal(resolveQuality('7sus2'), 'dom7sus2');
+  assert.equal(resolveQuality('maj7sus2'), 'maj7sus2');
+  assert.equal(resolveQuality('Maj7sus'), 'maj7sus4');
   assert.equal(resolveQuality('6/9'), 'six9');
   assert.equal(resolveQuality('no3'), 'five');
   assert.equal(resolveQuality('maj13'), null);
@@ -256,6 +261,24 @@ test('identifyChord offers relative names for the ambiguous sus and symmetric sh
   const dim = exactLabels(identifyChord([0, 3, 6, 9], 0));
   assert.equal(dim[0], 'Cdim7');
   assert.equal(dim.length, 4);
+});
+
+test('suspended dominant 7ths parse, transpose and identify', () => {
+  const sus4 = parseChord('G7sus4');
+  assert.deepEqual([...sus4.requiredPCs].sort((a, b) => a - b), [0, 2, 5, 7]); // G C D F
+  assert.equal(sus4.rootPC, 7);
+  assert.equal(sus4.omitted, null);
+  const sus2 = parseChord('G7sus2');
+  assert.deepEqual([...sus2.requiredPCs].sort((a, b) => a - b), [2, 5, 7, 9]); // G A D F
+  assert.equal(transposeToken('G7sus4', 2), 'A7sus4');
+  assert.equal(exactLabels(identifyChord([7, 0, 2, 5], 7))[0], 'G7sus4');
+  assert.equal(exactLabels(identifyChord([7, 9, 2, 5], 7))[0], 'G7sus2');
+  const maj = parseChord('Fmaj7sus2');
+  assert.deepEqual([...maj.requiredPCs].sort((a, b) => a - b), [0, 4, 5, 7]); // F G C E
+  assert.equal(exactLabels(identifyChord([5, 7, 0, 4], 5))[0], 'Fmaj7sus2');
+  assert.equal(exactLabels(identifyChord([0, 5, 7, 11], 0))[0], 'Cmaj7sus4');
+  // the plain triad still reads as the triad, not a 7sus short of its 7th
+  assert.equal(identifyChord([7, 0, 2], 7).matches[0].label, 'Gsus4');
 });
 
 test('identifyChord falls back to a one-tone-short near-miss only when nothing fits exactly', () => {

@@ -14,6 +14,8 @@ const CHORD_TONES = {
   dom7:[0,4,7,10], min7:[0,3,7,10], maj7:[0,4,7,11],
   dim:[0,3,6], dim7:[0,3,6,9], m7b5:[0,3,6,10],
   aug:[0,4,8], sus2:[0,2,7], sus4:[0,5,7],
+  dom7sus2:[0,2,7,10], dom7sus4:[0,5,7,10],
+  maj7sus2:[0,2,7,11], maj7sus4:[0,5,7,11],
   six:[0,4,7,9], m6:[0,3,7,9],
   add9:[0,2,4,7], madd9:[0,2,3,7],
   // 5-tone extended chords don't fit 4 strings; drop the 5th, the standard shell voicing.
@@ -74,6 +76,10 @@ function resolveQuality(raw){
     'aug':'aug', '+':'aug',
     'sus2':'sus2',
     'sus4':'sus4', 'sus':'sus4',
+    '7sus2':'dom7sus2',
+    '7sus4':'dom7sus4', '7sus':'dom7sus4',
+    'maj7sus2':'maj7sus2', 'ma7sus2':'maj7sus2',
+    'maj7sus4':'maj7sus4', 'ma7sus4':'maj7sus4', 'maj7sus':'maj7sus4',
     '6':'six',
     'm6':'m6', 'min6':'m6',
     'add9':'add9',
@@ -290,6 +296,8 @@ const QUALITY_SUFFIX = {
   dom7:'7', min7:'m7', maj7:'maj7',
   dim:'dim', dim7:'dim7', m7b5:'m7b5',
   aug:'aug', sus2:'sus2', sus4:'sus4',
+  dom7sus2:'7sus2', dom7sus4:'7sus4',
+  maj7sus2:'maj7sus2', maj7sus4:'maj7sus4',
   six:'6', m6:'m6',
   add9:'add9', madd9:'madd9',
   dom9:'9', six9:'6/9', maj9:'maj9',
@@ -302,6 +310,7 @@ const QUALITY_RANK = {
   major:0, minor:1, dom7:2, min7:3, maj7:4, six:5, m6:6, five:7,
   sus4:8, sus2:9, dim:10, aug:11, m7b5:12, dim7:13,
   add9:14, madd9:15, dom9:16, six9:17, maj9:18,
+  dom7sus4:19, dom7sus2:20, maj7sus4:21, maj7sus2:22,
 };
 // Chord-root spellings: the conventional accidental for each pitch class as a
 // chord name (Eb not D#, Bb not A#, but C#/F# sharp). Used for roots, basses and
