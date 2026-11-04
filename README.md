@@ -37,6 +37,7 @@ then open `http://localhost:8000`.
 - `js/theory.js` — chord parsing, voicing search, transposition (pure, tested)
 - `js/scales.js` — scale parsing, note spelling, position generation (pure, tested)
 - `js/diagram.js` — SVG diagram rendering (pure, tested)
+- `js/glyphs.js` — notation glyph outlines from MuseScore's Leland font (SIL OFL 1.1, see `OFL.txt`)
 - `js/audio.js` — Web Audio playback
 - `js/ui.js` — shared modal/menu/stepper primitives
 - `js/app.js` — features, state and DOM wiring

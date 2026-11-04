@@ -5,7 +5,7 @@ import {
   identifyChord, spellNote, formatAccidentals,
   canonicalChordName,
 } from './theory.js';
-import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, setAccidentalBearings, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG } from './diagram.js';
+import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, setAccidentalBearings, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG, staffSVG, exportStaffTileSVG } from './diagram.js';
 import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, doubleAccidentalExample, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret } from './scales.js';
 import {
   playNote, playChord, chordPlayDuration, chordNoteTimings,
@@ -683,7 +683,9 @@ function presentCardMenu(menu, btn){
 
 function toggleCardMenu(card, btn){
   if(cardMenuState && cardMenuState.btn === btn){ closeCardMenu(); return; }
-  card._scaleResult ? openScaleCardMenu(card, btn) : openCardMenu(card, btn);
+  if(card._staffTile) openStaffCardMenu(card, btn);
+  else if(card._scaleResult) openScaleCardMenu(card, btn);
+  else openCardMenu(card, btn);
 }
 
 // --- notes lighting up as they sound ---
@@ -2476,6 +2478,7 @@ const fretboardIdCardSlotEl = document.getElementById('fretboardIdCardSlot');
 const fretboardIdPlayEl = document.getElementById('fretboardIdPlay');
 const fretboardIdCopyLinkEl = document.getElementById('fretboardIdCopyLink');
 const fretboardIdNamesToggleEl = document.getElementById('fretboardIdNamesToggle');
+const fretboardIdStaffSlotEl = document.getElementById('fretboardIdStaffSlot');
 fretboardIdNamesToggleEl.addEventListener('change', ()=> renderFretboardIdBoard());
 
 // Compact, link/settings-friendly encoding: x muted, o open, else the fret.
@@ -2651,6 +2654,56 @@ function renderFretboardIdCard(primary){
   fretboardIdCardSlotEl.appendChild(buildCard(result, ctx));
 }
 
+// The same notes in staff notation, a card of its own before the chord card
+// with the same play and export controls — kept out of the readout, whose
+// verdict changes height as the fingering does, and ahead of the chord card,
+// which comes and goes. A fingering that names no chord is titled by its
+// notes, lowest first.
+function renderFretboardIdStaff(primary, sounding){
+  fretboardIdStaffSlotEl.innerHTML = '';
+  if(!sounding.length) return;
+  const tuning = currentTuning();
+  const names = [...new Set(sounding.slice().sort((a,b)=> a-b).map(a=> spellNote(a)))];
+  const label = primary ? formatAccidentals(primary.label) : names.map(formatAccidentals).join(' · ');
+  const card = document.createElement('div');
+  card.className = 'card staff-card';
+  card._staffTile = { label, fileBase: chordFileBase(`${primary ? primary.label : names.join(' ')} notation`), sounding: sounding.slice(), tuning };
+  card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play these notes" aria-label="Play these notes">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play these notes">${accGlyphsHTML(label)}</h2></div><p class="card-sub">${accGlyphsHTML(instrumentLine(tuning))}</p><div class="diagram-slot">${staffSVG(sounding, tuning.clef, tuning.writtenOctave, currentColors(), true)}</div>`;
+  const slot = card.querySelector('.diagram-slot');
+  bindNoteDotHandlers(slot);
+  // a head and its name in the row beneath answer the pointer together
+  const hot = (e, on)=>{
+    const el = e.target.closest('[data-abs]');
+    if(el) slot.querySelectorAll(`[data-abs="${el.dataset.abs}"]`).forEach(x=> x.classList.toggle('is-hot', on));
+  };
+  slot.addEventListener('mouseover', e=> hot(e, true));
+  slot.addEventListener('mouseout', e=> hot(e, false));
+  appendCardMenuButton(card, `${label} in staff notation`);
+  bindCardPlayHandlers(card, ()=> playCardNotes(card, sounding, chordPlayOpts(tuning)));
+  fretboardIdStaffSlotEl.appendChild(card);
+  fitCardLines('#fretboardIdStaffSlot .card h2', TITLE_FONT_MIN);
+}
+
+function staffTileSVGString({ label, sounding, tuning }){
+  return exportStaffTileSVG(label, instrumentLine(tuning), sounding, tuning.clef, tuning.writtenOctave,
+    currentColors(), document.getElementById('borderToggle').checked, fretboardShareURL());
+}
+
+// The staff card is rebuilt on every change, so what it holds is settled already.
+function openStaffCardMenu(card, btn){
+  const menu = ensureCardMenu();
+  closeCardMenu();
+  const tile = card._staffTile;
+  menu.innerHTML = '';
+  menu.setAttribute('aria-label', `Actions for ${tile.label} in staff notation`);
+  const addAction = addCardMenuAction.bind(null, menu);
+  const base = tile.fileBase;
+  addAction(COPY_ICON, 'Copy image', ()=> copyTileImage(staffTileSVGString(tile), `${base}.png`, btn));
+  addAction(DOWNLOAD_ICON, 'Download PNG', ()=> downloadTilePNG(staffTileSVGString(tile), `${base}.png`, btn));
+  addAction(DOWNLOAD_ICON, 'Download SVG', ()=> downloadTileSVG(staffTileSVGString(tile), `${base}.svg`, btn));
+  presentCardMenu(menu, btn);
+}
+
 function updateFretboardIdResult(){
   const t = currentTuning();
   // absolute pitch of every sounding string, kept in string order (dupes and all)
@@ -2675,6 +2728,7 @@ function updateFretboardIdResult(){
   fretboardIdPlayEl.disabled = !sounding.length;
   fretboardIdChordLabel = primary ? primary.label : null;
   renderFretboardIdCard(primary);
+  renderFretboardIdStaff(primary, sounding);
   setFretboardVerdict(verdictHTML);
   syncFretboardIdShareLink();
 }

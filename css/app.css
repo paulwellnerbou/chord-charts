@@ -1636,8 +1636,16 @@
   .fb-alts{ margin:8px 0 0; font-size:13.5px; color:var(--ink-soft); }
   .fb-alts span{ font-weight:650; color:var(--ink); white-space:nowrap; }
   .fb-none{ margin:0; font-size:15px; color:var(--ink-soft); }
-  .fb-card-slot{ margin:14px 0 2px; }
+  /* the chord card and its notation side by side, each gone while empty */
+  .fb-cards{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:14px; margin:14px 0 2px; }
+  .fb-card-slot{ flex:1 1 180px; min-width:0; }
   .fb-card-slot:empty{ display:none; }
+  /* a head and its name light together under the pointer: colour is the
+     feedback, so no fading; a focus ring as wide as the dots' would swallow
+     a head's hollow */
+  .staff-card .note-dot:hover{ opacity:1; }
+  .staff-card .is-hot{ fill:var(--accent); }
+  .staff-card .note-dot:focus-visible{ stroke-width:1.5; }
   .fb-tuning{ margin:0 0 14px; }
   .fb-tuning .field-label{ margin:0 0 6px; }
   /* notes + verdict grouped into one result panel, play button leading it */
@@ -1701,6 +1709,14 @@
     .fb-board-col{ order:1; align-self:stretch; }
     .fb-readout{ order:0; position:static; width:100%; padding-bottom:10px; margin-bottom:2px; border-bottom:1px solid var(--card-border); }
     .fb-card-slot{ display:none; }
+    /* the notation says what the board can't, so it stays — trimmed to the
+       staff and its menu, with the verdict right above naming the chord; the
+       right padding keeps the corner button off the staff */
+    .fb-staff-slot{ display:block; }
+    .fb-staff-slot .card{ max-width:none; padding:10px 44px 8px 10px; }
+    .fb-staff-slot .chord-title-row, .fb-staff-slot .card-sub{ display:none; }
+    /* the staff takes the card's whole width: heads and names grow into finger targets */
+    .fb-staff-slot .card svg{ width:100%; }
     body{ padding:14px 10px 32px; }
     .topbar{ margin:2px 0 18px; }
     .brand-tagline{ display:none; }

@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TUNINGS } from '../js/theory.js';
-import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG } from '../js/diagram.js';
+import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG, staffLayout, staffSVG, exportStaffTileSVG } from '../js/diagram.js';
+import { LELAND } from '../js/glyphs.js';
 import { parseScale, scalePositions, scaleNeck, scaleNoteNames } from '../js/scales.js';
 
 const UKE = TUNINGS[0];
@@ -357,4 +358,111 @@ test('the b&w export flashes in its own ink', () => {
     null, null, false, null, null, RUN);
   assert.match(svg, /drop-shadow\(0 0 5px #000000\)/);
   assert.ok(!svg.includes('#a44737'), 'no colour leaks into the photocopy');
+});
+
+// --- staff notation ---
+
+const BASS = TUNINGS.find(t => t.id === 'bass');
+const count = (svg, cls) => (svg.match(new RegExp(`class="${cls}"`, 'g')) || []).length;
+
+test('staffLayout puts each note on its letter line, lowest first', () => {
+  // C4 one ledger line below the treble staff, E4 on the bottom line, F5 on the top
+  assert.deepEqual(staffLayout([77, 60, 64]).map(n => n.step), [-2, 0, 8]);
+});
+
+test('staffLayout places an accidental on its letter, not its sounding pitch', () => {
+  const [cs, bb] = staffLayout([61, 70]);
+  assert.deepEqual([cs.step, cs.acc], [-2, 1], 'C#4 sits on C4\'s ledger line');
+  assert.deepEqual([bb.step, bb.acc], [4, -1], 'Bb4 sits on the middle line');
+});
+
+test('staffLayout writes the bass an octave up, so its open strings fit the bass staff', () => {
+  // E1 A1 D2 G2 written as E2 A2 D3 G3: one ledger line below, then up to the top space
+  assert.deepEqual(staffLayout(BASS.openAbs, BASS.clef, BASS.writtenOctave).map(n => n.step), [-2, 1, 4, 7]);
+});
+
+test('staffLayout draws a doubled pitch once and moves the upper note of a second aside', () => {
+  const notes = staffLayout([60, 60, 62]);
+  assert.equal(notes.length, 2);
+  assert.deepEqual(notes.map(n => n.right), [false, true]);
+  // a third stacks normally
+  assert.deepEqual(staffLayout([60, 64]).map(n => n.right), [false, false]);
+});
+
+test('staffLayout spreads close accidentals over columns and lets distant ones share', () => {
+  const [fs, gs] = staffLayout([66, 68]);
+  assert.notEqual(fs.accCol, gs.accCol, 'F#4 and G#4 would overlap in one column');
+  const [low, high] = staffLayout([61, 73]);
+  assert.equal(low.accCol, high.accCol, 'C#4 and C#5 are an octave apart');
+});
+
+test('every Leland glyph is a closed outline with a box and an advance', () => {
+  for (const [name, g] of Object.entries(LELAND)) {
+    assert.match(g.d, /^M[-\d. MLCQZ]+Z$/, name);
+    assert.ok(g.x0 < g.x1 && g.y0 < g.y1 && g.adv > 0, name);
+  }
+});
+
+const viewBoxH = svg => parseFloat(svg.match(/viewBox="0 0 [\d.]+ ([\d.]+)"/)[1]);
+const clefD = svg => svg.match(/class="staff-clef" d="([^"]+)"/)[1];
+
+test('staffSVG draws five lines, the clef, a head per pitch and only the ledger lines needed', () => {
+  const svg = staffSVG([60, 64, 67]);
+  assert.ok(svg.startsWith('<svg') && svg.endsWith('</svg>'));
+  assert.equal(count(svg, 'staff-line'), 5);
+  assert.equal(count(svg, 'staff-note'), 3);
+  assert.equal(count(svg, 'staff-ledger'), 1, 'middle C alone needs one');
+  assert.equal(count(svg, 'staff-acc'), 0);
+  assert.ok(!svg.includes('transform="translate(0,0)"') && !svg.includes('scale('), 'glyphs are baked into their paths');
+});
+
+test('staffSVG draws accidentals as glyphs and an 8vb clef for a part written an octave up', () => {
+  assert.equal(count(staffSVG([61, 70]), 'staff-acc'), 2);
+  const plain = clefD(staffSVG([28], BASS.clef, 0));
+  const written = clefD(staffSVG([28], BASS.clef, BASS.writtenOctave));
+  assert.notEqual(plain, written);
+  assert.ok((written.match(/M/g) || []).length > (plain.match(/M/g) || []).length, 'the 8 adds outlines');
+});
+
+test('staffSVG keeps its box until a note reaches past the clef', () => {
+  const inStaff = viewBoxH(staffSVG([64, 77]));
+  assert.equal(viewBoxH(staffSVG([67])), inStaff, 'E4 to F5 all sit within the clef\'s reach');
+  assert.ok(viewBoxH(staffSVG([48])) > inStaff, 'C3 hangs four ledger lines below');
+  assert.ok(viewBoxH(staffSVG([])) <= inStaff, 'no names row without notes');
+});
+
+test('staffSVG names the heads in a row beneath, lowest first', () => {
+  const svg = staffSVG([71, 62, 67, 65]);
+  assert.equal(count(svg, 'staff-name'), 4);
+  assert.equal(count(svg, 'staff-name-sep'), 3);
+  assert.match(svg, />D<\/text>.*>F<\/text>.*>G<\/text>.*>B<\/text>/);
+  assert.ok(staffSVG([61]).includes('♯'), 'accidentals are typeset as in the headings');
+  assert.equal(count(staffSVG([]), 'staff-name'), 0);
+});
+
+test('staffSVG shows an empty staff with its clef while nothing sounds', () => {
+  const svg = staffSVG([]);
+  assert.equal(count(svg, 'staff-note'), 0);
+  assert.ok(svg.includes('class="staff-clef"'));
+});
+
+test('staffSVG makes heads and names playable only when asked, with a hit area over each hollow', () => {
+  const plain = staffSVG([60, 64]);
+  assert.equal(count(plain, 'note-dot'), 0);
+  assert.equal(count(plain, 'staff-hit'), 0);
+  const playable = staffSVG([60, 64], 'treble', 0, NICE_COLORS, true);
+  assert.equal(count(playable, 'note-dot'), 4, 'two heads and two names');
+  assert.equal(count(playable, 'staff-hit'), 4, 'an ellipse over each head, a rect over each name');
+  assert.equal((playable.match(/data-abs="60"/g) || []).length, 2, 'the head and its name share the pitch');
+});
+
+test('exportStaffTileSVG frames the staff with heading, instrument and source', () => {
+  const svg = exportStaffTileSVG('G7', 'Ukulele (high G) · GCEA', [67, 62, 65, 71], 'treble', 0, NICE_COLORS, true, 'https://example.test/?fretboard=o-2-1-2');
+  assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '));
+  assert.ok(svg.includes('>G7</text>'));
+  assert.ok(svg.includes('UKULELE (HIGH G) · GCEA'));
+  assert.ok(svg.includes('<metadata>Staff notation from https://example.test/?fretboard=o-2-1-2</metadata>'));
+  assert.equal(count(svg, 'staff-note'), 4);
+  assert.equal(count(svg, 'staff-name'), 4, 'the names travel with the tile');
+  assert.equal(count(svg, 'note-dot'), 0);
 });

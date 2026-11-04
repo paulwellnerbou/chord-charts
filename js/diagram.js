@@ -1,6 +1,7 @@
 // Fretboard diagrams as SVG strings, plus the color palettes.
 
 import { spellNote, formatAccidentals } from './theory.js';
+import { LELAND } from './glyphs.js';
 
 const EXPORT_HEADING_FONT = "Georgia, 'Times New Roman', serif";
 const NICE_COLORS = {
@@ -394,8 +395,175 @@ function exportNeckTileSVG(label, instrument, stringFrets, numFrets, labels, col
     sourceURL ? `Scale diagram from ${sourceURL}` : null, run);
 }
 
+// --- staff notation: a fingering's sounding notes as one stacked chord ---
+// Engraved with Leland's outlines (glyphs.js) at SP px to the staff space, the
+// SMuFL way: the clef sits on its line, a head or accidental is centred on the
+// step it names. A step is one letter name up from the bottom line, half a
+// space each.
+const SP = 10, STAFF_W = 18.8, CLEF_X = 1, NOTE_X = 10.2;
+const HEAD = LELAND.noteheadWhole;
+const SECOND_SHIFT = HEAD.adv - 0.1;   // the upper note of a second, beside the lower
+const STAFF_ACC_GAP = 0.22, STAFF_ACC_COL = 1.12;  // accidental to head, and column to column
+const LINE_W = 0.11, LEDGER_W = 0.16, LEDGER_EXT = 0.35;
+const STAFF_PAD = 0.5;                 // room beyond the clef and the outermost head
+const NAME_SIZE = 1.55, NAME_SLOT = 2.5;  // the note names under the chord, each in a slot of its own
+const STAFF_LETTERS = { C:0, D:1, E:2, F:3, G:4, A:5, B:6 };
+// bottom: the bottom line as a letter index from C0 (seven per octave);
+// line: the step of the line the clef marks
+const STAFF_CLEFS = {
+  treble: { bottom: 4*7+2, line:2, glyph:'gClef' },
+  bass:   { bottom: 2*7+4, line:6, glyph:'fClef' },
+};
+
+function staffY(step){ return 4 - step/2; }
+function accGlyph(acc){ return acc > 0 ? LELAND.accidentalSharp : LELAND.accidentalFlat; }
+
+// The chord's notes placed on the staff, lowest first: step and accidental
+// from the pitch's spelling, so C# sits on C's line; `right` for the upper
+// note of a second, which can't share the column; accCol for how far left
+// its accidental must stand to clear the others.
+function staffLayout(absNotes, clef = 'treble', writtenOctave = 0){
+  const c = STAFF_CLEFS[clef];
+  const seen = new Set();
+  const notes = [];
+  absNotes.forEach(abs=>{
+    const name = spellNote(abs);
+    const acc = (name.match(/#/g)||[]).length - (name.match(/b/g)||[]).length;
+    // the letter's own pitch: B#3 sounds as C4 but sits on B's line
+    const natural = abs + writtenOctave*12 - acc;
+    const step = (Math.floor(natural/12) - 1)*7 + STAFF_LETTERS[name[0]] - c.bottom;
+    const key = `${step}/${acc}`;
+    if(seen.has(key)) return;
+    seen.add(key);
+    notes.push({ step, acc, abs, right:false, accCol:0 });
+  });
+  notes.sort((a,b)=> a.step - b.step);
+  notes.forEach((n,i)=>{
+    const below = notes[i-1];
+    n.right = !!below && n.step - below.step <= 1 && !below.right;
+  });
+  // accidentals from the top down, each in the first column whose last glyph
+  // ends above where this one begins
+  const colBottom = [];
+  for(let i=notes.length-1; i>=0; i--){
+    const n = notes[i];
+    if(!n.acc) continue;
+    const g = accGlyph(n.acc), y = staffY(n.step);
+    let col = colBottom.findIndex(bottom => bottom <= y + g.y0 - 0.1);
+    if(col < 0){ col = colBottom.length; colBottom.push(0); }
+    colBottom[col] = y + g.y1;
+    n.accCol = col;
+  }
+  return notes;
+}
+
+// ledger lines a head at this step needs: every other step below or above the staff
+function ledgerSteps(step){
+  const out = [];
+  for(let st=-2; st>=step; st-=2) out.push(st);
+  for(let st=10; st<=step; st+=2) out.push(st);
+  return out;
+}
+
+// A glyph's outline moved to x,y (staff spaces) and scaled to px, baked into
+// the path data: a transform attribute would be the sounding animation's to
+// override on a head, and an exported file reads plainer without one.
+function glyphPath(g, x, y){
+  let isX = true;
+  return g.d.replace(/[A-Za-z]|-?\d*\.?\d+/g, t=>{
+    if(/[A-Za-z]/.test(t)){ isX = true; return t; }
+    const v = pct((+t + (isX ? x : y))*SP);
+    isX = !isX;
+    return String(v);
+  });
+}
+
+function noteName(n){ return formatAccidentals(spellNote(n.abs)); }
+
+// The staff drawn into a box starting at 0,0 (as exportFrame places it): five
+// lines, the clef (an 8vb one for a part written an octave above sounding, as
+// bass parts are), ledger lines, heads and accidentals, and the heads' names
+// in a row beneath. The box grows only for what reaches past the clef.
+// `playable` hangs the card's note-dot behaviour on heads and names alike.
+function staffInner(absNotes, clef, writtenOctave, colors, playable){
+  const c = STAFF_CLEFS[clef];
+  const clefGlyph = LELAND[c.glyph + (writtenOctave ? '8vb' : '')];
+  const clefY = staffY(c.line);
+  const notes = staffLayout(absNotes, clef, writtenOctave);
+  const ys = notes.map(y=> staffY(y.step));
+  const top = Math.min(clefY + clefGlyph.y0, ...ys.map(y=> y + HEAD.y0)) - STAFF_PAD;
+  // the names hang under whatever reaches lowest on the chord's side, a head
+  // on the bottom line at the least, so every chord within the staff shares
+  // one box
+  const namesY = notes.length ? Math.max(4 + HEAD.y1, ...ys.map(y=> y + HEAD.y1)) + NAME_SIZE*1.75 : 0;
+  const bottom = Math.max(clefY + clefGlyph.y1, 4, namesY + NAME_SIZE*0.3) + STAFF_PAD;
+  const P = v => pct(v*SP);
+  const ink = `fill="${colors.ink}"`;
+  const rule = `stroke="${colors.ink}" opacity="${colors.lineOpacity}"`;
+  let s = `<g transform="translate(0,${P(-top)})">`;
+  for(let l=0; l<5; l++){
+    s += `<line class="staff-line" x1="0" y1="${P(l)}" x2="${P(STAFF_W)}" y2="${P(l)}" ${rule} stroke-width="${P(LINE_W)}"/>`;
+  }
+  s += `<path class="staff-clef" d="${glyphPath(clefGlyph, CLEF_X, clefY)}" ${ink}/>`;
+  const xOf = n => NOTE_X + (n.right ? SECOND_SHIFT : 0);
+  // each ledger line only as wide as the heads that sit on or beyond it
+  const ledgers = new Map();
+  notes.forEach(n=> ledgerSteps(n.step).forEach(st=>{
+    const [lo, hi] = ledgers.get(st) || [xOf(n), xOf(n) + HEAD.adv];
+    ledgers.set(st, [Math.min(lo, xOf(n)), Math.max(hi, xOf(n) + HEAD.adv)]);
+  }));
+  ledgers.forEach(([lo, hi], st)=>{
+    s += `<line class="staff-ledger" x1="${P(lo-LEDGER_EXT)}" y1="${P(staffY(st))}" x2="${P(hi+LEDGER_EXT)}" y2="${P(staffY(st))}" ${rule} stroke-width="${P(LEDGER_W)}"/>`;
+  });
+  notes.forEach(n=>{
+    const y = staffY(n.step), x = xOf(n);
+    const head = glyphPath(HEAD, x, y);
+    if(playable){
+      // the group is the dot (its fill reaches the head), and the clear
+      // ellipse over it catches a pointer in the head's hollow
+      s += `<g class="note-dot" data-abs="${n.abs}" tabindex="0" role="button" aria-label="Play ${escapeXML(noteName(n))}" ${ink}>`
+        + `<path class="staff-note" d="${head}"/>`
+        + `<ellipse class="staff-hit" cx="${P(x + HEAD.adv/2)}" cy="${P(y)}" rx="${P(HEAD.adv/2 + 0.25)}" ry="${P(0.75)}" fill="transparent" stroke="none"/></g>`;
+    } else {
+      s += `<path class="staff-note" d="${head}" ${ink}/>`;
+    }
+    const g = accGlyph(n.acc);
+    for(let k=0; k<Math.abs(n.acc); k++){
+      s += `<path class="staff-acc" d="${glyphPath(g, NOTE_X - STAFF_ACC_GAP - g.adv - n.accCol*STAFF_ACC_COL - k*(g.adv+0.1), y)}" ${ink}/>`;
+    }
+  });
+  // the names in equal slots centred under the chord, dots between them; a
+  // playable name's clear rect makes its whole slot the finger's target
+  if(notes.length){
+    const cx = NOTE_X + HEAD.adv/2 + (notes.some(n=> n.right) ? SECOND_SHIFT/2 : 0);
+    const x0 = cx - (notes.length-1)*NAME_SLOT/2;
+    const textAttrs = `y="${P(namesY)}" text-anchor="middle" font-size="${P(NAME_SIZE)}" font-weight="700" font-family="Arial,sans-serif"`;
+    notes.forEach((n,i)=>{
+      const x = x0 + i*NAME_SLOT;
+      if(i) s += `<text class="staff-name-sep" x="${P(x - NAME_SLOT/2)}" ${textAttrs} ${ink} opacity="${colors.lineOpacity}">·</text>`;
+      const name = extra => `<text class="staff-name" x="${P(x)}" ${textAttrs}${extra}>${accTspans(escapeXML(noteName(n)), pct(NAME_SIZE*SP*0.68))}</text>`;
+      s += playable
+        ? `<g class="note-dot" data-abs="${n.abs}" ${ink}>${name('')}<rect class="staff-hit" x="${P(x - NAME_SLOT/2)}" y="${P(namesY - NAME_SIZE*1.15)}" width="${P(NAME_SLOT)}" height="${P(NAME_SIZE*1.6)}" fill="transparent" stroke="none"/></g>`
+        : name(` ${ink}`);
+    });
+  }
+  s += '</g>';
+  return { svg:s, w: pct(STAFF_W*SP), h: pct((bottom-top)*SP) };
+}
+
+function staffSVG(absNotes, clef = 'treble', writtenOctave = 0, colors = NICE_COLORS, playable = false){
+  const { svg, w, h } = staffInner(absNotes, clef, writtenOctave, colors, playable);
+  return `<svg viewBox="0 0 ${w} ${h}" width="164" role="img" aria-label="Staff notation">${svg}</svg>`;
+}
+
+function exportStaffTileSVG(label, instrument, absNotes, clef, writtenOctave, colors, showBorder, sourceURL){
+  const { svg, w, h } = staffInner(absNotes, clef, writtenOctave, colors, false);
+  return exportFrame(label, instrument, svg, w, h, colors, showBorder, null,
+    sourceURL ? `Staff notation from ${sourceURL}` : null, null);
+}
+
 export {
   NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS,
   escapeXML, setAccidentalBearings, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG,
-  neckSVG, exportNeckTileSVG,
+  neckSVG, exportNeckTileSVG, staffLayout, staffSVG, exportStaffTileSVG,
 };
