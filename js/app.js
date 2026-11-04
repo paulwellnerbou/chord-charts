@@ -712,10 +712,13 @@ function lightNoteDot(dot, ms){
 // front: one swapped mid-run simply stops lighting, nothing stale left behind.
 function lightNotes(slot, midiNotes, opts, started){
   if(!slot) return;
+  // the create-chord dialog's chord card and staff card show the same notes,
+  // so a note sounding from either lights up in both
+  const scope = slot.closest('.fb-cards') || slot;
   started.then(()=>{
     for(const { midi, at, ms } of chordNoteTimings(midiNotes, opts)){
       setTimeout(()=>{
-        slot.querySelectorAll(`.note-dot[data-abs="${midi}"]`)
+        scope.querySelectorAll(`.note-dot[data-abs="${midi}"]`)
           .forEach(dot=>{ if(!dot.closest('.diagram-ghost')) lightNoteDot(dot, ms); });
       }, at);
     }
@@ -2475,6 +2478,7 @@ const fretboardIdStringsEl = document.getElementById('fretboardIdStrings');
 const fretboardIdNotesEl = document.getElementById('fretboardIdNotes');
 const fretboardIdVerdictEl = document.getElementById('fretboardIdVerdict');
 const fretboardIdCardSlotEl = document.getElementById('fretboardIdCardSlot');
+const fretboardIdCardsEl = document.getElementById('fretboardIdCards');
 const fretboardIdPlayEl = document.getElementById('fretboardIdPlay');
 const fretboardIdCopyLinkEl = document.getElementById('fretboardIdCopyLink');
 const fretboardIdNamesToggleEl = document.getElementById('fretboardIdNamesToggle');
@@ -2669,20 +2673,22 @@ function renderFretboardIdStaff(primary, sounding){
   card.className = 'card staff-card';
   card._staffTile = { label, fileBase: chordFileBase(`${primary ? primary.label : names.join(' ')} notation`), sounding: sounding.slice(), tuning };
   card.innerHTML = `<div class="chord-title-row"><button type="button" class="play-chord-btn no-print" title="Play these notes" aria-label="Play these notes">${PLAY_ICON}</button><h2 tabindex="0" role="button" aria-label="Play these notes">${accGlyphsHTML(label)}</h2></div><p class="card-sub">${accGlyphsHTML(instrumentLine(tuning))}</p><div class="diagram-slot">${staffSVG(sounding, tuning.clef, tuning.writtenOctave, currentColors(), true)}</div>`;
-  const slot = card.querySelector('.diagram-slot');
-  bindNoteDotHandlers(slot);
-  // a head and its name in the row beneath answer the pointer together
-  const hot = (e, on)=>{
-    const el = e.target.closest('[data-abs]');
-    if(el) slot.querySelectorAll(`[data-abs="${el.dataset.abs}"]`).forEach(x=> x.classList.toggle('is-hot', on));
-  };
-  slot.addEventListener('mouseover', e=> hot(e, true));
-  slot.addEventListener('mouseout', e=> hot(e, false));
+  bindNoteDotHandlers(card.querySelector('.diagram-slot'));
   appendCardMenuButton(card, `${label} in staff notation`);
   bindCardPlayHandlers(card, ()=> playCardNotes(card, sounding, chordPlayOpts(tuning)));
   fretboardIdStaffSlotEl.appendChild(card);
   fitCardLines('#fretboardIdStaffSlot .card h2', TITLE_FONT_MIN);
 }
+
+// Both cards show the same notes, so the one under the pointer is marked in
+// each: the fret dot, the head and the name of it. Delegated, since the cards
+// are rebuilt on every change.
+function markHotNotes(e, on){
+  const el = e.target.closest('[data-abs]');
+  if(el) fretboardIdCardsEl.querySelectorAll(`[data-abs="${el.dataset.abs}"]`).forEach(x=> x.classList.toggle('is-hot', on));
+}
+fretboardIdCardsEl.addEventListener('mouseover', e=> markHotNotes(e, true));
+fretboardIdCardsEl.addEventListener('mouseout', e=> markHotNotes(e, false));
 
 function staffTileSVGString({ label, sounding, tuning }){
   return exportStaffTileSVG(label, instrumentLine(tuning), sounding, tuning.clef, tuning.writtenOctave,
@@ -2781,7 +2787,10 @@ function playFretboardString(i){
   const v = fretboardIdState[i];
   if(v === null) return;
   const abs = currentTuning().openAbs[i] + v;
-  flashPlayButton(fretboardIdPlayEl, playNote(abs), chordPlayDuration([abs]));
+  const started = playNote(abs);
+  flashPlayButton(fretboardIdPlayEl, started, chordPlayDuration([abs]));
+  // the cards are rebuilt right after this, and the light lands on the new ones
+  lightNotes(fretboardIdCardsEl, [abs], null, started);
 }
 
 fretboardIdBoardEl.addEventListener('click', e=>{
@@ -2807,7 +2816,11 @@ fretboardIdBoardEl.addEventListener('click', e=>{
 
 fretboardIdPlayEl.addEventListener('click', ()=>{
   const abs = chordAbsNotes(fretboardIdState, currentTuning().openAbs);
-  if(abs.length) playChordAndFlash(fretboardIdPlayEl, abs, chordPlayOpts(currentTuning()));
+  if(!abs.length) return;
+  const opts = chordPlayOpts(currentTuning());
+  const started = playChord(abs, opts);
+  flashPlayButton(fretboardIdPlayEl, started, chordPlayDuration(abs, opts));
+  lightNotes(fretboardIdCardsEl, abs, opts, started);
 });
 
 // Brief inline "Copied"/"Shown" feedback on the copy-link button's own label.

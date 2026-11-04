@@ -1640,11 +1640,11 @@
   .fb-cards{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:14px; margin:14px 0 2px; }
   .fb-card-slot{ flex:1 1 180px; min-width:0; }
   .fb-card-slot:empty{ display:none; }
-  /* a head and its name light together under the pointer: colour is the
-     feedback, so no fading; a focus ring as wide as the dots' would swallow
-     a head's hollow */
+  /* the note under the pointer, marked in both cards as a sounding one is:
+     colour is the feedback on the staff, so no fading there; a focus ring as
+     wide as the dots' would swallow a head's hollow */
+  .fb-cards .is-hot{ fill:var(--accent); stroke:var(--accent); }
   .staff-card .note-dot:hover{ opacity:1; }
-  .staff-card .is-hot{ fill:var(--accent); }
   .staff-card .note-dot:focus-visible{ stroke-width:1.5; }
   .fb-tuning{ margin:0 0 14px; }
   .fb-tuning .field-label{ margin:0 0 6px; }

@@ -537,7 +537,9 @@ function staffInner(absNotes, clef, writtenOctave, colors, playable){
   if(notes.length){
     const cx = NOTE_X + HEAD.adv/2 + (notes.some(n=> n.right) ? SECOND_SHIFT/2 : 0);
     const x0 = cx - (notes.length-1)*NAME_SLOT/2;
-    const textAttrs = `y="${P(namesY)}" text-anchor="middle" font-size="${P(NAME_SIZE)}" font-weight="700" font-family="Arial,sans-serif"`;
+    // stroke="none" keeps the sounding and hover marks, which stroke a head's
+    // outline, from thickening the letters
+    const textAttrs = `y="${P(namesY)}" text-anchor="middle" font-size="${P(NAME_SIZE)}" font-weight="700" font-family="Arial,sans-serif" stroke="none"`;
     notes.forEach((n,i)=>{
       const x = x0 + i*NAME_SLOT;
       if(i) s += `<text class="staff-name-sep" x="${P(x - NAME_SLOT/2)}" ${textAttrs} ${ink} opacity="${colors.lineOpacity}">·</text>`;
