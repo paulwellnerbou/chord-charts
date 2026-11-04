@@ -3,6 +3,7 @@ import {
   MAX_SPAN_MAX, MAX_SPAN_DEFAULT, MAX_VOICINGS, parseChord, parseNoteList, suggestedChords,
   findVoicings, computeFretWindow, chordAbsNotes, transposeChordText,
   identifyChord, spellNote, formatAccidentals,
+  canonicalChordName,
 } from './theory.js';
 import { NICE_COLORS, BW_COLORS, AQUILA_KIDS_STRING_COLORS, escapeXML, setAccidentalBearings, chordSVG, exportTileSVG, scaleSVG, exportScaleTileSVG, neckSVG, exportNeckTileSVG } from './diagram.js';
 import { parseScale, scaleCompletions, transposeScaleText, spellScale, scaleNoteNames, doubleAccidentalExample, scalePositions, scaleNeck, positionPlaybackMidis, positionStartFret } from './scales.js';
@@ -92,6 +93,7 @@ const DOWNLOAD_ICON = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" s
 const LINK_ICON = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
 const EXTERNAL_LINK_ICON = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
 const GRID_ICON = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`;
+const FRETBOARD_ICON = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="3" x2="4" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="20" y1="3" x2="20" y2="21"/><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="12" cy="11.5" r="2.4" fill="currentColor" stroke="none"/></svg>`;
 
 // Accidentals wrapped in a span so CSS can shrink them and tuck them against the
 // note letter, engraving-style. HTML sink only — never assign to textContent.
@@ -638,6 +640,12 @@ function openCardMenu(card, btn){
     const allItem = cardMenuItem(GRID_ICON, `All ${result.voicings.length} voicings in new tab`, chordPageURL(result.label, true));
     allItem.addEventListener('click', ()=> closeCardMenu());
     menu.appendChild(allItem);
+  }
+  // not on the create-chord dialog's own card, which is the board already; and
+  // the board stops at FB_FRETS where the sheet's max-fret setting may not
+  if(!fretboardIdCardSlotEl.contains(card) && fitsFretboardId(result.voicings[result.altIndex])){
+    menu.appendChild(Object.assign(document.createElement('hr'), { className:'card-menu-sep' }));
+    addAction(FRETBOARD_ICON, 'Edit on the fretboard', ()=> editOnFretboardId(result.voicings[result.altIndex], btn));
   }
 
   presentCardMenu(menu, btn);
@@ -2779,6 +2787,16 @@ function openFretboardIdModal(opener){
   }
 }
 
+function fitsFretboardId(frets){
+  return frets.every(f=> f===null || f<=FB_FRETS);
+}
+
+// Opens the dialog on a sheet card's fingering, to be changed from there.
+function editOnFretboardId(frets, opener){
+  fretboardIdState = frets.slice();
+  openFretboardIdModal(opener);
+}
+
 document.getElementById('fretboardIdModalClose').addEventListener('click', ()=> fretboardIdModal.close());
 document.getElementById('fretboardIdOpenBtn').addEventListener('click', e=> openFretboardIdModal(e.currentTarget));
 
@@ -3902,8 +3920,9 @@ async function runReverseSearch(){
   showReverseLoading();
   try{
     const params = new URLSearchParams({
-      // sorted for the 5-minute HTTP cache: same set, same URL
-      chords: [...capped].sort().join(','),
+      // one spelling per chord, sorted: the 5-minute HTTP cache then sees
+      // "C#0, G" and "G, C#dim" as the same URL
+      chords: capped.map(canonicalChordName).sort().join(','),
       mode: allowExtra ? 'contains' : 'playable',
       transpose: anyKey ? 'any' : 'same',
       limit: '20',

@@ -318,6 +318,18 @@ const QUALITY_RANK = {
 // the played-note readout so a named chord and its notes agree.
 const ROOT_NAMES = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
 
+// One spelling per chord for the song backend ("C#0", "Amin7/g" → "C#dim",
+// "Am7/G"), so it needs to know the canonical suffixes only, never the alias
+// table. Root and bass keep their accidental as written. Null if unparseable.
+function canonicalChordName(core){
+  const m = String(core).trim().match(/^([A-Ga-g])(#|b)?(.*?)(?:\/([A-Ga-g])(#|b)?)?$/);
+  if(!m) return null;
+  const quality = resolveQuality(m[3]||'');
+  if(quality === null) return null;
+  const note = (letter, acc) => letter.toUpperCase() + (acc||'');
+  return note(m[1], m[2]) + QUALITY_SUFFIX[quality] + (m[4] ? '/' + note(m[4], m[5]) : '');
+}
+
 function spellNote(pc){ return ROOT_NAMES[((pc%12)+12)%12]; }
 
 // Rewrites ASCII accidentals to their music-notation glyphs for DISPLAY only.
@@ -387,5 +399,5 @@ export {
   pcName, noteToPC, resolveQuality, parseChord, parseNoteList, suggestedChords,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes,
   transposedNoteName, transposeToken, transposeChordText,
-  identifyChord, spellNote, formatAccidentals,
+  identifyChord, spellNote, formatAccidentals, canonicalChordName,
 };

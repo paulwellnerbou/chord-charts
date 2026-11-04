@@ -4,7 +4,7 @@ import {
   TUNINGS, MAX_VOICINGS,
   pcName, noteToPC, resolveQuality, parseChord, parseNoteList, suggestedChords,
   findVoicings, fretsSpellChord, computeFretWindow, chordAbsNotes,
-  transposeToken, transposeChordText, identifyChord, spellNote, formatAccidentals,
+  transposeToken, transposeChordText, identifyChord, spellNote, formatAccidentals, canonicalChordName,
 } from '../js/theory.js';
 
 const UKE = TUNINGS[0]; // high-G GCEA
@@ -281,6 +281,22 @@ test('suspended dominant 7ths parse, transpose and identify', () => {
   assert.equal(exactLabels(identifyChord([0, 5, 7, 11], 0))[0], 'Cmaj7sus4');
   // the plain triad still reads as the triad, not a 7sus short of its 7th
   assert.equal(identifyChord([7, 0, 2], 7).matches[0].label, 'Gsus4');
+});
+
+test('canonicalChordName gives every alias its one spelling, keeping accidentals as written', () => {
+  assert.equal(canonicalChordName('C#0'), 'C#dim');
+  assert.equal(canonicalChordName('c#07'), 'C#dim7');
+  assert.equal(canonicalChordName('Amin7/g'), 'Am7/G');
+  assert.equal(canonicalChordName('CM7'), 'Cmaj7');
+  assert.equal(canonicalChordName('G7sus'), 'G7sus4');
+  assert.equal(canonicalChordName('Db'), 'Db');
+  assert.equal(canonicalChordName('C69'), 'C6/9');
+  assert.equal(canonicalChordName('C5'), 'C5');
+  assert.equal(canonicalChordName('Chorus:'), null);
+  // the canonical spellings are their own canonical form
+  for(const suffix of ['', 'm', '5', '7', 'm7', 'maj7', 'dim', 'dim7', 'm7b5', 'aug', 'sus2', 'sus4', '7sus2', '7sus4', 'maj7sus2', 'maj7sus4', '6', 'm6', 'add9', 'madd9', '9', '6/9', 'maj9']){
+    assert.equal(canonicalChordName('C' + suffix), 'C' + suffix);
+  }
 });
 
 test('identifyChord falls back to a one-tone-short near-miss only when nothing fits exactly', () => {
