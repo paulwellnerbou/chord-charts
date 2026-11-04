@@ -23,6 +23,8 @@ test('resolveQuality maps aliases to canonical keys', () => {
   assert.equal(resolveQuality('m7'), 'min7');
   assert.equal(resolveQuality('ø'), 'm7b5');
   assert.equal(resolveQuality('°7'), 'dim7');
+  assert.equal(resolveQuality('0'), 'dim');
+  assert.equal(resolveQuality('07'), 'dim7');
   assert.equal(resolveQuality('+'), 'aug');
   assert.equal(resolveQuality('sus'), 'sus4');
   assert.equal(resolveQuality('7sus4'), 'dom7sus4');

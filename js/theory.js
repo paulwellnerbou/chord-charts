@@ -70,8 +70,9 @@ function resolveQuality(raw){
     '7':'dom7',
     'm7':'min7', 'min7':'min7', '-7':'min7',
     'maj7':'maj7', 'ma7':'maj7',
-    'dim':'dim', '°':'dim', 'o':'dim',
-    'dim7':'dim7', '°7':'dim7', 'o7':'dim7',
+    // '0' and 'o' are the keyboard stand-ins for the degree sign
+    'dim':'dim', '°':'dim', 'o':'dim', '0':'dim',
+    'dim7':'dim7', '°7':'dim7', 'o7':'dim7', '07':'dim7',
     'm7b5':'m7b5', 'm7-5':'m7b5', 'ø':'m7b5', 'ø7':'m7b5', 'halfdim':'m7b5', 'halfdim7':'m7b5',
     'aug':'aug', '+':'aug',
     'sus2':'sus2',
